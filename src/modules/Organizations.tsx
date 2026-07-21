@@ -1,0 +1,287 @@
+import { useState } from 'react';
+import { Plus, Building2, X, Edit, Trash2 } from 'lucide-react';
+import { useDataStore } from '@/lib/dataStore';
+import { useToast } from '@/lib/toast';
+import type { Organization } from '@/lib/types';
+
+export function Organizations() {
+  const toast = useToast();
+  const { organizations, addOrg, updateOrg, deleteOrg } = useDataStore();
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [name, setName] = useState('');
+  const [legalName, setLegalName] = useState('');
+  const [code, setCode] = useState('');
+  const [currency, setCurrency] = useState('PKR');
+  const [taxId, setTaxId] = useState('');
+  const [firstBranch, setFirstBranch] = useState('Head Office');
+  const [status, setStatus] = useState('Active');
+
+  const openCreate = () => {
+    setEditingId(null);
+    setName('');
+    setLegalName('');
+    setCode('');
+    setCurrency('PKR');
+    setTaxId('');
+    setFirstBranch('Head Office');
+    setStatus('Active');
+    setModalOpen(true);
+  };
+
+  const openEdit = (o: Organization) => {
+    setEditingId(o.id);
+    setName(o.name);
+    setLegalName(o.legal_name || '');
+    setCode(o.org_code || 'ORG01');
+    setCurrency(o.currency || 'PKR');
+    setTaxId(o.tax_id || '');
+    setFirstBranch('Head Office');
+    setStatus(o.status || 'Active');
+    setModalOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!name.trim()) return toast.error('Organization name is required');
+
+    if (editingId) {
+      updateOrg(editingId, {
+        name,
+        legal_name: legalName,
+        org_code: code,
+        currency,
+        tax_id: taxId,
+        status,
+      });
+      toast.success(`Organization ${name} updated`);
+    } else {
+      addOrg({
+        name,
+        legal_name: legalName,
+        org_code: code || `ORG0${organizations.length + 1}`,
+        currency,
+        address: 'Lahore, Pakistan',
+        phone: '+92 42 111 222 333',
+        email: 'info@org.pk',
+        tax_id: taxId,
+        branches_count: 1,
+        users_count: 1,
+        status,
+      });
+      toast.success(`Organization ${name} created`);
+    }
+    setModalOpen(false);
+  };
+
+  const handleDelete = (id: string, orgName: string) => {
+    if (confirm(`Are you sure you want to delete organization ${orgName}?`)) {
+      deleteOrg(id);
+      toast.success(`Organization ${orgName} deleted`);
+    }
+  };
+
+  const toggleStatus = (o: Organization) => {
+    const next = o.status === 'Active' ? 'Inactive' : 'Active';
+    updateOrg(o.id, { status: next });
+    toast.success(`${o.name} is now ${next}`);
+  };
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
+        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Organizations</h1>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ORGANIZATIONS</p>
+          <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">{organizations.length}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ACTIVE WORKSPACES</p>
+          <p className="mt-1 text-2xl font-extrabold text-emerald-500">
+            {organizations.filter((o) => o.status === 'Active').length}
+          </p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL BRANCHES</p>
+          <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">2</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ASSIGNED USERS</p>
+          <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">2</p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">COMPANY PORTFOLIO</p>
+            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Organization directory</h2>
+          </div>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+          >
+            <Plus className="h-4 w-4" /> Add organization
+          </button>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
+              <tr>
+                <th className="px-4 py-3">Organization</th>
+                <th className="px-4 py-3">Code</th>
+                <th className="px-4 py-3">Currency</th>
+                <th className="px-4 py-3">Branches</th>
+                <th className="px-4 py-3">Users</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {organizations.map((o) => (
+                <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                  <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">{o.name}</td>
+                  <td className="px-4 py-3 font-mono text-slate-400">{o.org_code || 'ORG01'}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">{o.currency}</td>
+                  <td className="px-4 py-3 text-slate-500">{o.branches_count || 1}</td>
+                  <td className="px-4 py-3 text-slate-500">{o.users_count || 1}</td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => toggleStatus(o)}
+                      className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
+                        o.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-200 text-slate-500'
+                      }`}
+                    >
+                      {o.status || 'Active'}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => openEdit(o)}
+                        className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white"
+                      >
+                        <Edit className="h-3.5 w-3.5" /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(o.id, o.name)}
+                        className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-400"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* FORM MODAL */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">COMPANY PORTFOLIO</p>
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                  {editingId ? 'Edit organization' : 'New organization'}
+                </h3>
+              </div>
+              <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-400">Organization name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-400">Legal name</label>
+                <input
+                  type="text"
+                  value={legalName}
+                  onChange={(e) => setLegalName(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-400">Organization code</label>
+                  <input
+                    type="text"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-400">Base currency</label>
+                  <select
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                  >
+                    <option value="PKR">PKR</option>
+                    <option value="USD">USD</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-400">Tax / registration number</label>
+                <input
+                  type="text"
+                  value={taxId}
+                  onChange={(e) => setTaxId(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-400">First branch</label>
+                <input
+                  type="text"
+                  value={firstBranch}
+                  onChange={(e) => setFirstBranch(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setModalOpen(false)}
+                className="rounded-lg border border-slate-300 px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:text-slate-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+              >
+                {editingId ? 'Update organization' : 'Save organization'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
