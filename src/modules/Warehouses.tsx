@@ -1,19 +1,19 @@
 import { useState } from 'react';
-import { Plus, Warehouse as WhIcon, X, Edit, Trash2 } from 'lucide-react';
+import { Plus, Warehouse as WhIcon, X, Edit, Trash2, Power } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import type { Warehouse } from '@/lib/types';
 
 export function Warehouses() {
   const toast = useToast();
-  const { warehouses, addWarehouse, updateWarehouse, deleteWarehouse } = useDataStore();
+  const { warehouses, addWarehouse, updateWarehouse, deleteWarehouse, branches } = useDataStore();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  const [branch, setBranch] = useState('Head Office');
+  const [branchId, setBranchId] = useState('');
   const [address, setAddress] = useState('');
   const [isDefault, setIsDefault] = useState(false);
   const [isActive, setIsActive] = useState(true);
@@ -22,7 +22,7 @@ export function Warehouses() {
     setEditingId(null);
     setName('');
     setCode('');
-    setBranch('Head Office');
+    setBranchId(branches[0]?.id || '');
     setAddress('');
     setIsDefault(false);
     setIsActive(true);
@@ -33,7 +33,7 @@ export function Warehouses() {
     setEditingId(w.id);
     setName(w.name);
     setCode(w.code);
-    setBranch(w.branch_id || 'Head Office');
+    setBranchId(w.branch_id || branches[0]?.id || '');
     setAddress(w.address || '');
     setIsDefault(w.is_default || false);
     setIsActive(w.is_active);
@@ -47,6 +47,7 @@ export function Warehouses() {
       updateWarehouse(editingId, {
         name,
         code: code || 'WH',
+        branch_id: branchId || null,
         address,
         is_default: isDefault,
         is_active: isActive,
@@ -56,7 +57,7 @@ export function Warehouses() {
       addWarehouse({
         code: code || `WH-${warehouses.length + 1}`,
         name,
-        branch_id: 'b1',
+        branch_id: branchId || null,
         address,
         is_active: isActive,
         is_default: isDefault,
@@ -123,7 +124,9 @@ export function Warehouses() {
                   <tr key={w.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                     <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">{w.name}</td>
                     <td className="px-4 py-3 font-mono text-slate-400">{w.code}</td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">Head Office</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                      {branches.find((b) => b.id === w.branch_id)?.name || 'Head Office'}
+                    </td>
                     <td className="px-4 py-3">
                       {w.is_default && (
                         <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
@@ -132,17 +135,28 @@ export function Warehouses() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => toggleStatus(w)}
-                        className={`rounded-md px-2 py-0.5 text-[10px] font-semibold transition ${
-                          w.is_active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                          w.is_active ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                         }`}
                       >
-                        {w.is_active ? 'Active' : 'Inactive'}
-                      </button>
+                        {w.is_active ? 'Active' : 'Deactivated'}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleStatus(w)}
+                          className={`flex items-center gap-1 text-xs font-bold transition px-2 py-1 rounded-lg border ${
+                            w.is_active
+                              ? 'border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400'
+                              : 'border-emerald-200 bg-emerald-50/50 text-emerald-600 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400'
+                          }`}
+                        >
+                          <Power className="h-3.5 w-3.5" />
+                          {w.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
                         <button
                           onClick={() => openEdit(w)}
                           className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white"
@@ -205,11 +219,14 @@ export function Warehouses() {
                 <div>
                   <label className="text-[11px] font-semibold text-slate-400">Branch</label>
                   <select
-                    value={branch}
-                    onChange={(e) => setBranch(e.target.value)}
+                    value={branchId}
+                    onChange={(e) => setBranchId(e.target.value)}
                     className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
                   >
-                    <option value="Head Office">Head Office</option>
+                    {branches.filter((b) => b.is_active !== false).map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                    {branches.length === 0 && <option value="">No branches configured</option>}
                   </select>
                 </div>
               </div>
@@ -224,15 +241,26 @@ export function Warehouses() {
                 />
               </div>
 
-              <label className="flex items-center gap-2 pt-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isDefault}
-                  onChange={(e) => setIsDefault(e.target.checked)}
-                  className="h-4 w-4 rounded accent-emerald-500"
-                />
-                <span className="text-xs text-slate-700 dark:text-slate-300">Use as default stock location</span>
-              </label>
+              <div className="space-y-2 pt-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isDefault}
+                    onChange={(e) => setIsDefault(e.target.checked)}
+                    className="h-4 w-4 rounded accent-emerald-500"
+                  />
+                  <span className="text-xs text-slate-700 dark:text-slate-300">Use as default stock location</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isActive}
+                    onChange={(e) => setIsActive(e.target.checked)}
+                    className="h-4 w-4 rounded accent-emerald-500"
+                  />
+                  <span className="text-xs text-slate-700 dark:text-slate-300">Active Warehouse</span>
+                </label>
+              </div>
             </div>
 
             <div className="mt-6 flex justify-end gap-2">

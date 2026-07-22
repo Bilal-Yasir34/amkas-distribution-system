@@ -324,7 +324,7 @@ export function SalesInvoices() {
               <label className="label">Customer</label>
               <select className="input" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
                 <option value="">Select…</option>
-                {customers.map((c) => <option key={c.id} value={c.id}>{c.code} — {c.name}</option>)}
+                {customers.filter((c) => c.is_active).map((c) => <option key={c.id} value={c.id}>{c.code} — {c.name}</option>)}
               </select>
             </div>
             <div>

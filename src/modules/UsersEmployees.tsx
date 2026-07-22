@@ -7,7 +7,7 @@ import type { UserEmployee } from '@/lib/types';
 
 export function UsersEmployees() {
   const toast = useToast();
-  const { users, addUser, updateUser, deleteUser } = useDataStore();
+  const { users, addUser, updateUser, deleteUser, branches, departments } = useDataStore();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export function UsersEmployees() {
   const [require2FA, setRequire2FA] = useState(false);
 
   const [selectedRole, setSelectedRole] = useState('Super Admin');
-  const [branchScope, setBranchScope] = useState('All branches');
+  const [selectedBranchId, setSelectedBranchId] = useState('');
   const [departmentScope, setDepartmentScope] = useState('All departments');
   const [isActive, setIsActive] = useState(true);
 
@@ -48,7 +48,7 @@ export function UsersEmployees() {
     setPassword('');
     setRequire2FA(false);
     setSelectedRole('Super Admin');
-    setBranchScope('All branches');
+    setSelectedBranchId(branches[0]?.id || '');
     setDepartmentScope('All departments');
     setIsActive(true);
     setModalOpen(true);
@@ -68,7 +68,7 @@ export function UsersEmployees() {
     setPassword('');
     setRequire2FA(u.is_2fa_required);
     setSelectedRole(u.role);
-    setBranchScope('All branches');
+    setSelectedBranchId(u.branch_id || branches[0]?.id || '');
     setDepartmentScope('All departments');
     setIsActive(u.is_active);
     setModalOpen(true);
@@ -87,6 +87,7 @@ export function UsersEmployees() {
         employee_code: employeeCode,
         designation,
         role: selectedRole,
+        branch_id: selectedBranchId || null,
         base_salary: Number(baseSalary) || 0,
         allowances: Number(allowances) || 0,
         others: Number(others) || 0,
@@ -102,7 +103,7 @@ export function UsersEmployees() {
         employee_code: employeeCode || `EMP-00${users.length + 1}`,
         designation,
         role: selectedRole,
-        branch_id: 'b1',
+        branch_id: selectedBranchId || null,
         department_id: 'd1',
         base_salary: Number(baseSalary) || 0,
         allowances: Number(allowances) || 0,
@@ -428,6 +429,19 @@ export function UsersEmployees() {
                       <option key={r.id} value={r.label}>
                         {r.label}
                       </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-400">Branch</label>
+                  <select
+                    value={selectedBranchId}
+                    onChange={(e) => setSelectedBranchId(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                  >
+                    <option value="">All Branches</option>
+                    {branches.filter((b) => b.is_active !== false).map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
                     ))}
                   </select>
                 </div>

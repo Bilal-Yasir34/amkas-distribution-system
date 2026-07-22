@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { ROLE_MODULES, type Role, type ModuleKey } from './rbac';
 import type {
   Customer,
   Vendor,
@@ -35,6 +36,8 @@ import type {
   LoginLog,
   ChartOfAccount,
   ApprovalQueueItem,
+  ExpenseRecord,
+  IncomeRecord,
 } from './types';
 
 // Initial Seed Data
@@ -138,6 +141,7 @@ const initialProducts: Product[] = [
     tax_pct: 0,
     barcode_value: 'SKU-00001',
     description: 'Cotton fabric item',
+    stock_quantity: 500,
   },
 ];
 
@@ -235,10 +239,22 @@ interface DataStoreState {
   users: UserEmployee[];
   auditLogs: AuditLog[];
   loginLogs: LoginLog[];
+  rolePermissions: Record<Role, ModuleKey[]>;
+  expenseRecords: ExpenseRecord[];
+  incomeRecords: IncomeRecord[];
 
   // Logo / Branding State
   companyLogo: string | null;
   orgSettings: Partial<Organization>;
+
+  // Audit & Security Actions
+  addAuditLog: (log: Omit<AuditLog, 'id'>) => void;
+  addLoginLog: (log: Omit<LoginLog, 'id'>) => void;
+  updateRolePermissions: (role: Role, modules: ModuleKey[]) => void;
+
+  // Expense & Income Actions
+  addExpenseRecord: (e: Omit<ExpenseRecord, 'id'>) => void;
+  addIncomeRecord: (i: Omit<IncomeRecord, 'id'>) => void;
 
   // Customer Actions
   addCustomer: (c: Omit<Customer, 'id'>) => void;
@@ -461,8 +477,43 @@ export const useDataStore = create<DataStoreState>()(
           last_login: '21 Jul 2026, 12:06 PM',
         }
       ],
-      auditLogs: [],
-      loginLogs: [],
+      auditLogs: [
+        {
+          id: 'aud-1',
+          username: 'admin',
+          module: 'Authentication',
+          action: 'Login',
+          description: 'User signed in',
+          ip_address: '127.0.0.1',
+          timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        },
+      ],
+      loginLogs: [
+        {
+          id: 'log-1',
+          username: 'admin',
+          status: 'Success',
+          ip_address: '127.0.0.1',
+          user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+          timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        },
+      ],
+      rolePermissions: ROLE_MODULES,
+      expenseRecords: [],
+      incomeRecords: [
+        {
+          id: 'inc1',
+          number: 'MI-00001',
+          date: '26 Jun 2026',
+          account_id: 'co10',
+          account_name: 'Other Income',
+          description: 'test',
+          cash_bank_account: 'Cash in Hand',
+          amount: 1500,
+          status: 'Posted',
+          created_at: '2026-06-26T10:00:00Z',
+        },
+      ],
 
       companyLogo: null,
       orgSettings: {
@@ -478,33 +529,200 @@ export const useDataStore = create<DataStoreState>()(
         date_format: '21 Jun 2026',
       },
 
+      addExpenseRecord: (e) => set((s) => ({ expenseRecords: [{ id: crypto.randomUUID(), ...e }, ...s.expenseRecords] })),
+      addIncomeRecord: (i) => set((s) => ({ incomeRecords: [{ id: crypto.randomUUID(), ...i }, ...s.incomeRecords] })),
+
       // Customer Actions
       addCustomer: (c) => set((s) => ({ customers: [{ id: crypto.randomUUID(), ...c }, ...s.customers] })),
-      updateCustomer: (id, patch) => set((s) => ({ customers: s.customers.map((c) => (c.id === id ? { ...c, ...patch } : c)) })),
-      deleteCustomer: (id) => set((s) => ({ customers: s.customers.filter((c) => c.id !== id) })),
+      updateCustomer: (id, patch) =>
+        set((s) => ({
+          customers: s.customers.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+          // If customer name changes, cascade to audit log description
+          auditLogs: patch.name
+            ? [
+                { id: crypto.randomUUID(), description: `Customer updated: ${patch.name}`, action: 'Update', module: 'Customers', performed_by: 'admin', timestamp: new Date().toISOString() },
+                ...s.auditLogs,
+              ]
+            : s.auditLogs,
+        })),
+      deleteCustomer: (id) =>
+        set((s) => {
+          const cust = s.customers.find((c) => c.id === id);
+          return {
+            customers: s.customers.filter((c) => c.id !== id),
+            // Cascade: null out customer_id in all sales documents
+            invoices: s.invoices.map((inv) => inv.customer_id === id ? { ...inv, customer_id: null } : inv),
+            quotations: s.quotations.map((q) => q.customer_id === id ? { ...q, customer_id: null } : q),
+            salesOrders: s.salesOrders.map((so) => so.customer_id === id ? { ...so, customer_id: null } : so),
+            creditNotes: (s.creditNotes || []).map((cn) => cn.customer_id === id ? { ...cn, customer_id: null } : cn),
+            customerReceipts: (s.customerReceipts || []).map((r) => r.customer_id === id ? { ...r, customer_id: null } : r),
+            // Log deletion
+            auditLogs: [{ id: crypto.randomUUID(), description: `Customer deleted: ${cust?.name || id}`, action: 'Delete', module: 'Customers', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+          };
+        }),
 
       // Vendor Actions
       addVendor: (v) => set((s) => ({ vendors: [{ id: crypto.randomUUID(), ...v }, ...s.vendors] })),
-      updateVendor: (id, patch) => set((s) => ({ vendors: s.vendors.map((v) => (v.id === id ? { ...v, ...patch } : v)) })),
-      deleteVendor: (id) => set((s) => ({ vendors: s.vendors.filter((v) => v.id !== id) })),
+      updateVendor: (id, patch) =>
+        set((s) => ({
+          vendors: s.vendors.map((v) => (v.id === id ? { ...v, ...patch } : v)),
+          auditLogs: patch.name
+            ? [{ id: crypto.randomUUID(), description: `Vendor updated: ${patch.name}`, action: 'Update', module: 'Vendors', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs]
+            : s.auditLogs,
+        })),
+      deleteVendor: (id) =>
+        set((s) => {
+          const vend = s.vendors.find((v) => v.id === id);
+          return {
+            vendors: s.vendors.filter((v) => v.id !== id),
+            // Cascade: null vendor_id in purchase documents
+            purchaseOrders: s.purchaseOrders.map((po) => po.vendor_id === id ? { ...po, vendor_id: null } : po),
+            purchaseInvoices: s.purchaseInvoices.map((pi) => pi.vendor_id === id ? { ...pi, vendor_id: null } : pi),
+            vendorBills: s.vendorBills.map((vb) => vb.vendor_id === id ? { ...vb, vendor_id: null } : vb),
+            debitNotes: s.debitNotes.map((dn) => dn.vendor_id === id ? { ...dn, vendor_id: null } : dn),
+            vendorPayments: s.vendorPayments.map((vp) => vp.vendor_id === id ? { ...vp, vendor_id: null } : vp),
+            purchaseRequests: s.purchaseRequests.map((pr) => pr.vendor_id === id ? { ...pr, vendor_id: null } : pr),
+            auditLogs: [{ id: crypto.randomUUID(), description: `Vendor deleted: ${vend?.name || id}`, action: 'Delete', module: 'Vendors', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+          };
+        }),
 
       // Product Actions
       addProduct: (p) => set((s) => ({ products: [{ id: crypto.randomUUID(), ...p }, ...s.products] })),
-      updateProduct: (id, patch) => set((s) => ({ products: s.products.map((p) => (p.id === id ? { ...p, ...patch } : p)) })),
-      deleteProduct: (id) => set((s) => ({ products: s.products.filter((p) => p.id !== id) })),
+      updateProduct: (id, patch) =>
+        set((s) => ({
+          products: s.products.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+          // If product name changes, cascade description in invoice items that reference it
+          invoices: patch.name
+            ? s.invoices.map((inv) => ({
+                ...inv,
+                items: inv.items?.map((item) =>
+                  item.product_id === id ? { ...item, description: patch.name } : item
+                ),
+              }))
+            : s.invoices,
+        })),
+      deleteProduct: (id) =>
+        set((s) => {
+          const prod = s.products.find((p) => p.id === id);
+          return {
+            products: s.products.filter((p) => p.id !== id),
+            // Cascade: null product_id in all line items; keep description as snapshot
+            invoices: s.invoices.map((inv) => ({
+              ...inv,
+              items: inv.items?.map((item) =>
+                item.product_id === id ? { ...item, product_id: null, description: `[Deleted] ${prod?.name || item.description}` } : item
+              ),
+            })),
+            quotations: s.quotations.map((q) => ({
+              ...q,
+              items: q.items?.map((item) =>
+                item.product_id === id ? { ...item, product_id: null, description: `[Deleted] ${prod?.name || item.description}` } : item
+              ),
+            })),
+            salesOrders: s.salesOrders.map((so) => ({
+              ...so,
+              items: so.items?.map((item) =>
+                item.product_id === id ? { ...item, product_id: null, description: `[Deleted] ${prod?.name || item.description}` } : item
+              ),
+            })),
+            // Remove from batches and serials
+            batches: s.batches.filter((b) => b.product_id !== id),
+            serials: s.serials.filter((sr) => sr.product_id !== id),
+            auditLogs: [{ id: crypto.randomUUID(), description: `Product deleted: ${prod?.name || id}`, action: 'Delete', module: 'Products', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+          };
+        }),
 
       // Category Actions
       addCategory: (cat) => set((s) => ({ categories: [{ id: crypto.randomUUID(), ...cat }, ...s.categories] })),
-      updateCategory: (id, patch) => set((s) => ({ categories: s.categories.map((c) => (c.id === id ? { ...c, ...patch } : c)) })),
-      deleteCategory: (id) => set((s) => ({ categories: s.categories.filter((c) => c.id !== id) })),
+      updateCategory: (id, patch) =>
+        set((s) => ({
+          categories: s.categories.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+          // If category is deactivated, deactivate all products in that category
+          products: patch.is_active === false
+            ? s.products.map((p) => {
+                const cat = s.categories.find((c) => c.id === id);
+                return p.category === cat?.name ? { ...p, is_active: false } : p;
+              })
+            : s.products,
+        })),
+      deleteCategory: (id) =>
+        set((s) => {
+          const cat = s.categories.find((c) => c.id === id);
+          return {
+            categories: s.categories.filter((c) => c.id !== id),
+            // Null out category on products that referenced this category
+            products: s.products.map((p) =>
+              p.category === cat?.name ? { ...p, category: null } : p
+            ),
+            auditLogs: [{ id: crypto.randomUUID(), description: `Category deleted: ${cat?.name || id}`, action: 'Delete', module: 'Categories', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+          };
+        }),
 
       // Warehouse Actions
       addWarehouse: (w) => set((s) => ({ warehouses: [{ id: crypto.randomUUID(), ...w }, ...s.warehouses] })),
       updateWarehouse: (id, patch) => set((s) => ({ warehouses: s.warehouses.map((w) => (w.id === id ? { ...w, ...patch } : w)) })),
-      deleteWarehouse: (id) => set((s) => ({ warehouses: s.warehouses.filter((w) => w.id !== id) })),
+      deleteWarehouse: (id) =>
+        set((s) => {
+          const wh = s.warehouses.find((w) => w.id === id);
+          return {
+            warehouses: s.warehouses.filter((w) => w.id !== id),
+            // Cascade: null warehouse_id in all documents referencing this warehouse
+            invoices: s.invoices.map((inv) => inv.warehouse_id === id ? { ...inv, warehouse_id: null } : inv),
+            salesOrders: s.salesOrders.map((so) => so.warehouse_id === id ? { ...so, warehouse_id: null } : so),
+            stockTransfers: s.stockTransfers.map((st) =>
+              st.from_warehouse_id === id ? { ...st, from_warehouse_id: null }
+              : st.to_warehouse_id === id ? { ...st, to_warehouse_id: null }
+              : st
+            ),
+            stockAdjustments: s.stockAdjustments.map((sa) => sa.warehouse_id === id ? { ...sa, warehouse_id: null } : sa),
+            auditLogs: [{ id: crypto.randomUUID(), description: `Warehouse deleted: ${wh?.name || id}`, action: 'Delete', module: 'Warehouses', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+          };
+        }),
 
       // Invoice Actions
-      addInvoice: (inv) => set((s) => ({ invoices: [{ id: crypto.randomUUID(), ...inv }, ...s.invoices] })),
+      addInvoice: (inv) =>
+        set((s) => {
+          const newInv = { id: crypto.randomUUID(), ...inv };
+          const newInvoices = [newInv, ...s.invoices];
+          let newCommissions = [...s.commissions];
+          let newJournalEntries = [...s.journalEntries];
+
+          if (inv.commission_rate && inv.commission_rate > 0) {
+            const commAmount = (inv.total_amount * inv.commission_rate) / 100;
+            const cust = s.customers.find((c) => c.id === inv.customer_id);
+            newCommissions.unshift({
+              id: crypto.randomUUID(),
+              invoice_no: inv.invoice_no,
+              customer_name: cust?.name || 'Customer',
+              salesperson: inv.salesperson || 'admin',
+              rate_pct: inv.commission_rate,
+              commission_amount: commAmount,
+              status: inv.status === 'POSTED' ? 'APPROVED' : 'ACCRUED',
+              created_at: new Date().toISOString(),
+            });
+          }
+
+          if (inv.status === 'POSTED') {
+            newJournalEntries.unshift({
+              id: crypto.randomUUID(),
+              entry_no: `JV-${inv.invoice_no}`,
+              entry_date: inv.invoice_date,
+              reference_no: inv.invoice_no,
+              source: 'Sales Invoice',
+              narration: `Sales Invoice ${inv.invoice_no} posted to ${inv.account_head || 'Sales Revenue'}`,
+              total_debit: inv.total_amount,
+              total_credit: inv.total_amount,
+              status: 'POSTED',
+              created_at: new Date().toISOString(),
+            });
+          }
+
+          return {
+            invoices: newInvoices,
+            commissions: newCommissions,
+            journalEntries: newJournalEntries,
+          };
+        }),
       updateInvoice: (id, patch) => set((s) => ({ invoices: s.invoices.map((i) => (i.id === id ? { ...i, ...patch } : i)) })),
       deleteInvoice: (id) => set((s) => ({ invoices: s.invoices.filter((i) => i.id !== id) })),
 
@@ -516,13 +734,78 @@ export const useDataStore = create<DataStoreState>()(
       updateSalesOrder: (id, patch) => set((s) => ({ salesOrders: s.salesOrders.map((so) => (so.id === id ? { ...so, ...patch } : so)) })),
       deleteSalesOrder: (id) => set((s) => ({ salesOrders: s.salesOrders.filter((so) => so.id !== id) })),
 
-      addCreditNote: (cn) => set((s) => ({ creditNotes: [{ id: crypto.randomUUID(), ...cn }, ...s.creditNotes] })),
-      updateCreditNote: (id, patch) => set((s) => ({ creditNotes: s.creditNotes.map((cn) => (cn.id === id ? { ...cn, ...patch } : cn)) })),
-      deleteCreditNote: (id) => set((s) => ({ creditNotes: s.creditNotes.filter((cn) => cn.id !== id) })),
+      addCreditNote: (cn) =>
+        set((s) => {
+          const newCn = { id: crypto.randomUUID(), ...cn };
+          const newCreditNotes = [newCn, ...(s.creditNotes || [])];
+          let newJournalEntries = [...(s.journalEntries || [])];
 
-      addCustomerReceipt: (r) => set((s) => ({ customerReceipts: [{ id: crypto.randomUUID(), ...r }, ...s.customerReceipts] })),
-      updateCustomerReceipt: (id, patch) => set((s) => ({ customerReceipts: s.customerReceipts.map((r) => (r.id === id ? { ...r, ...patch } : r)) })),
-      deleteCustomerReceipt: (id) => set((s) => ({ customerReceipts: s.customerReceipts.filter((r) => r.id !== id) })),
+          if (cn.status === 'POSTED') {
+            newJournalEntries.unshift({
+              id: crypto.randomUUID(),
+              entry_no: `JV-${cn.credit_note_no}`,
+              entry_date: cn.document_date || cn.note_date,
+              reference_no: cn.credit_note_no,
+              source: 'Credit Note',
+              narration: `Credit Note ${cn.credit_note_no} posted for customer balance adjustment`,
+              total_debit: cn.total_amount,
+              total_credit: cn.total_amount,
+              status: 'POSTED',
+              created_at: new Date().toISOString(),
+            });
+          }
+
+          return {
+            creditNotes: newCreditNotes,
+            journalEntries: newJournalEntries,
+          };
+        }),
+      updateCreditNote: (id, patch) => set((s) => ({ creditNotes: (s.creditNotes || []).map((cn) => (cn.id === id ? { ...cn, ...patch } : cn)) })),
+      deleteCreditNote: (id) => set((s) => ({ creditNotes: (s.creditNotes || []).filter((cn) => cn.id !== id) })),
+
+      addCustomerReceipt: (r) =>
+        set((s) => {
+          const newReceipt = { id: crypto.randomUUID(), ...r };
+          const newReceipts = [newReceipt, ...(s.customerReceipts || [])];
+          let newBankAccounts = [...(s.bankAccounts || [])];
+          let newJournalEntries = [...(s.journalEntries || [])];
+
+          const bankIdx = newBankAccounts.findIndex(
+            (b) => b.id === r.deposit_account_id || b.account_name === r.deposit_to
+          );
+          if (bankIdx !== -1) {
+            newBankAccounts[bankIdx] = {
+              ...newBankAccounts[bankIdx],
+              current_balance: (newBankAccounts[bankIdx].current_balance || 0) + (r.amount || 0),
+            };
+          }
+
+          const depositName = r.deposit_to || newBankAccounts[bankIdx]?.account_name || 'Cash in Hand';
+          newJournalEntries.unshift({
+            id: crypto.randomUUID(),
+            entry_no: `JV-${r.receipt_no}`,
+            entry_date: r.receipt_date,
+            reference_no: r.receipt_no,
+            source: 'Customer Payment',
+            narration: `Customer payment ${r.receipt_no} deposited to ${depositName}`,
+            total_debit: r.amount,
+            total_credit: r.amount,
+            status: 'POSTED',
+            created_at: new Date().toISOString(),
+          });
+
+          return {
+            customerReceipts: newReceipts,
+            bankAccounts: newBankAccounts,
+            journalEntries: newJournalEntries,
+          };
+        }),
+      updateCustomerReceipt: (id, patch) => set((s) => ({ customerReceipts: (s.customerReceipts || []).map((r) => (r.id === id ? { ...r, ...patch } : r)) })),
+      deleteCustomerReceipt: (id) => set((s) => ({ customerReceipts: (s.customerReceipts || []).filter((r) => r.id !== id) })),
+
+      addCommission: (c) => set((s) => ({ commissions: [{ id: crypto.randomUUID(), ...c }, ...(s.commissions || [])] })),
+      updateCommission: (id, patch) => set((s) => ({ commissions: (s.commissions || []).map((c) => (c.id === id ? { ...c, ...patch } : c)) })),
+      deleteCommission: (id) => set((s) => ({ commissions: (s.commissions || []).filter((c) => c.id !== id) })),
 
       // Purchase Actions
       addPurchaseRequest: (pr) => set((s) => ({ purchaseRequests: [{ id: crypto.randomUUID(), ...pr }, ...s.purchaseRequests] })),
@@ -590,20 +873,76 @@ export const useDataStore = create<DataStoreState>()(
 
       // Org & Branch & Dept Actions
       addOrg: (o) => set((s) => ({ organizations: [{ id: crypto.randomUUID(), ...o }, ...s.organizations] })),
-      updateOrg: (id, patch) => set((s) => ({ organizations: s.organizations.map((o) => (o.id === id ? { ...o, ...patch } : o)) })),
-      deleteOrg: (id) => set((s) => ({ organizations: s.organizations.filter((o) => o.id !== id) })),
+      updateOrg: (id, patch) =>
+        set((s) => ({
+          organizations: s.organizations.map((o) => (o.id === id ? { ...o, ...patch } : o)),
+          // If org is deactivated, deactivate all its branches
+          branches: patch.is_active === false
+            ? s.branches.map((b) => b.org_id === id ? { ...b, is_active: false } : b)
+            : s.branches,
+        })),
+      deleteOrg: (id) =>
+        set((s) => {
+          const org = s.organizations.find((o) => o.id === id);
+          return {
+            organizations: s.organizations.filter((o) => o.id !== id),
+            // Cascade: null org_id in branches and sales documents
+            branches: s.branches.map((b) => b.org_id === id ? { ...b, org_id: null } : b),
+            quotations: s.quotations.map((q) => q.org_id === id ? { ...q, org_id: null } : q),
+            salesOrders: s.salesOrders.map((so) => so.org_id === id ? { ...so, org_id: null } : so),
+            auditLogs: [{ id: crypto.randomUUID(), description: `Organization deleted: ${org?.name || id}`, action: 'Delete', module: 'Organizations', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+          };
+        }),
 
       addBranch: (b) => set((s) => ({ branches: [{ id: crypto.randomUUID(), ...b }, ...s.branches] })),
-      updateBranch: (id, patch) => set((s) => ({ branches: s.branches.map((b) => (b.id === id ? { ...b, ...patch } : b)) })),
-      deleteBranch: (id) => set((s) => ({ branches: s.branches.filter((b) => b.id !== id) })),
+      updateBranch: (id, patch) =>
+        set((s) => ({
+          branches: s.branches.map((b) => (b.id === id ? { ...b, ...patch } : b)),
+          // If branch is deactivated, deactivate its warehouses and departments
+          warehouses: patch.is_active === false
+            ? s.warehouses.map((w) => w.branch_id === id ? { ...w, is_active: false } : w)
+            : s.warehouses,
+          departments: patch.is_active === false
+            ? s.departments.map((d) => d.branch_id === id ? { ...d, is_active: false } : d)
+            : s.departments,
+        })),
+      deleteBranch: (id) =>
+        set((s) => {
+          const br = s.branches.find((b) => b.id === id);
+          return {
+            branches: s.branches.filter((b) => b.id !== id),
+            // Cascade: null branch_id in warehouses, departments, users, quotations, salesOrders
+            warehouses: s.warehouses.map((w) => w.branch_id === id ? { ...w, branch_id: null } : w),
+            departments: s.departments.map((d) => d.branch_id === id ? { ...d, branch_id: null } : d),
+            users: s.users.map((u) => u.branch_id === id ? { ...u, branch_id: null } : u),
+            quotations: s.quotations.map((q) => q.branch_id === id ? { ...q, branch_id: null } : q),
+            salesOrders: s.salesOrders.map((so) => so.branch_id === id ? { ...so, branch_id: null } : so),
+            auditLogs: [{ id: crypto.randomUUID(), description: `Branch deleted: ${br?.name || id}`, action: 'Delete', module: 'Branches', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+          };
+        }),
 
       addDepartment: (d) => set((s) => ({ departments: [{ id: crypto.randomUUID(), ...d }, ...s.departments] })),
       updateDepartment: (id, patch) => set((s) => ({ departments: s.departments.map((d) => (d.id === id ? { ...d, ...patch } : d)) })),
-      deleteDepartment: (id) => set((s) => ({ departments: s.departments.filter((d) => d.id !== id) })),
+      deleteDepartment: (id) =>
+        set((s) => {
+          const dept = s.departments.find((d) => d.id === id);
+          return {
+            departments: s.departments.filter((d) => d.id !== id),
+            // Null out department_id in users
+            users: s.users.map((u) => u.department_id === id ? { ...u, department_id: null } : u),
+            auditLogs: [{ id: crypto.randomUUID(), description: `Department deleted: ${dept?.name || id}`, action: 'Delete', module: 'Departments', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+          };
+        }),
 
       addUser: (u) => set((s) => ({ users: [{ id: crypto.randomUUID(), ...u }, ...s.users] })),
       updateUser: (id, patch) => set((s) => ({ users: s.users.map((u) => (u.id === id ? { ...u, ...patch } : u)) })),
       deleteUser: (id) => set((s) => ({ users: s.users.filter((u) => u.id !== id) })),
+
+      // Audit & Security Actions
+      addAuditLog: (log) => set((s) => ({ auditLogs: [{ id: crypto.randomUUID(), ...log }, ...s.auditLogs] })),
+      addLoginLog: (log) => set((s) => ({ loginLogs: [{ id: crypto.randomUUID(), ...log }, ...s.loginLogs] })),
+      updateRolePermissions: (role, modules) =>
+        set((s) => ({ rolePermissions: { ...s.rolePermissions, [role]: modules } })),
 
       // Logo Actions
       setCompanyLogo: (logoUrl) => set({ companyLogo: logoUrl }),

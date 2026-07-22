@@ -76,7 +76,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
 
   const role = profile?.role ?? 'super_admin';
-  const allowed = ROLE_MODULES[role] || ROLE_MODULES.super_admin;
+  const { rolePermissions } = useDataStore();
+  const allowed = rolePermissions[role] || ROLE_MODULES[role] || ROLE_MODULES.super_admin;
   const currentLabel = MODULE_LABELS[activeModule as ModuleKey] ?? 'Dashboard';
   const roleLabel = ROLES.find((r) => r.id === role)?.label ?? 'Super Admin';
 
@@ -129,7 +130,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
   ];
 
-  const { companyLogo } = useDataStore();
+  const { companyLogo, organizations, branches } = useDataStore();
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#0b132b]">
@@ -215,8 +216,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 onChange={(e) => setSelectedOrg(e.target.value)}
                 className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
               >
-                <option value="AMKAS INTERNATIONAL">AMKAS INTERNATIONAL</option>
-                <option value="Ahmed raza">Ahmed raza</option>
+                {organizations.length > 0 ? (
+                  organizations.map((o) => (
+                    <option key={o.id} value={o.name}>{o.name}</option>
+                  ))
+                ) : (
+                  <option value="AMKAS INTERNATIONAL">AMKAS INTERNATIONAL</option>
+                )}
               </select>
             </div>
             <div className="flex items-center gap-1.5 text-xs">
@@ -226,7 +232,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
               >
                 <option value="All Branches">All Branches</option>
-                <option value="Head Office">Head Office</option>
+                {branches.filter((b) => b.is_active !== false).map((b) => (
+                  <option key={b.id} value={b.name}>{b.name}</option>
+                ))}
               </select>
             </div>
           </div>

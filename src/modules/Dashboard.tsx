@@ -41,6 +41,7 @@ export function Dashboard() {
     journalEntries,
     branches,
     users,
+    auditLogs,
   } = useDataStore();
 
   const [fromDate, setFromDate] = useState('2026-07-01');
@@ -71,16 +72,24 @@ export function Dashboard() {
   const totalCashBank = bankAccounts.reduce((acc, ba) => acc + (ba.current_balance || 0), 0);
 
   const stockValue = products.reduce(
-    (acc, p) => acc + (p.opening_average_cost || p.purchase_price || 0) * 500,
+    (acc, p) => acc + (p.opening_average_cost || p.purchase_price || 0) * (p.stock_quantity || 0),
     0
   );
-  const lowStockCount = products.filter((p) => (p.reorder_level || 0) > 0 && 500 <= (p.reorder_level || 0)).length;
+  const lowStockCount = products.filter(
+    (p) => (p.reorder_level || 0) > 0 && (p.stock_quantity || 0) <= (p.reorder_level || 0)
+  ).length;
 
   const pendingApprovals = approvalQueue.filter((a) => a.status === 'PENDING').length;
 
-  // Recent activity derived from store
+  // Recent activity: prioritize auditLogs, fill in with invoice/bill events
   const recentActivities = [
-    ...invoices.slice(0, 3).map((inv) => ({
+    ...auditLogs.slice(0, 4).map((a) => ({
+      action: a.description,
+      time: a.timestamp?.slice(0, 10) || 'today',
+      type: a.module?.toLowerCase() || 'system',
+      color: a.action === 'Login' ? 'slate' : 'emerald',
+    })),
+    ...invoices.slice(0, 2).map((inv) => ({
       action: `Sales invoice ${inv.invoice_no} ${inv.status.toLowerCase()}`,
       time: inv.created_at?.slice(0, 10) || 'today',
       type: 'sales',
@@ -92,13 +101,6 @@ export function Dashboard() {
       type: 'purchases',
       color: 'amber',
     })),
-    ...customerReceipts.slice(0, 2).map((r) => ({
-      action: `Receipt ${r.receipt_no} posted`,
-      time: r.created_at?.slice(0, 10) || 'today',
-      type: 'accounting',
-      color: 'blue',
-    })),
-    { action: 'Admin signed in', time: 'today', type: 'auth', color: 'slate' },
   ].slice(0, 8);
 
   return (
@@ -348,8 +350,13 @@ export function Dashboard() {
             <button onClick={() => setActiveModule('branches')} className="text-xs font-semibold text-emerald-500 hover:underline">Manage</button>
           </div>
           <div className="mt-4 space-y-3">
-            {branches.map((branch) => {
-              const branchRevenue = invoices.reduce((acc, i) => acc + (i.total_amount || 0), 0);
+            {branches.length === 0 ? (
+              <p className="py-4 text-center text-xs text-slate-400">No branches configured yet.</p>
+            ) : branches.map((branch) => {
+              const branchRevenue = invoices
+                .filter((i) => !i.branch_id || i.branch_id === branch.id)
+                .reduce((acc, i) => acc + (i.total_amount || 0), 0);
+              const branchUsers = users.filter((u) => u.branch_id === branch.id).length;
               return (
                 <div key={branch.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-slate-800/60">
                   <div className="flex items-center gap-3">
@@ -358,7 +365,7 @@ export function Dashboard() {
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">{branch.name}</p>
-                      <p className="text-[10px] text-slate-400">{branch.code} · {users.length} user(s)</p>
+                      <p className="text-[10px] text-slate-400">{branch.code} · {branchUsers} user(s)</p>
                     </div>
                   </div>
                   <span className="text-xs font-bold text-emerald-500">{formatCurrency(branchRevenue)}</span>

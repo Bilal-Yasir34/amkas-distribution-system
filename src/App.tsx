@@ -114,13 +114,17 @@ function AppContent() {
   );
 }
 
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-      <Toaster />
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+        <Toaster />
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

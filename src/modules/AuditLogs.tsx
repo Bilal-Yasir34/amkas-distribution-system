@@ -1,26 +1,54 @@
 import { useState } from 'react';
 import { History, Shield, Printer, Download } from 'lucide-react';
+import { useDataStore } from '@/lib/dataStore';
 
 export function AuditLogs() {
   const [activeTab, setActiveTab] = useState<'Activity log' | 'Login history'>('Activity log');
+  const { auditLogs, loginLogs, invoices, vendorBills, customerReceipts } = useDataStore();
 
-  const activityLogs = [
-    { user: 'admin', module: 'Authentication', action: 'Login', desc: 'User signed in', ip: '59.103.102.161', time: '21 Jul 2026, 12:06:25 PM' },
-    { user: 'admin', module: 'Authentication', action: 'Login', desc: 'User signed in', ip: '59.103.102.161', time: '21 Jul 2026, 11:06:03 AM' },
-    { user: 'admin', module: 'Authentication', action: 'Login', desc: 'User signed in', ip: '59.103.102.161', time: '20 Jul 2026, 06:40:08 PM' },
-    { user: 'admin', module: 'Authentication', action: 'Login', desc: 'User signed in', ip: '59.103.102.161', time: '20 Jul 2026, 06:19:36 PM' },
-    { user: 'admin', module: 'Purchases', action: 'Create', desc: 'Posted purchase invoice PI-00002', ip: '39.37.158.37', time: '15 Jul 2026, 02:35:06 PM' },
-    { user: 'admin', module: 'Purchases', action: 'Create', desc: 'Posted purchase invoice PI-00001', ip: '39.37.158.37', time: '15 Jul 2026, 02:33:53 PM' },
-    { user: 'admin', module: 'Accounting', action: 'Create', desc: 'Posted unified payment CP-00003', ip: '39.37.158.37', time: '15 Jul 2026, 02:31:18 PM' },
-    { user: 'admin', module: 'Accounting', action: 'Create', desc: 'Posted cash receipt CR-00006', ip: '39.37.158.37', time: '15 Jul 2026, 02:29:01 PM' },
+  // Combine real store auditLogs with invoice/bill activities if store logs are initial
+  const displayAuditLogs = [
+    ...auditLogs.map((a) => ({
+      user: a.username || 'admin',
+      module: a.module || 'System',
+      action: a.action || 'Event',
+      desc: a.description,
+      ip: a.ip_address || '127.0.0.1',
+      time: a.timestamp,
+    })),
+    ...invoices.map((inv) => ({
+      user: 'admin',
+      module: 'Sales',
+      action: inv.status,
+      desc: `Sales invoice ${inv.invoice_no} (${inv.customer_name || 'Customer'})`,
+      ip: '127.0.0.1',
+      time: inv.created_at?.slice(0, 10) || '2026-07-22',
+    })),
+    ...vendorBills.map((vb) => ({
+      user: 'admin',
+      module: 'Purchases',
+      action: vb.status,
+      desc: `Vendor bill ${vb.bill_no} (${vb.vendor_name || 'Vendor'})`,
+      ip: '127.0.0.1',
+      time: vb.created_at?.slice(0, 10) || '2026-07-22',
+    })),
+    ...customerReceipts.map((cr) => ({
+      user: 'admin',
+      module: 'Accounting',
+      action: 'POSTED',
+      desc: `Customer receipt ${cr.receipt_no}`,
+      ip: '127.0.0.1',
+      time: cr.created_at?.slice(0, 10) || '2026-07-22',
+    })),
   ];
 
-  const loginLogs = [
-    { user: 'admin', status: 'Success', ip: '59.103.102.161', device: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', time: '21 Jul 2026, 12:06:25 PM' },
-    { user: 'admin', status: 'Logged Out', ip: '59.103.102.161', device: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', time: '21 Jul 2026, 12:05:19 PM' },
-    { user: 'admin', status: 'Success', ip: '59.103.102.161', device: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', time: '21 Jul 2026, 11:06:03 AM' },
-    { user: 'admin', status: 'Success', ip: '59.103.102.161', device: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', time: '20 Jul 2026, 06:40:08 PM' },
-  ];
+  const displayLoginLogs = loginLogs.map((l) => ({
+    user: l.username || 'admin',
+    status: l.status || 'Success',
+    ip: l.ip_address || '127.0.0.1',
+    device: l.user_agent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+    time: l.timestamp,
+  }));
 
   return (
     <div className="space-y-5">
@@ -73,20 +101,28 @@ export function AuditLogs() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {activityLogs.map((log, i) => (
-                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                    <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">{log.user}</td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{log.module}</td>
-                    <td className="px-4 py-3">
-                      <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
-                        {log.action}
-                      </span>
+                {displayAuditLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                      No activity logs recorded yet.
                     </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-200">{log.desc}</td>
-                    <td className="px-4 py-3 font-mono text-slate-400">{log.ip}</td>
-                    <td className="px-4 py-3 text-slate-500">{log.time}</td>
                   </tr>
-                ))}
+                ) : (
+                  displayAuditLogs.map((log, i) => (
+                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">{log.user}</td>
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{log.module}</td>
+                      <td className="px-4 py-3">
+                        <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-200">{log.desc}</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">{log.ip}</td>
+                      <td className="px-4 py-3 text-slate-500">{log.time}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -120,25 +156,33 @@ export function AuditLogs() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {loginLogs.map((log, i) => (
-                  <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                    <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">{log.user}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
-                          log.status === 'Success'
-                            ? 'bg-emerald-500/10 text-emerald-500'
-                            : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
-                        }`}
-                      >
-                        {log.status}
-                      </span>
+                {displayLoginLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                      No authentication events recorded yet.
                     </td>
-                    <td className="px-4 py-3 font-mono text-slate-400">{log.ip}</td>
-                    <td className="px-4 py-3 text-slate-500 truncate max-w-xs">{log.device}</td>
-                    <td className="px-4 py-3 text-slate-500">{log.time}</td>
                   </tr>
-                ))}
+                ) : (
+                  displayLoginLogs.map((log, i) => (
+                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">{log.user}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
+                            log.status === 'Success'
+                              ? 'bg-emerald-500/10 text-emerald-500'
+                              : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          {log.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-slate-400">{log.ip}</td>
+                      <td className="px-4 py-3 text-slate-500 truncate max-w-xs">{log.device}</td>
+                      <td className="px-4 py-3 text-slate-500">{log.time}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

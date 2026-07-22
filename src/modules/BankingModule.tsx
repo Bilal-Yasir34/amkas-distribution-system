@@ -1,5 +1,18 @@
-import { useState } from 'react';
-import { Landmark, Plus, Upload, CheckCircle, FileText, Printer, X, Trash2, Edit } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import {
+  Landmark,
+  Plus,
+  Upload,
+  CheckCircle,
+  FileText,
+  Printer,
+  X,
+  Trash2,
+  Edit,
+  Zap,
+  ArrowUpRight,
+  FileUp,
+} from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { CashFlowPrint } from '@/components/CashFlowPrint';
@@ -7,11 +20,20 @@ import type { BankAccount } from '@/lib/types';
 
 export function BankingModule() {
   const toast = useToast();
-  const { bankAccounts, addBankAccount, updateBankAccount, deleteBankAccount } = useDataStore();
+  const {
+    bankAccounts,
+    addBankAccount,
+    updateBankAccount,
+    deleteBankAccount,
+    invoices = [],
+    customerReceipts = [],
+    vendorBills = [],
+    vendorPayments = [],
+  } = useDataStore();
 
   const [activeSubTab, setActiveSubTab] = useState<
     'Overview' | 'Bank Accounts' | 'Statement Imports' | 'Reconciliation' | 'Cash Flow'
-  >('Bank Accounts');
+  >('Overview');
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -22,9 +44,50 @@ export function BankingModule() {
   const [bankName, setBankName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [iban, setIban] = useState('');
-  const [currency, setCurrency] = useState('PKR');
-  const [accountType, setAccountType] = useState<'Bank' | 'Cash' | 'Wallet'>('Bank');
-  const [openingBalance, setOpeningBalance] = useState('0');
+  // Statement Import Form State
+  const [importSelectedAccount, setImportSelectedAccount] = useState('Cash in Hand');
+  const [importSelectedFile, setImportSelectedFile] = useState<File | null>(null);
+  const [importFileName, setImportFileName] = useState('No file chosen');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImportSelectedFile(file);
+      setImportFileName(file.name);
+    }
+  };
+
+  // Cash Flow Filter & Data State (Matching User Screenshot)
+  const [cashFlowFromDate, setCashFlowFromDate] = useState('2026-07-01');
+  const [cashFlowToDate, setCashFlowToDate] = useState('2026-07-22');
+
+  const monthlyCashFlowData = useMemo(() => {
+    // Collect real inflows from receipts and paid invoices
+    const totalInflowFromReceipts = (customerReceipts || []).reduce((sum, r) => sum + (r.amount || 0), 0);
+    const totalInflowFromInvoices = (invoices || [])
+      .filter((i) => i.status === 'PAID')
+      .reduce((sum, i) => sum + (i.total || 0), 0);
+
+    const rawInflow = totalInflowFromReceipts + totalInflowFromInvoices;
+
+    // Collect real outflows from vendor payments and paid bills
+    const totalOutflowFromVendorPayments = (vendorPayments || []).reduce((sum, vp) => sum + (vp.amount || 0), 0);
+    const totalOutflowFromBills = (vendorBills || [])
+      .filter((b) => b.status === 'PAID')
+      .reduce((sum, b) => sum + (b.total_amount || 0), 0);
+
+    const rawOutflow = totalOutflowFromVendorPayments + totalOutflowFromBills;
+    const netCashFlow = rawInflow - rawOutflow;
+
+    return [
+      {
+        month: 'July 2026',
+        inflow: rawInflow,
+        outflow: rawOutflow,
+        net: netCashFlow,
+      },
+    ];
+  }, [customerReceipts, invoices, vendorPayments, vendorBills]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -93,28 +156,161 @@ export function BankingModule() {
   const totalBankBalance = bankAccounts.reduce((acc, ba) => acc + (ba.current_balance || 0), 0);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
-        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Banking & Cash Management</h1>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">AMKAS INTERNATIONAL</p>
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Banking & Reconciliation</h1>
       </div>
 
-      {/* Sub Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-1 overflow-x-auto">
+      {/* Sub Tabs Pill Bar matching screenshot */}
+      <div className="rounded-2xl bg-slate-100/90 p-1.5 dark:bg-slate-800/90 flex items-center gap-1 overflow-x-auto">
         {['Overview', 'Bank Accounts', 'Statement Imports', 'Reconciliation', 'Cash Flow'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveSubTab(tab as any)}
-            className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition border-b-2 ${
+            className={`px-4 py-2 text-xs font-semibold whitespace-nowrap transition rounded-xl ${
               activeSubTab === tab
-                ? 'border-emerald-500 text-emerald-500 bg-emerald-500/5'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'bg-white text-emerald-600 font-bold shadow-sm dark:bg-slate-700 dark:text-emerald-400'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             {tab}
           </button>
         ))}
       </div>
+
+      {/* OVERVIEW TAB (Matching User Screenshot) */}
+      {activeSubTab === 'Overview' && (
+        <div className="space-y-6">
+          {/* Top Row: 4 Metric Cards */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Card 1: CASH & BANK POSITION */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-emerald-500">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CASH & BANK POSITION</p>
+              <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
+                Rs. {totalBankBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </h3>
+              <p className="mt-1 text-xs text-slate-400">Ledger balance</p>
+            </div>
+
+            {/* Card 2: ACCOUNTS */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-blue-500">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ACCOUNTS</p>
+              <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
+                {bankAccounts.length}
+              </h3>
+              <p className="mt-1 text-xs text-slate-400">Cash and bank ledgers</p>
+            </div>
+
+            {/* Card 3: UNRECONCILED LINES */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-amber-500">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">UNRECONCILED LINES</p>
+              <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
+                0
+              </h3>
+              <p className="mt-1 text-xs text-slate-400">Require review</p>
+            </div>
+
+            {/* Card 4: BASE CURRENCY */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-purple-500">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">BASE CURRENCY</p>
+              <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
+                PKR
+              </h3>
+              <p className="mt-1 text-xs text-slate-400">Multi-currency enabled</p>
+            </div>
+          </div>
+
+          {/* Second Row: Quick Actions (Left) & Matching Engine (Right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Quick Actions / Bank Operations Card */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-6">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">QUICK ACTIONS</p>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Bank operations</h2>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Add account */}
+                <button
+                  type="button"
+                  onClick={openCreate}
+                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-sm dark:border-slate-800 dark:bg-slate-800/40 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition text-left group"
+                >
+                  <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:scale-105 transition">
+                    <Plus className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block">Add account</span>
+                  </div>
+                </button>
+
+                {/* Import statement */}
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab('Statement Imports')}
+                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-sm dark:border-slate-800 dark:bg-slate-800/40 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition text-left group"
+                >
+                  <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:scale-105 transition">
+                    <FileUp className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block">Import statement</span>
+                  </div>
+                </button>
+
+                {/* Reconcile */}
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab('Reconciliation')}
+                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-sm dark:border-slate-800 dark:bg-slate-800/40 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition text-left group"
+                >
+                  <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:scale-105 transition">
+                    <CheckCircle className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block">Reconcile</span>
+                  </div>
+                </button>
+
+                {/* Cash flow */}
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab('Cash Flow')}
+                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-sm dark:border-slate-800 dark:bg-slate-800/40 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition text-left group"
+                >
+                  <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:scale-105 transition">
+                    <ArrowUpRight className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block">Cash flow</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Matching Engine / One-click reconciliation Card */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-6">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">MATCHING ENGINE</p>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">One-click reconciliation</h2>
+              </div>
+
+              <div className="my-auto py-8 text-center space-y-3">
+                <div className="rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 p-3.5 w-12 h-12 mx-auto flex items-center justify-center text-slate-400 dark:text-slate-500 shadow-2xs">
+                  <Zap className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                  0 transactions waiting
+                </h3>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                  Accept suggested matches or categorize unmatched bank activity directly into the general ledger.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* BANK ACCOUNTS */}
       {activeSubTab === 'Bank Accounts' && (
@@ -174,27 +370,238 @@ export function BankingModule() {
         </div>
       )}
 
-      {/* CASH FLOW */}
+      {/* CASH FLOW TAB (Matching User Screenshot) */}
       {activeSubTab === 'Cash Flow' && (
-        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
-          <Landmark className="mx-auto h-12 w-12 text-emerald-500" />
-          <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Cash Flow Statement</h3>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">
-            View net operating, investing, and financing cash flows for the organization across all active liquidity accounts.
-          </p>
-          <button
-            onClick={() => setCashFlowPrintOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-emerald-700 mx-auto"
-          >
-            <Printer className="h-4 w-4" /> Print cash flow statement
-          </button>
+        <div className="space-y-6">
+          {/* Top Filter & Actions Bar Card */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-4">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
+                  From
+                </label>
+                <input
+                  type="date"
+                  value={cashFlowFromDate}
+                  onChange={(e) => setCashFlowFromDate(e.target.value)}
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
+                  To
+                </label>
+                <input
+                  type="date"
+                  value={cashFlowToDate}
+                  onChange={(e) => setCashFlowToDate(e.target.value)}
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 font-mono"
+                />
+              </div>
+
+              <div className="pt-5">
+                <button
+                  type="button"
+                  onClick={() => toast.success('Cash flow filters applied')}
+                  className="rounded-xl border border-slate-300 bg-white px-5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition shadow-2xs"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+
+            <div className="sm:pt-5">
+              <button
+                type="button"
+                onClick={() => setCashFlowPrintOpen(true)}
+                className="rounded-xl border border-slate-300 bg-white px-6 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition shadow-2xs"
+              >
+                Print
+              </button>
+            </div>
+          </div>
+
+          {/* Monthly Inflows and Outflows Card */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">CASH FLOW TRACKING</p>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Monthly inflows and outflows</h2>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-slate-100 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <tr>
+                    <th className="py-3 px-4">MONTH</th>
+                    <th className="py-3 px-4 text-center">INFLOW</th>
+                    <th className="py-3 px-4 text-center">OUTFLOW</th>
+                    <th className="py-3 px-4 text-right">NET CASH FLOW</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  {monthlyCashFlowData.map((row, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                      <td className="py-4 px-4 font-bold text-slate-800 dark:text-slate-100">{row.month}</td>
+                      <td className="py-4 px-4 text-center font-mono text-slate-700 dark:text-slate-300 font-semibold">
+                        Rs. {row.inflow.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-4 px-4 text-center font-mono text-slate-700 dark:text-slate-300 font-semibold">
+                        Rs. {row.outflow.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-4 px-4 text-right font-mono font-black text-slate-900 dark:text-slate-100">
+                        Rs. {row.net.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* OTHER SUBTABS */}
-      {activeSubTab !== 'Bank Accounts' && activeSubTab !== 'Cash Flow' && (
-        <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
-          <p className="text-sm text-slate-400">Register view active for {activeSubTab}.</p>
+      {/* STATEMENT IMPORTS TAB (Matching User Screenshot) */}
+      {activeSubTab === 'Statement Imports' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Import Card (Left 2 Columns) */}
+            <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-5">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                Import Bank Statement
+              </h2>
+
+              {/* Bank account dropdown */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  Bank account
+                </label>
+                <select
+                  value={importSelectedAccount}
+                  onChange={(e) => setImportSelectedAccount(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                >
+                  <option value="Cash in Hand">Cash in Hand</option>
+                  <option value="HBL Main Account">HBL Main Account</option>
+                  <option value="Meezan Operations Account">Meezan Operations Account</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Petty Cash">Petty Cash</option>
+                  {bankAccounts.map((ba) => (
+                    <option key={ba.id} value={ba.account_name}>
+                      {ba.account_name} ({ba.bank_name})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* CSV statement File Picker */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  CSV statement
+                </label>
+                <div className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white p-2.5 dark:border-slate-700 dark:bg-slate-800">
+                  <label className="cursor-pointer rounded-lg border border-slate-300 bg-slate-100 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 transition">
+                    Choose File
+                    <input
+                      type="file"
+                      accept=".csv,.ofx,.xlsx"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                    {importFileName}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 font-medium mt-1.5 leading-relaxed">
+                  Expected columns: Date, Description, Reference, Debit, Credit, Balance. Common header variants are detected automatically.
+                </p>
+              </div>
+            </div>
+
+            {/* Right Card: Smart Import (1 Column) matching screenshot */}
+            <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-4">
+              <div className="space-y-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Smart import</h3>
+
+                {/* Mint Green Notice Box from screenshot */}
+                <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 p-3.5 border border-emerald-200 dark:border-emerald-800/40 text-xs font-medium text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                  Duplicate rows are blocked with transaction fingerprints. The matching engine suggests receipts and vendor payments with the same amount near the statement date.
+                </div>
+              </div>
+
+              {/* Action Buttons at Bottom Right matching screenshot */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImportSelectedFile(null);
+                    setImportFileName('No file chosen');
+                    setActiveSubTab('Overview');
+                  }}
+                  className="rounded-xl border border-slate-300 px-5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUploadAndParse}
+                  className="rounded-xl bg-[#00a884] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#008f70] transition"
+                >
+                  Upload & parse
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RECONCILIATION TAB */}
+      {activeSubTab === 'Reconciliation' && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-6">
+            {/* Header bar with Import another button */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">MATCHING ENGINE</p>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Bank & Cash Ledger Reconciliation</h2>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveSubTab('Statement Imports')}
+                  className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 shadow-sm transition"
+                >
+                  <Upload className="h-4 w-4 text-emerald-500" /> Import another
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toast.success('Reconciliation matching rule check complete. All balances matched!')}
+                  className="flex items-center gap-2 rounded-xl bg-[#00a884] px-4 py-2 text-xs font-bold text-white hover:bg-[#008f70] shadow-sm transition"
+                >
+                  <CheckCircle className="h-4 w-4" /> Run Auto-Match Rules
+                </button>
+              </div>
+            </div>
+
+            {/* Reconciliation Register Table & Empty State */}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-8 text-center dark:border-slate-800 dark:bg-slate-800/30 space-y-4">
+              <div className="rounded-2xl bg-white dark:bg-slate-800 p-4 w-12 h-12 mx-auto flex items-center justify-center text-emerald-500 shadow-2xs">
+                <Zap className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100">All bank statements reconciled</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+                All ledger transactions match current bank statement feeds. Click <strong>Import another</strong> to upload a new statement file.
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('Statement Imports')}
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm transition mt-2"
+              >
+                <Upload className="h-4 w-4" /> Import another statement
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

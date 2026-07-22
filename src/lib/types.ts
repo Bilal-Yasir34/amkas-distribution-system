@@ -2,6 +2,40 @@ export type InvoiceStatus = 'UNPOSTED' | 'POSTED';
 export type DocStatus = 'DRAFT' | 'UNPOSTED' | 'POSTED' | 'PENDING' | 'CONFIRMED' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED' | 'OPEN' | 'Current' | 'Open';
 export type AccountType = 'Asset' | 'Liability' | 'Equity' | 'Revenue' | 'Expense' | 'Income';
 
+export interface ExpenseRecord {
+  id: string;
+  number: string;
+  date: string;
+  account_id: string;
+  account_name: string;
+  description: string;
+  cash_bank_account: string;
+  amount: number;
+  tax_amount?: number;
+  reference?: string;
+  vendor_id?: string | null;
+  vendor_name?: string | null;
+  status: 'Posted' | 'Draft';
+  created_at: string;
+}
+
+export interface IncomeRecord {
+  id: string;
+  number: string;
+  date: string;
+  account_id: string;
+  account_name: string;
+  description: string;
+  cash_bank_account: string;
+  amount: number;
+  tax_amount?: number;
+  reference?: string;
+  customer_id?: string | null;
+  customer_name?: string | null;
+  status: 'Posted' | 'Draft';
+  created_at: string;
+}
+
 export interface Organization {
   id: string;
   name: string;
@@ -93,6 +127,7 @@ export interface Product {
   tax_pct?: number;
   barcode_value?: string;
   description?: string;
+  stock_quantity?: number;
 }
 
 export interface Warehouse {
@@ -164,6 +199,7 @@ export interface SalesInvoice {
   exchange_rate: number;
   payment_terms: string | null;
   account_head: string | null;
+  account_category?: string | null;
   gate_pass_no: string | null;
   status: InvoiceStatus;
   subtotal: number;
@@ -172,6 +208,9 @@ export interface SalesInvoice {
   total_amount: number;
   paid_amount: number;
   notes: string | null;
+  terms_conditions?: string | null;
+  commission_rate?: number;
+  items?: SalesInvoiceItem[];
   created_by: string | null;
   created_at: string;
 }
@@ -184,6 +223,18 @@ export interface SalesInvoiceItem {
   qty: number;
   length: number;
   width: number;
+  rate: number;
+  discount: number;
+  tax_pct: number;
+  line_total: number;
+}
+
+export interface QuotationItem {
+  id: string;
+  quotation_id?: string;
+  product_id: string | null;
+  description: string | null;
+  qty: number;
   rate: number;
   discount: number;
   tax_pct: number;
@@ -208,7 +259,22 @@ export interface Quotation {
   notes: string | null;
   terms_conditions?: string | null;
   converted_to_order?: boolean;
+  org_id?: string | null;
+  branch_id?: string | null;
+  items?: QuotationItem[];
   created_at: string;
+}
+
+export interface SalesOrderItem {
+  id: string;
+  sales_order_id?: string;
+  product_id: string | null;
+  description: string | null;
+  qty: number;
+  rate: number;
+  discount: number;
+  tax_pct: number;
+  line_total: number;
 }
 
 export interface SalesOrder {
@@ -231,7 +297,22 @@ export interface SalesOrder {
   terms_conditions?: string | null;
   quotation_id?: string | null;
   converted_to_invoice?: boolean;
+  org_id?: string | null;
+  branch_id?: string | null;
+  items?: SalesOrderItem[];
   created_at: string;
+}
+
+export interface CreditNoteItem {
+  id: string;
+  credit_note_id?: string;
+  product_id: string | null;
+  description: string | null;
+  qty: number;
+  rate: number;
+  discount: number;
+  tax_pct: number;
+  line_total: number;
 }
 
 export interface CreditNote {
@@ -239,7 +320,7 @@ export interface CreditNote {
   credit_note_no: string;
   customer_id: string | null;
   warehouse_id?: string | null;
-  sales_invoice_id: string | null;
+  sales_invoice_id?: string | null;
   invoice_id?: string | null;
   note_date: string;
   document_date?: string;
@@ -247,11 +328,17 @@ export interface CreditNote {
   salesperson?: string | null;
   currency?: string;
   exchange_rate?: number;
-  reason: string;
-  status: InvoiceStatus | DocStatus;
+  reason?: string;
+  status: InvoiceStatus | DocStatus | string;
+  subtotal?: number;
+  discount_total?: number;
+  tax_total?: number;
   total_amount: number;
   notes?: string | null;
   terms_conditions?: string | null;
+  org_id?: string | null;
+  branch_id?: string | null;
+  items?: CreditNoteItem[];
   created_at: string;
 }
 
