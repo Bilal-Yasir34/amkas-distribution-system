@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Wrench, Download, Trash2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/lib/toast';
+import { useDataStore } from '@/lib/dataStore';
 
 export function Maintenance() {
   const toast = useToast();
+  const { resetBusinessData } = useDataStore();
   const [resetInput, setResetInput] = useState('');
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
@@ -31,9 +33,10 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
   };
 
   const handleClearBusinessData = () => {
-    if (resetInput !== 'RESET MUNSHIOS') {
-      return toast.error('Type RESET MUNSHIOS to confirm');
+    if (resetInput !== 'RESET AMKAS') {
+      return toast.error('Type RESET AMKAS to confirm');
     }
+    resetBusinessData();
     toast.success('Business records cleared. Organization setup preserved.');
     setResetConfirmOpen(false);
     setResetInput('');
@@ -118,13 +121,13 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
           ) : (
             <div className="space-y-3 border-t border-slate-800 pt-3">
               <p className="text-xs font-semibold text-rose-400">
-                Type <span className="font-mono underline">RESET MUNSHIOS</span> to confirm:
+                Type <span className="font-mono underline">RESET AMKAS</span> to confirm:
               </p>
               <input
                 type="text"
                 value={resetInput}
                 onChange={(e) => setResetInput(e.target.value)}
-                placeholder="RESET MUNSHIOS"
+                placeholder="RESET AMKAS"
                 className="w-full rounded-lg border border-rose-500/50 bg-slate-900 p-2 text-xs font-mono text-white outline-none"
               />
               <div className="flex gap-2">

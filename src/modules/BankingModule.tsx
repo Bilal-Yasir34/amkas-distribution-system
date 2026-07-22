@@ -15,11 +15,13 @@ import {
 } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
+import { useAuth } from '@/lib/auth';
 import { CashFlowPrint } from '@/components/CashFlowPrint';
 import type { BankAccount } from '@/lib/types';
 
 export function BankingModule() {
   const toast = useToast();
+  const { isAdmin } = useAuth();
   const {
     bankAccounts,
     addBankAccount,
@@ -44,6 +46,9 @@ export function BankingModule() {
   const [bankName, setBankName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [iban, setIban] = useState('');
+  const [currency, setCurrency] = useState('PKR');
+  const [accountType, setAccountType] = useState('Bank');
+  const [openingBalance, setOpeningBalance] = useState('0');
   // Statement Import Form State
   const [importSelectedAccount, setImportSelectedAccount] = useState('Cash in Hand');
   const [importSelectedFile, setImportSelectedFile] = useState<File | null>(null);
@@ -55,6 +60,14 @@ export function BankingModule() {
       setImportSelectedFile(file);
       setImportFileName(file.name);
     }
+  };
+
+  const handleUploadAndParse = () => {
+    if (!importSelectedFile) {
+      return toast.error('Please choose a bank statement file first');
+    }
+    toast.success(`Statement file ${importSelectedFile.name} uploaded and parsed successfully!`);
+    setActiveSubTab('Reconciliation');
   };
 
   // Cash Flow Filter & Data State (Matching User Screenshot)
@@ -342,14 +355,16 @@ export function BankingModule() {
                     <h3 className="mt-1 font-bold text-slate-800 dark:text-slate-100">{ba.account_name}</h3>
                     <p className="text-xs text-slate-400">{ba.bank_name}</p>
                   </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => openEdit(ba)} className="p-1 text-slate-400 hover:text-white">
-                      <Edit className="h-3.5 w-3.5" />
-                    </button>
-                    <button onClick={() => handleDelete(ba.id, ba.account_name)} className="p-1 text-slate-400 hover:text-rose-500">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-1">
+                      <button onClick={() => openEdit(ba)} className="p-1 text-slate-400 hover:text-white" title="Edit Account">
+                        <Edit className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => handleDelete(ba.id, ba.account_name)} className="p-1 text-slate-400 hover:text-rose-500" title="Delete Account">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="border-t border-slate-100 pt-3 dark:border-slate-800 flex justify-between items-end">

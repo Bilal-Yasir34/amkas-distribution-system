@@ -1,16 +1,20 @@
 import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Edit, Trash2 } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
+import { useAuth } from '@/lib/auth';
+import type { ChartOfAccount } from '@/lib/types';
 
 export function ChartOfAccounts() {
   const toast = useToast();
-  const { chartOfAccounts, addCOAccount } = useDataStore();
+  const { isAdmin } = useAuth();
+  const { chartOfAccounts, addCOAccount, updateCOAccount, deleteCOAccount } = useDataStore();
 
   const [activeSubTab, setActiveSubTab] = useState<'All accounts' | 'Balance sheet' | 'Profit & loss'>('All accounts');
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Form state for creating new accounts
+  // Form state for creating/editing accounts
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [accountType, setAccountType] = useState<'Asset' | 'Liability' | 'Equity' | 'Revenue' | 'Expense'>('Asset');
@@ -18,6 +22,7 @@ export function ChartOfAccounts() {
   const [openingBalance, setOpeningBalance] = useState('0');
 
   const openCreate = () => {
+    setEditingId(null);
     setCode('');
     setName('');
     setAccountType('Asset');
@@ -26,20 +31,50 @@ export function ChartOfAccounts() {
     setModalOpen(true);
   };
 
+  const openEdit = (coa: ChartOfAccount) => {
+    setEditingId(coa.id);
+    setCode(coa.code);
+    setName(coa.name);
+    setAccountType(coa.account_type as any);
+    setParentId(coa.parent_id || '');
+    setOpeningBalance(String(coa.current_balance || 0));
+    setModalOpen(true);
+  };
+
+  const handleDelete = (id: string, accountName: string) => {
+    if (confirm(`Are you sure you want to delete account "${accountName}"?`)) {
+      deleteCOAccount(id);
+      toast.success(`Account "${accountName}" deleted`);
+    }
+  };
+
   const handleSaveAccount = () => {
     if (!code.trim() || !name.trim()) {
       return toast.error('Code and account name are required');
     }
 
-    addCOAccount({
-      code,
-      name,
-      account_type: accountType,
-      parent_id: parentId || null,
-      is_active: true,
-      current_balance: Number(openingBalance) || 0,
-    });
-    toast.success(`Account ${code} - ${name} added to Chart of Accounts`);
+    const bal = Number(openingBalance) || 0;
+
+    if (editingId) {
+      updateCOAccount(editingId, {
+        code,
+        name,
+        account_type: accountType,
+        parent_id: parentId || null,
+        current_balance: bal,
+      });
+      toast.success(`Account ${code} - ${name} updated`);
+    } else {
+      addCOAccount({
+        code,
+        name,
+        account_type: accountType,
+        parent_id: parentId || null,
+        is_active: true,
+        current_balance: bal,
+      });
+      toast.success(`Account ${code} - ${name} added to Chart of Accounts`);
+    }
     setModalOpen(false);
   };
 
@@ -95,7 +130,7 @@ export function ChartOfAccounts() {
           </button>
         </div>
 
-        {/* Read-Only Account Hierarchy Table (Non-editable / Non-deletable) */}
+        {/* Account Table */}
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541] overflow-hidden">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
@@ -105,12 +140,13 @@ export function ChartOfAccounts() {
                 <th className="px-4 py-3.5">TYPE</th>
                 <th className="px-4 py-3.5 text-right">CURRENT BALANCE</th>
                 <th className="px-4 py-3.5 text-center">STATUS</th>
+                <th className="px-4 py-3.5 text-right">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {filteredAccounts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                     No accounts found for {activeSubTab}.
                   </td>
                 </tr>
@@ -138,6 +174,26 @@ export function ChartOfAccounts() {
                         Active
                       </span>
                     </td>
+                    <td className="px-4 py-3.5 text-right">
+                      {isAdmin && (
+                        <div className="flex justify-end gap-1">
+                          <button
+                            onClick={() => openEdit(coa)}
+                            className="p-1 text-slate-400 hover:text-slate-800 dark:hover:text-white transition"
+                            title="Edit Account"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(coa.id, `${coa.code} - ${coa.name}`)}
+                            className="p-1 text-slate-400 hover:text-rose-500 transition"
+                            title="Delete Account"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
@@ -146,13 +202,13 @@ export function ChartOfAccounts() {
         </div>
       </div>
 
-      {/* NEW ACCOUNT FORM MODAL */}
+      {/* ACCOUNT FORM MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
-                New Account
+                {editingId ? 'Edit Account' : 'New Account'}
               </h3>
               <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-white">
                 <X className="h-5 w-5" />
@@ -230,7 +286,7 @@ export function ChartOfAccounts() {
                 Cancel
               </button>
               <button onClick={handleSaveAccount} className="rounded-xl bg-[#00a884] px-4 py-2 text-xs font-bold text-white hover:bg-[#008f70]">
-                Save Account
+                {editingId ? 'Update Account' : 'Save Account'}
               </button>
             </div>
           </div>

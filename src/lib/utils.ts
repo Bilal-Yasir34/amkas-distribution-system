@@ -51,3 +51,39 @@ export function nextDocNumber(prefix: string, existing: string[]): string {
   }
   return `${prefix}-${String(max + 1).padStart(5, '0')}`;
 }
+
+export function getCustomerName(id: string | null | undefined, customers: { id: string; name: string; is_active?: boolean }[]): string {
+  if (!id) return '[Deleted Customer]';
+  const c = customers.find((x) => x.id === id);
+  if (!c) return '[Deleted Customer]';
+  return c.is_active === false ? `${c.name} (Deactivated)` : c.name;
+}
+
+export function getVendorName(id: string | null | undefined, vendors: { id: string; name: string; is_active?: boolean }[]): string {
+  if (!id) return '[Deleted Vendor]';
+  const v = vendors.find((x) => x.id === id);
+  if (!v) return '[Deleted Vendor]';
+  return v.is_active === false ? `${v.name} (Deactivated)` : v.name;
+}
+
+export function getProductName(id: string | null | undefined, products: { id: string; name: string; is_active?: boolean }[], fallbackDesc?: string | null): string {
+  if (!id) return fallbackDesc || '[Deleted Product]';
+  const p = products.find((x) => x.id === id);
+  if (!p) return fallbackDesc || '[Deleted Product]';
+  return p.is_active === false ? `${p.name} (Deactivated)` : p.name;
+}
+
+export function getWarehouseName(id: string | null | undefined, warehouses: { id: string; name: string; is_active?: boolean }[]): string {
+  if (!id) return 'Unassigned';
+  const w = warehouses.find((x) => x.id === id);
+  if (!w) return '[Deleted Warehouse]';
+  return w.is_active === false ? `${w.name} (Deactivated)` : w.name;
+}
+
+export function getBranchName(id: string | null | undefined, branches: { id: string; name: string; is_active?: boolean }[]): string {
+  if (!id) return 'Head Office';
+  const b = branches.find((x) => x.id === id);
+  if (!b) return '[Deleted Branch]';
+  return b.is_active === false ? `${b.name} (Deactivated)` : b.name;
+}
+

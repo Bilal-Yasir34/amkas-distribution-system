@@ -13,7 +13,7 @@ import {
   useWarehouses,
 } from '@/lib/queries';
 import { supabase, TABLES } from '@/lib/supabase';
-import { computeLineTotal, downloadCSV, formatCurrency, formatDate, nextDocNumber, todayISO } from '@/lib/utils';
+import { computeLineTotal, downloadCSV, formatCurrency, formatDate, getCustomerName, getWarehouseName, nextDocNumber, todayISO } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { InvoicePrint } from '@/components/InvoicePrint';
 import type { SalesInvoice, SalesInvoiceItem } from '@/lib/types';
@@ -62,8 +62,8 @@ export function SalesInvoices() {
   const [showZeroStock, setShowZeroStock] = useState(false);
   const [lines, setLines] = useState<DraftLine[]>([emptyLine()]);
 
-  const customerName = (id: string | null) => customers.find((c) => c.id === id)?.name ?? '—';
-  const warehouseName = (id: string | null) => warehouses.find((w) => w.id === id)?.name ?? '—';
+  const customerName = (id: string | null) => getCustomerName(id, customers);
+  const warehouseName = (id: string | null) => getWarehouseName(id, warehouses);
 
   const filtered = useMemo(() => {
     return invoices.filter((i) => {

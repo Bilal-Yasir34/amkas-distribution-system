@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
+import { useAuth } from '@/lib/auth';
 import { downloadCSV, todayISO } from '@/lib/utils';
 import { LabelPrint } from '@/components/LabelPrint';
 import type { StockTransfer, StockAdjustment, ProductBatch, ProductSerial } from '@/lib/types';
@@ -69,6 +70,7 @@ function ScannableBarcodeSVG({ value, height = 44, showText = true }: { value: s
 
 export function InventoryModule() {
   const toast = useToast();
+  const { isAdmin } = useAuth();
   const {
     products,
     warehouses,
@@ -91,7 +93,7 @@ export function InventoryModule() {
 
   const [activeSubTab, setActiveSubTab] = useState<
     'Overview' | 'Stock in Hand' | 'Stock Ledger' | 'Transfers' | 'Adjustments' | 'Batches' | 'Serial Numbers' | 'Barcodes & Labels'
-  >('Stock in Hand');
+  >('Overview');
 
   const [editingStockId, setEditingStockId] = useState<string | null>(null);
   const [editingStockQty, setEditingStockQty] = useState<number>(0);
@@ -647,39 +649,43 @@ export function InventoryModule() {
                         Rs. {(qty * cost).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {editingStockId === p.id ? (
-                          <span className="flex items-center justify-end gap-1">
-                            <input
-                              type="number"
-                              min={0}
-                              value={editingStockQty}
-                              onChange={(e) => setEditingStockQty(Number(e.target.value))}
-                              className="w-20 rounded border border-emerald-400 bg-white px-2 py-1 text-xs dark:bg-slate-800 dark:text-white outline-none"
-                            />
+                        {isAdmin ? (
+                          editingStockId === p.id ? (
+                            <span className="flex items-center justify-end gap-1">
+                              <input
+                                type="number"
+                                min={0}
+                                value={editingStockQty}
+                                onChange={(e) => setEditingStockQty(Number(e.target.value))}
+                                className="w-20 rounded border border-emerald-400 bg-white px-2 py-1 text-xs dark:bg-slate-800 dark:text-white outline-none"
+                              />
+                              <button
+                                onClick={() => {
+                                  updateProduct(p.id, { stock_quantity: editingStockQty });
+                                  toast.success(`Stock updated for ${p.name}`);
+                                  setEditingStockId(null);
+                                }}
+                                className="rounded bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-emerald-700"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => setEditingStockId(null)}
+                                className="rounded bg-slate-200 px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300"
+                              >
+                                Cancel
+                              </button>
+                            </span>
+                          ) : (
                             <button
-                              onClick={() => {
-                                updateProduct(p.id, { stock_quantity: editingStockQty });
-                                toast.success(`Stock updated for ${p.name}`);
-                                setEditingStockId(null);
-                              }}
-                              className="rounded bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-emerald-700"
+                              onClick={() => { setEditingStockId(p.id); setEditingStockQty(qty); }}
+                              className="rounded bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 dark:bg-slate-700 dark:text-slate-300"
                             >
-                              Save
+                              Update
                             </button>
-                            <button
-                              onClick={() => setEditingStockId(null)}
-                              className="rounded bg-slate-200 px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300"
-                            >
-                              Cancel
-                            </button>
-                          </span>
+                          )
                         ) : (
-                          <button
-                            onClick={() => { setEditingStockId(p.id); setEditingStockQty(qty); }}
-                            className="rounded bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 dark:bg-slate-700 dark:text-slate-300"
-                          >
-                            Update
-                          </button>
+                          <span className="text-[11px] font-semibold text-slate-400">View Only</span>
                         )}
                       </td>
                     </tr>

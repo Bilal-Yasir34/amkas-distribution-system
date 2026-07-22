@@ -3,10 +3,12 @@ import { Plus, Users, X, Edit, Trash2 } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { ROLES } from '@/lib/rbac';
+import { useAuth } from '@/lib/auth';
 import type { UserEmployee } from '@/lib/types';
 
 export function UsersEmployees() {
   const toast = useToast();
+  const { isAdmin } = useAuth();
   const { users, addUser, updateUser, deleteUser, branches, departments } = useDataStore();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -25,7 +27,6 @@ export function UsersEmployees() {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [require2FA, setRequire2FA] = useState(false);
 
   const [selectedRole, setSelectedRole] = useState('Super Admin');
   const [selectedBranchId, setSelectedBranchId] = useState('');
@@ -46,8 +47,7 @@ export function UsersEmployees() {
     setOthers('0');
     setUsername('');
     setPassword('');
-    setRequire2FA(false);
-    setSelectedRole('Super Admin');
+    setSelectedRole('super_admin');
     setSelectedBranchId(branches[0]?.id || '');
     setDepartmentScope('All departments');
     setIsActive(true);
@@ -65,9 +65,8 @@ export function UsersEmployees() {
     setAllowances(String(u.allowances || 0));
     setOthers(String(u.others || 0));
     setUsername(u.email.split('@')[0]);
-    setPassword('');
-    setRequire2FA(u.is_2fa_required);
-    setSelectedRole(u.role);
+    setPassword(u.password || '');
+    setSelectedRole(u.role || 'super_admin');
     setSelectedBranchId(u.branch_id || branches[0]?.id || '');
     setDepartmentScope('All departments');
     setIsActive(u.is_active);
@@ -91,8 +90,8 @@ export function UsersEmployees() {
         base_salary: Number(baseSalary) || 0,
         allowances: Number(allowances) || 0,
         others: Number(others) || 0,
-        is_2fa_required: require2FA,
         is_active: isActive,
+        ...(password ? { password } : {}),
       });
       toast.success(`User ${fullName} updated`);
     } else {
@@ -108,12 +107,12 @@ export function UsersEmployees() {
         base_salary: Number(baseSalary) || 0,
         allowances: Number(allowances) || 0,
         others: Number(others) || 0,
-        is_2fa_required: require2FA,
         is_active: isActive,
         created_at: new Date().toISOString(),
         last_login: 'Never',
+        password: password || '123456',
       });
-      toast.success(`User ${fullName} added`);
+      toast.success(`User ${fullName} added with role ${selectedRole}`);
     }
     setModalOpen(false);
   };
@@ -143,7 +142,7 @@ export function UsersEmployees() {
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Users & Employees</h1>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL USERS</p>
           <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">{users.length}</p>
@@ -152,12 +151,6 @@ export function UsersEmployees() {
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ACTIVE</p>
           <p className="mt-1 text-2xl font-extrabold text-emerald-500">
             {users.filter((u) => u.is_active).length}
-          </p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">2FA POLICY</p>
-          <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">
-            {users.filter((u) => u.is_2fa_required).length}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
@@ -198,7 +191,6 @@ export function UsersEmployees() {
                 <th className="px-4 py-3">Role</th>
                 <th className="px-4 py-3">Access Scope</th>
                 <th className="px-4 py-3">Monthly Salary</th>
-                <th className="px-4 py-3">Security</th>
                 <th className="px-4 py-3">Last Login</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Actions</th>
@@ -220,9 +212,6 @@ export function UsersEmployees() {
                     </td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-300">Head Office • All departments</td>
                     <td className="px-4 py-3 font-mono font-semibold">Rs. {totalMonthly.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-slate-400">
-                      {u.is_2fa_required ? '2FA Enabled' : 'Password only'}
-                    </td>
                     <td className="px-4 py-3 text-slate-500">{u.last_login || 'Never'}</td>
                     <td className="px-4 py-3">
                       <button
@@ -235,20 +224,24 @@ export function UsersEmployees() {
                       </button>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openEdit(u)}
-                          className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white"
-                        >
-                          <Edit className="h-3.5 w-3.5" /> Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(u.id, u.full_name)}
-                          className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-400"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" /> Delete
-                        </button>
-                      </div>
+                      {isAdmin ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openEdit(u)}
+                            className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white"
+                          >
+                            <Edit className="h-3.5 w-3.5" /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(u.id, u.full_name)}
+                            className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-400"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-slate-400">View Only</span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -401,18 +394,6 @@ export function UsersEmployees() {
                     />
                   </div>
                 </div>
-
-                <label className="flex items-center gap-2 pt-1 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={require2FA}
-                    onChange={(e) => setRequire2FA(e.target.checked)}
-                    className="h-4 w-4 rounded accent-emerald-500"
-                  />
-                  <span className="text-xs text-slate-700 dark:text-slate-300">
-                    Require two-factor authentication when the 2FA service is activated
-                  </span>
-                </label>
               </div>
 
               {/* ACCESS SCOPE */}
@@ -426,7 +407,7 @@ export function UsersEmployees() {
                     className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
                   >
                     {ROLES.map((r) => (
-                      <option key={r.id} value={r.label}>
+                      <option key={r.id} value={r.id}>
                         {r.label}
                       </option>
                     ))}

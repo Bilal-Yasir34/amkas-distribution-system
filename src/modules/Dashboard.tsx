@@ -81,6 +81,28 @@ export function Dashboard() {
 
   const pendingApprovals = approvalQueue.filter((a) => a.status === 'PENDING').length;
 
+  // Live 12-Month Financial Performance Calculations
+  const months = ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+  const monthlyRevenueMap: Record<string, number> = {};
+  const monthlyPayableMap: Record<string, number> = {};
+
+  invoices.forEach((inv) => {
+    if (inv.status === 'POSTED' && inv.invoice_date) {
+      const m = new Date(inv.invoice_date).toLocaleString('en-US', { month: 'short' });
+      monthlyRevenueMap[m] = (monthlyRevenueMap[m] || 0) + (inv.total_amount || 0);
+    }
+  });
+
+  vendorBills.forEach((b) => {
+    if (b.status === 'POSTED' && b.bill_date) {
+      const m = new Date(b.bill_date).toLocaleString('en-US', { month: 'short' });
+      monthlyPayableMap[m] = (monthlyPayableMap[m] || 0) + (b.total_amount || 0);
+    }
+  });
+
+  const maxVal = Math.max(1, ...months.map((m) => Math.max(monthlyRevenueMap[m] || 0, monthlyPayableMap[m] || 0)));
+  const stockGaugePct = stockValue > 0 ? Math.min(100, Math.max(10, Math.round((stockValue / 100000) * 100))) : 0;
+
   // Recent activity: prioritize auditLogs, fill in with invoice/bill events
   const recentActivities = [
     ...auditLogs.slice(0, 4).map((a) => ({
@@ -176,15 +198,15 @@ export function Dashboard() {
                 </p>
                 <p className="mt-1 text-[11px] text-slate-400">{customers.length} active customer(s)</p>
               </div>
-              <div className="rounded-lg bg-blue-500/10 p-2">
-                <Users className="h-4 w-4 text-blue-500" />
+              <div className="rounded-lg bg-amber-500/10 p-2">
+                <Users className="h-4 w-4 text-amber-500" />
               </div>
             </div>
           </div>
         )}
 
         {widgets.payables && (
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#15131d]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PAYABLES</p>
@@ -201,17 +223,17 @@ export function Dashboard() {
         )}
 
         {widgets.cashBank && (
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#15131d]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CASH & BANK</p>
-                <p className="mt-1 text-2xl font-extrabold text-emerald-500">
+                <p className="mt-1 text-2xl font-extrabold text-amber-400">
                   {formatCurrency(totalCashBank)}
                 </p>
                 <p className="mt-1 text-[11px] text-slate-400">{bankAccounts.length} account(s)</p>
               </div>
-              <div className="rounded-lg bg-cyan-500/10 p-2">
-                <Banknote className="h-4 w-4 text-cyan-500" />
+              <div className="rounded-lg bg-amber-500/10 p-2">
+                <Banknote className="h-4 w-4 text-amber-400" />
               </div>
             </div>
           </div>
@@ -253,44 +275,48 @@ export function Dashboard() {
       {/* Main Grid */}
       <div className="grid gap-5 lg:grid-cols-3">
         {/* Revenue vs Expenses Chart */}
-        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700/60">
+        <div className="lg:col-span-2 rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#15131d]/90 backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">FINANCIAL PERFORMANCE</p>
-              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Revenue vs purchases</h3>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 font-heading">Revenue vs purchases</h3>
             </div>
-            <button onClick={() => setActiveModule('accounting')} className="text-xs font-semibold text-emerald-500 hover:underline">
+            <button onClick={() => setActiveModule('accounting')} className="text-xs font-bold text-amber-400 hover:underline">
               View P&L
             </button>
           </div>
-          <div className="mt-6 flex h-48 items-end justify-between gap-2 border-b border-slate-200 pb-2 dark:border-slate-700">
-            {['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'].map((m, i) => (
-              <div key={m} className="flex flex-col items-center gap-1 flex-1">
-                <div className="w-full flex items-end justify-center gap-1 h-36">
-                  <div
-                    className="w-2.5 rounded-t bg-emerald-500 transition-all"
-                    style={{ height: `${Math.max(10, (i === 11 ? totalRevenue / 1000 : i % 4 + 1) * 5)}%` }}
-                  />
-                  <div
-                    className="w-2.5 rounded-t bg-rose-400 transition-all"
-                    style={{ height: `${Math.max(5, (i === 11 ? totalPayables / 1000 : i % 3 + 1) * 4)}%` }}
-                  />
+          <div className="mt-6 flex h-48 items-end justify-between gap-2 border-b border-slate-200 pb-2 dark:border-slate-800">
+            {months.map((m) => {
+              const revVal = monthlyRevenueMap[m] || 0;
+              const payVal = monthlyPayableMap[m] || 0;
+              return (
+                <div key={m} className="flex flex-col items-center gap-1 flex-1">
+                  <div className="w-full flex items-end justify-center gap-1 h-36">
+                    <div
+                      className="w-2.5 rounded-t bg-amber-500 transition-all shadow-sm"
+                      style={{ height: revVal > 0 ? `${Math.min(100, Math.max(8, (revVal / maxVal) * 100))}%` : '0%' }}
+                    />
+                    <div
+                      className="w-2.5 rounded-t bg-rose-400 transition-all shadow-sm"
+                      style={{ height: payVal > 0 ? `${Math.min(100, Math.max(8, (payVal / maxVal) * 100))}%` : '0%' }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-slate-400">{m}</span>
                 </div>
-                <span className="text-[10px] text-slate-400">{m}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="mt-3 flex items-center justify-between text-xs">
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1.5 text-slate-400">
-                <span className="h-2.5 w-2.5 rounded bg-emerald-500" /> Revenue
+                <span className="h-2.5 w-2.5 rounded bg-amber-500" /> Revenue
               </span>
               <span className="flex items-center gap-1.5 text-slate-400">
                 <span className="h-2.5 w-2.5 rounded bg-rose-400" /> Purchases
               </span>
             </div>
-            <div className="flex gap-4 text-xs font-semibold">
-              <span className="text-emerald-500">Rev: {formatCurrency(totalRevenue)}</span>
+            <div className="flex gap-4 text-xs font-bold">
+              <span className="text-amber-400">Rev: {formatCurrency(totalRevenue)}</span>
               <span className="text-rose-400">Payable: {formatCurrency(totalPayables)}</span>
             </div>
           </div>
@@ -298,21 +324,21 @@ export function Dashboard() {
 
         {/* Stock Position */}
         {widgets.inventory && (
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700/60">
+          <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#15131d]/90 backdrop-blur-md">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">INVENTORY CONTROL</p>
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Stock position</h3>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 font-heading">Stock position</h3>
               </div>
-              <button onClick={() => setActiveModule('inventory')} className="text-xs font-semibold text-emerald-500 hover:underline">
+              <button onClick={() => setActiveModule('inventory')} className="text-xs font-bold text-amber-400 hover:underline">
                 Open
               </button>
             </div>
             <div className="mt-6 flex flex-col items-center justify-center">
               <div className="relative grid h-40 w-40 place-items-center">
                 <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
-                  <path className="text-slate-200 dark:text-slate-700" strokeWidth="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                  <path className="text-emerald-500" strokeDasharray="75, 100" strokeWidth="3.8" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  <path className="text-slate-200 dark:text-slate-800" strokeWidth="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  <path className="text-amber-500" strokeDasharray={`${stockGaugePct}, 100`} strokeWidth="3.8" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                 </svg>
                 <div className="absolute text-center">
                   <p className="text-xs font-bold text-slate-800 dark:text-slate-100">{formatCurrency(stockValue)}</p>
@@ -321,15 +347,15 @@ export function Dashboard() {
               </div>
               <div className="mt-4 w-full space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-slate-400"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Products</span>
+                  <span className="flex items-center gap-1.5 text-slate-400"><span className="h-2 w-2 rounded-full bg-amber-500" /> Products</span>
                   <span className="font-semibold text-slate-700 dark:text-slate-200">{products.length}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-slate-400"><span className="h-2 w-2 rounded-full bg-amber-500" /> Low stock</span>
+                  <span className="flex items-center gap-1.5 text-slate-400"><span className="h-2 w-2 rounded-full bg-purple-500" /> Low stock</span>
                   <span className="font-semibold text-slate-700 dark:text-slate-200">{lowStockCount}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-slate-400"><span className="h-2 w-2 rounded-full bg-blue-500" /> Transfers</span>
+                  <span className="flex items-center gap-1.5 text-slate-400"><span className="h-2 w-2 rounded-full bg-rose-500" /> Transfers</span>
                   <span className="font-semibold text-slate-700 dark:text-slate-200">{stockTransfers.length}</span>
                 </div>
               </div>

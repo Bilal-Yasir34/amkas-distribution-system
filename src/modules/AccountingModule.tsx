@@ -984,12 +984,12 @@ export function AccountingModule() {
                     {statementType === 'Customer'
                       ? customers.map((c) => (
                           <option key={c.id} value={c.id}>
-                            {c.code} · {c.name}
+                            {c.code} · {c.name}{c.is_active === false ? ' (Deactivated)' : ''}
                           </option>
                         ))
                       : vendors.map((v) => (
                           <option key={v.id} value={v.id}>
-                            {v.code} · {v.name}
+                            {v.code} · {v.name}{v.is_active === false ? ' (Deactivated)' : ''}
                           </option>
                         ))}
                   </select>

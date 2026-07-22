@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building2, Lock, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Building2, Lock, Mail, Loader2, Eye, EyeOff, ShieldCheck, Sparkles, UserCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
 export function Login() {
@@ -19,61 +19,80 @@ export function Login() {
     if (errMsg) setError(errMsg);
   }
 
+  const fillQuickUser = (uEmail: string, uPwd: string) => {
+    setEmail(uEmail);
+    setPassword(uPwd);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0b132b] px-4">
-      {/* Decorative background */}
+    <div className="relative flex min-h-screen items-center justify-center bg-[#0d0c11] px-4 font-sans overflow-hidden">
+      {/* Dynamic Ambient Background Elements (Warm Gold & Amber Glow) */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-emerald-600/10 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-cyan-600/10 blur-3xl" />
+        <div className="absolute -top-32 -right-32 h-[30rem] w-[30rem] rounded-full bg-gradient-to-br from-amber-500/20 via-amber-600/10 to-transparent blur-[120px]" />
+        <div className="absolute -bottom-32 -left-32 h-[30rem] w-[30rem] rounded-full bg-gradient-to-tr from-purple-600/15 via-rose-500/10 to-transparent blur-[120px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[40rem] w-[40rem] rounded-full bg-amber-500/5 blur-[160px]" />
       </div>
 
-      <div className="relative w-full max-w-md">
-        {/* Logo */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-emerald-600 shadow-lg shadow-emerald-600/30">
-            <Building2 className="h-7 w-7 text-white" />
+      <div className="relative w-full max-w-md space-y-6">
+        {/* Brand Header */}
+        <div className="text-center space-y-3">
+          <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 shadow-xl shadow-amber-500/20 ring-1 ring-white/20">
+            <Building2 className="h-8 w-8 text-slate-950" />
           </div>
-          <h1 className="text-xl font-bold text-white">AMKAS International</h1>
-          <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">ERP Distribution System</p>
+          <div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-amber-400">
+              <Sparkles className="h-3 w-3" /> Enterprise ERP Suite
+            </span>
+            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-white font-heading">
+              AMKAS International
+            </h1>
+            <p className="mt-1 text-xs font-semibold text-slate-400">Distribution & Financial Management</p>
+          </div>
         </div>
 
-        {/* Card */}
-        <div className="rounded-2xl border border-slate-700/50 bg-[#1c2541]/80 p-8 shadow-2xl backdrop-blur-xl">
-          <h2 className="mb-1 text-lg font-semibold text-white">Sign In</h2>
-          <p className="mb-6 text-xs text-slate-400">Enter your credentials to access your portal</p>
+        {/* Glassmorphic Login Card */}
+        <div className="rounded-3xl border border-slate-800/80 bg-[#15131d]/80 p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5 space-y-6">
+          <div className="border-b border-slate-800/60 pb-4">
+            <h2 className="text-base font-bold text-white font-heading">System Portal Access</h2>
+            <p className="mt-1 text-xs text-slate-400">Sign in with your admin or role-assigned credentials</p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-300">Email</label>
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+                Email Address
+              </label>
               <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@amkas.pk"
-                  className="w-full rounded-lg border border-slate-600/60 bg-slate-900/50 py-2.5 pl-10 pr-3 text-sm text-white placeholder-slate-500 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  placeholder="admin@amkas.pk"
+                  className="w-full rounded-xl border border-slate-700/80 bg-slate-900/60 py-3 pl-10 pr-3 text-xs font-medium text-white placeholder-slate-500 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
                 />
               </div>
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-300">Password</label>
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
+                Password
+              </label>
               <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
                   type={showPwd ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-slate-600/60 bg-slate-900/50 py-2.5 pl-10 pr-10 text-sm text-white placeholder-slate-500 outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  className="w-full rounded-xl border border-slate-700/80 bg-slate-900/60 py-3 pl-10 pr-10 text-xs font-medium text-white placeholder-slate-500 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPwd((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-slate-300"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-slate-300"
                 >
                   {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -81,7 +100,7 @@ export function Login() {
             </div>
 
             {error && (
-              <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-400">
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs font-medium text-rose-400">
                 {error}
               </div>
             )}
@@ -89,17 +108,47 @@ export function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 py-3 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/25 transition hover:from-amber-400 hover:to-amber-500 active:scale-[0.98] disabled:opacity-60"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {loading ? 'Signing in…' : 'Sign In'}
+              {loading ? 'Authenticating…' : 'Sign In to Dashboard'}
             </button>
           </form>
+
+          {/* Quick Credential Preset Selector */}
+          <div className="pt-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2.5">Quick Demo Fill</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => fillQuickUser('admin@amkas.pk', 'admin123')}
+                className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/40 p-2.5 text-left text-xs transition hover:border-amber-500/40 hover:bg-slate-800/60 group"
+              >
+                <ShieldCheck className="h-4 w-4 text-amber-500 shrink-0" />
+                <div>
+                  <p className="font-bold text-slate-200 group-hover:text-amber-400 transition">Super Admin</p>
+                  <p className="text-[10px] text-slate-500">Full control</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fillQuickUser('sales@amkas.pk', '123456')}
+                className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/40 p-2.5 text-left text-xs transition hover:border-amber-500/40 hover:bg-slate-800/60 group"
+              >
+                <UserCheck className="h-4 w-4 text-purple-400 shrink-0" />
+                <div>
+                  <p className="font-bold text-slate-200 group-hover:text-purple-300 transition">Sales Manager</p>
+                  <p className="text-[10px] text-slate-500">Sales portal</p>
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-slate-600">
-          AMKAS International ERP v1.0 — Contact your administrator for account access
-        </p>
+        <div className="text-center text-[11px] text-slate-500">
+          AMKAS International Distribution System • Secure SSL Encrypted
+        </div>
       </div>
     </div>
   );

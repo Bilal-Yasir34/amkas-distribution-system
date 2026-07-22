@@ -10,7 +10,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
-import { downloadCSV, formatCurrency } from '@/lib/utils';
+import { downloadCSV, formatCurrency, getCustomerName, getVendorName } from '@/lib/utils';
 
 interface ReportTile {
   code: string;
@@ -66,10 +66,9 @@ export function ReportsModule() {
 
   // ——— Sales Report Data ———
   const salesRows = invoices.filter((i) => i.status === 'POSTED').map((inv) => {
-    const cust = customers.find((c) => c.id === inv.customer_id);
     return {
       invoice_no: inv.invoice_no,
-      customer: cust?.name || '—',
+      customer: getCustomerName(inv.customer_id, customers),
       date: inv.invoice_date,
       total: inv.total_amount || 0,
       paid: inv.paid_amount || 0,
@@ -81,10 +80,9 @@ export function ReportsModule() {
 
   // ——— Purchase Report Data ———
   const purchaseRows = vendorBills.filter((b) => b.status === 'POSTED').map((b) => {
-    const ven = vendors.find((v) => v.id === b.vendor_id);
     return {
       bill_no: b.bill_no,
-      vendor: ven?.name || '—',
+      vendor: getVendorName(b.vendor_id, vendors),
       date: b.bill_date,
       total: b.total_amount || 0,
       paid: b.paid_amount || 0,

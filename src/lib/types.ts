@@ -1,5 +1,5 @@
 export type InvoiceStatus = 'UNPOSTED' | 'POSTED';
-export type DocStatus = 'DRAFT' | 'UNPOSTED' | 'POSTED' | 'PENDING' | 'CONFIRMED' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED' | 'OPEN' | 'Current' | 'Open';
+export type DocStatus = 'DRAFT' | 'UNPOSTED' | 'POSTED' | 'PENDING' | 'CONFIRMED' | 'Confirmed' | 'APPROVED' | 'Accepted' | 'REJECTED' | 'COMPLETED' | 'Completed' | 'CANCELLED' | 'OPEN' | 'Open' | 'Sent' | 'Current';
 export type AccountType = 'Asset' | 'Liability' | 'Equity' | 'Revenue' | 'Expense' | 'Income';
 
 export interface ExpenseRecord {
@@ -124,6 +124,7 @@ export interface Product {
   track_serials: boolean;
   is_active: boolean;
   opening_average_cost?: number;
+  cost_price?: number;
   tax_pct?: number;
   barcode_value?: string;
   description?: string;
@@ -354,13 +355,13 @@ export interface CustomerReceipt {
   amount: number;
   cheque_number?: string | null;
   cheque_date?: string | null;
-  reference_no: string | null;
+  reference_no?: string | null;
   currency?: string;
   exchange_rate?: number;
-  status: string;
-  notes: string | null;
+  status?: string;
+  notes?: string | null;
   created_by?: string | null;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface SalesCommission {
@@ -421,6 +422,7 @@ export interface PurchaseInvoice {
   due_date?: string | null;
   gate_pass_no?: string | null;
   account_head?: string | null;
+  account_category?: string | null;
   status: DocStatus | InvoiceStatus;
   subtotal?: number;
   discount_total?: number;
@@ -441,6 +443,7 @@ export interface VendorBill {
   vendor_invoice_no?: string | null;
   gate_pass_no?: string | null;
   account_head: string | null;
+  account_category?: string | null;
   currency: string;
   exchange_rate: number;
   payment_terms?: string | null;
@@ -450,7 +453,7 @@ export interface VendorBill {
   discount_total: number;
   tax_total: number;
   total_amount: number;
-  paid_amount: number;
+  paid_amount?: number;
   notes: string | null;
   created_by?: string | null;
   created_at: string;
@@ -484,13 +487,13 @@ export interface VendorPayment {
   amount: number;
   cheque_number?: string | null;
   cheque_date?: string | null;
-  reference_no: string | null;
+  reference_no?: string | null;
   currency?: string;
   exchange_rate?: number;
-  status: string;
-  notes: string | null;
+  status?: string;
+  notes?: string | null;
   created_by?: string | null;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface StockTransfer {
@@ -608,10 +611,11 @@ export interface UserEmployee {
   base_salary: number;
   allowances: number;
   others: number;
-  is_2fa_required: boolean;
+  is_2fa_required?: boolean;
   is_active: boolean;
   created_at: string;
   last_login?: string;
+  password?: string;
 }
 
 export interface DocumentSequence {

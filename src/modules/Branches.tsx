@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Plus, Layers, X, Edit, Trash2, Power } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
+import { useAuth } from '@/lib/auth';
 import type { Branch } from '@/lib/types';
 
 export function Branches() {
   const toast = useToast();
+  const { isAdmin } = useAuth();
   const { branches, addBranch, updateBranch, deleteBranch } = useDataStore();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -138,32 +140,36 @@ export function Branches() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => toggleStatus(b)}
-                          className={`flex items-center gap-1 text-xs font-bold transition px-2 py-1 rounded-lg border ${
-                            b.is_active !== false
-                              ? 'border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400'
-                              : 'border-emerald-200 bg-emerald-50/50 text-emerald-600 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400'
-                          }`}
-                        >
-                          <Power className="h-3.5 w-3.5" />
-                          {b.is_active !== false ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button
-                          onClick={() => openEdit(b)}
-                          className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white"
-                        >
-                          <Edit className="h-3.5 w-3.5" /> Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(b.id, b.name)}
-                          className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-400"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" /> Delete
-                        </button>
-                      </div>
+                      {isAdmin ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleStatus(b)}
+                            className={`flex items-center gap-1 text-xs font-bold transition px-2 py-1 rounded-lg border ${
+                              b.is_active !== false
+                                ? 'border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400'
+                                : 'border-emerald-200 bg-emerald-50/50 text-emerald-600 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400'
+                            }`}
+                          >
+                            <Power className="h-3.5 w-3.5" />
+                            {b.is_active !== false ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button
+                            onClick={() => openEdit(b)}
+                            className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white"
+                          >
+                            <Edit className="h-3.5 w-3.5" /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(b.id, b.name)}
+                            className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-400"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-slate-400">View Only</span>
+                      )}
                     </td>
                   </tr>
                 ))

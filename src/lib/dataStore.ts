@@ -41,113 +41,10 @@ import type {
 } from './types';
 
 // Initial Seed Data
-const initialCustomers: Customer[] = [
-  {
-    id: 'c1',
-    code: 'CUS-00001',
-    name: 'POPO',
-    contact_person: 'Mr. Popo',
-    phone: '+92 300 1234567',
-    email: 'popo@example.com',
-    address: 'Main Bazaar',
-    city: 'Lahore',
-    credit_limit: 50000,
-    opening_balance: 0,
-    tax_id: 'NTN-123456',
-    salesperson: 'admin',
-    is_active: true,
-  },
-  {
-    id: 'c2',
-    code: 'CUS-00002',
-    name: 'OTEX ENTERPRISES',
-    contact_person: 'Mr. Otex',
-    phone: '+92 321 7654321',
-    email: 'otex@example.com',
-    address: 'Factory Area',
-    city: 'SIALKOT',
-    credit_limit: 100000,
-    opening_balance: 0,
-    tax_id: 'NTN-987654',
-    salesperson: 'admin',
-    is_active: true,
-  },
-];
-
-const initialVendors: Vendor[] = [
-  {
-    id: 'v1',
-    code: 'VEN-00001',
-    name: 'Top Pops',
-    contact_person: 'Sales Rep',
-    phone: '+92 300 9998877',
-    email: 'toppops@example.com',
-    address: 'Industrial Zone',
-    city: 'Lahore',
-    credit_limit: 200000,
-    opening_balance: 0,
-    tax_id: 'NTN-554433',
-    salesperson: 'admin',
-    is_active: false,
-  },
-  {
-    id: 'v2',
-    code: 'VEN-00002',
-    name: 'AA TEXTILE',
-    contact_person: 'Ali Ahmad',
-    phone: '+92 333 1122334',
-    email: 'aatextile@example.com',
-    address: 'Textile Market',
-    city: 'MULTAN',
-    credit_limit: 150000,
-    opening_balance: 0,
-    tax_id: 'NTN-112233',
-    salesperson: 'admin',
-    is_active: true,
-  },
-  {
-    id: 'v3',
-    code: 'VEN-00003',
-    name: 'DYNAMIC TEXTILE',
-    contact_person: 'Usman Ghani',
-    phone: '+92 345 5566778',
-    email: 'dynamic@example.com',
-    address: 'Gulberg',
-    city: 'LAHORE',
-    credit_limit: 300000,
-    opening_balance: 0,
-    tax_id: 'NTN-998877',
-    salesperson: 'admin',
-    is_active: true,
-  },
-];
-
-const initialProducts: Product[] = [
-  {
-    id: 'p1',
-    code: 'SKU-00001',
-    name: 'Hello Cotton Fabric',
-    category: 'RUMAL',
-    unit: 'pcs',
-    length: 0,
-    width: 0,
-    purchase_price: 150,
-    sale_price: 250,
-    reorder_level: 10,
-    track_batches: true,
-    track_serials: false,
-    is_active: true,
-    opening_average_cost: 140,
-    tax_pct: 0,
-    barcode_value: 'SKU-00001',
-    description: 'Cotton fabric item',
-    stock_quantity: 500,
-  },
-];
-
-const initialCategories: Category[] = [
-  { id: 'cat1', name: 'RUMAL', code: '001', description: 'Handkerchief & Linen', is_active: true, created_at: '2026-07-21' },
-];
+const initialCustomers: Customer[] = [];
+const initialVendors: Vendor[] = [];
+const initialProducts: Product[] = [];
+const initialCategories: Category[] = [];
 
 const initialWarehouses: Warehouse[] = [
   {
@@ -161,48 +58,22 @@ const initialWarehouses: Warehouse[] = [
   },
 ];
 
-const initialInvoices: SalesInvoice[] = [
-  {
-    id: 'inv1',
-    invoice_no: 'MS-00001',
-    customer_id: 'c2',
-    warehouse_id: 'w1',
-    invoice_date: '2026-07-15',
-    due_date: '2026-07-30',
-    salesperson: 'admin',
-    currency: 'PKR',
-    exchange_rate: 1,
-    payment_terms: 'Net 30',
-    account_head: 'Default Sales Revenue',
-    gate_pass_no: 'GP-1001',
-    status: 'POSTED',
-    subtotal: 5000,
-    discount_total: 0,
-    tax_total: 0,
-    total_amount: 5000,
-    paid_amount: 0,
-    notes: 'Sample invoice',
-    created_by: 'admin',
-    created_at: '2026-07-15T10:00:00Z',
-  },
-];
+const initialInvoices: SalesInvoice[] = [];
 
 const initialCOA: ChartOfAccount[] = [
-  { id: 'coa1', code: '1000', name: 'ASSETS', account_type: 'Asset', parent_id: null, is_active: true, current_balance: 105054 },
-  { id: 'coa2', code: '1100', name: 'Cash & Bank Accounts', account_type: 'Asset', parent_id: 'coa1', is_active: true, current_balance: 5054 },
-  { id: 'coa3', code: '1110', name: 'Cash in Hand', account_type: 'Asset', parent_id: 'coa2', is_active: true, current_balance: 5054 },
-  { id: 'coa4', code: '1200', name: 'Accounts Receivable', account_type: 'Asset', parent_id: 'coa1', is_active: true, current_balance: 100000 },
-  { id: 'coa5', code: '2000', name: 'LIABILITIES', account_type: 'Liability', parent_id: null, is_active: true, current_balance: 45000 },
-  { id: 'coa6', code: '2100', name: 'Accounts Payable', account_type: 'Liability', parent_id: 'coa5', is_active: true, current_balance: 45000 },
-  { id: 'coa7', code: '4000', name: 'REVENUE', account_type: 'Revenue', parent_id: null, is_active: true, current_balance: 150000 },
-  { id: 'coa8', code: '4100', name: 'Sales Revenue', account_type: 'Revenue', parent_id: 'coa7', is_active: true, current_balance: 150000 },
-  { id: 'coa9', code: '5000', name: 'EXPENSES', account_type: 'Expense', parent_id: null, is_active: true, current_balance: 25000 },
-  { id: 'coa10', code: '5100', name: 'Cost of Goods Sold', account_type: 'Expense', parent_id: 'coa9', is_active: true, current_balance: 25000 },
+  { id: 'coa1', code: '1000', name: 'ASSETS', account_type: 'Asset', parent_id: null, is_active: true, current_balance: 0 },
+  { id: 'coa2', code: '1100', name: 'Cash & Bank Accounts', account_type: 'Asset', parent_id: 'coa1', is_active: true, current_balance: 0 },
+  { id: 'coa3', code: '1110', name: 'Cash in Hand', account_type: 'Asset', parent_id: 'coa2', is_active: true, current_balance: 0 },
+  { id: 'coa4', code: '1200', name: 'Accounts Receivable', account_type: 'Asset', parent_id: 'coa1', is_active: true, current_balance: 0 },
+  { id: 'coa5', code: '2000', name: 'LIABILITIES', account_type: 'Liability', parent_id: null, is_active: true, current_balance: 0 },
+  { id: 'coa6', code: '2100', name: 'Accounts Payable', account_type: 'Liability', parent_id: 'coa5', is_active: true, current_balance: 0 },
+  { id: 'coa7', code: '4000', name: 'REVENUE', account_type: 'Revenue', parent_id: null, is_active: true, current_balance: 0 },
+  { id: 'coa8', code: '4100', name: 'Sales Revenue', account_type: 'Revenue', parent_id: 'coa7', is_active: true, current_balance: 0 },
+  { id: 'coa9', code: '5000', name: 'EXPENSES', account_type: 'Expense', parent_id: null, is_active: true, current_balance: 0 },
+  { id: 'coa10', code: '5100', name: 'Cost of Goods Sold', account_type: 'Expense', parent_id: 'coa9', is_active: true, current_balance: 0 },
 ];
 
-const initialApprovals: ApprovalQueueItem[] = [
-  { id: 'app1', module: 'sales_invoice', record_id: 'inv1', record_no: 'MS-00001', requested_by: 'sales_user', amount: 5000, status: 'PENDING', created_at: '2026-07-21T14:00:00Z' }
-];
+const initialApprovals: ApprovalQueueItem[] = [];
 
 interface DataStoreState {
   // State Arrays
@@ -301,6 +172,10 @@ interface DataStoreState {
   addCustomerReceipt: (r: Omit<CustomerReceipt, 'id'>) => void;
   updateCustomerReceipt: (id: string, r: Partial<CustomerReceipt>) => void;
   deleteCustomerReceipt: (id: string) => void;
+
+  addCommission: (c: Omit<SalesCommission, 'id'>) => void;
+  updateCommission: (id: string, c: Partial<SalesCommission>) => void;
+  deleteCommission: (id: string) => void;
 
   // Purchase Actions
   addPurchaseRequest: (pr: Omit<PurchaseRequest, 'id'>) => void;
@@ -411,18 +286,14 @@ export const useDataStore = create<DataStoreState>()(
       vendorPayments: [],
       stockTransfers: [],
       stockAdjustments: [],
-      batches: [
-        { id: 'b1', product_id: 'p1', batch_number: 'BAT-2026-001', manufacture_date: '2026-01-01', expiry_date: '2027-12-31', quantity_initial: 500, quantity_on_hand: 500, unit_cost: 140, is_active: true }
-      ],
+      batches: [],
       serials: [],
       bankAccounts: [
-        { id: 'ba1', account_name: 'Cash in Hand', bank_name: 'Cash', account_number: '1110', iban: null, currency: 'PKR', opening_balance: 5054, current_balance: 5054, account_type: 'Cash', status: 'Active' },
-        { id: 'ba2', account_name: 'Meezan Islamic Main Account', bank_name: 'Meezan Bank', account_number: '0102998877', iban: 'PK36MEZN000102998877', currency: 'PKR', opening_balance: 100000, current_balance: 100000, account_type: 'Bank', status: 'Active' }
+        { id: 'ba1', account_name: 'Cash in Hand', bank_name: 'Cash', account_number: '1110', iban: null, currency: 'PKR', opening_balance: 0, current_balance: 0, account_type: 'Cash', status: 'Active' },
+        { id: 'ba2', account_name: 'Meezan Islamic Main Account', bank_name: 'Meezan Bank', account_number: '0102998877', iban: 'PK36MEZN000102998877', currency: 'PKR', opening_balance: 0, current_balance: 0, account_type: 'Bank', status: 'Active' }
       ],
       bankStatements: [],
-      journalEntries: [
-        { id: 'j1', entry_no: 'JV-00009', entry_date: '2026-07-14', reference_no: 'CP-00003', source: 'Payment', narration: 'Vendor payment CP-00003', total_debit: 900, total_credit: 900, status: 'POSTED', created_at: '2026-07-14T10:00:00Z' }
-      ],
+      journalEntries: [],
       financialYears: [
         { id: 'fy1', name: '2026-27', start_date: '2026-07-01', end_date: '2027-06-30', is_current: true, status: 'Current' },
         { id: 'fy2', name: '2025-26', start_date: '2025-07-01', end_date: '2026-06-30', is_current: false, status: 'Open' },
@@ -471,7 +342,6 @@ export const useDataStore = create<DataStoreState>()(
           base_salary: 0,
           allowances: 0,
           others: 0,
-          is_2fa_required: false,
           is_active: true,
           created_at: '2026-07-21T12:00:00Z',
           last_login: '21 Jul 2026, 12:06 PM',
@@ -763,6 +633,10 @@ export const useDataStore = create<DataStoreState>()(
       updateCreditNote: (id, patch) => set((s) => ({ creditNotes: (s.creditNotes || []).map((cn) => (cn.id === id ? { ...cn, ...patch } : cn)) })),
       deleteCreditNote: (id) => set((s) => ({ creditNotes: (s.creditNotes || []).filter((cn) => cn.id !== id) })),
 
+      addCommission: (c) => set((s) => ({ commissions: [{ id: crypto.randomUUID(), ...c }, ...(s.commissions || [])] })),
+      updateCommission: (id, patch) => set((s) => ({ commissions: (s.commissions || []).map((comm) => (comm.id === id ? { ...comm, ...patch } : comm)) })),
+      deleteCommission: (id) => set((s) => ({ commissions: (s.commissions || []).filter((comm) => comm.id !== id) })),
+
       addCustomerReceipt: (r) =>
         set((s) => {
           const newReceipt = { id: crypto.randomUUID(), ...r };
@@ -802,10 +676,6 @@ export const useDataStore = create<DataStoreState>()(
         }),
       updateCustomerReceipt: (id, patch) => set((s) => ({ customerReceipts: (s.customerReceipts || []).map((r) => (r.id === id ? { ...r, ...patch } : r)) })),
       deleteCustomerReceipt: (id) => set((s) => ({ customerReceipts: (s.customerReceipts || []).filter((r) => r.id !== id) })),
-
-      addCommission: (c) => set((s) => ({ commissions: [{ id: crypto.randomUUID(), ...c }, ...(s.commissions || [])] })),
-      updateCommission: (id, patch) => set((s) => ({ commissions: (s.commissions || []).map((c) => (c.id === id ? { ...c, ...patch } : c)) })),
-      deleteCommission: (id) => set((s) => ({ commissions: (s.commissions || []).filter((c) => c.id !== id) })),
 
       // Purchase Actions
       addPurchaseRequest: (pr) => set((s) => ({ purchaseRequests: [{ id: crypto.randomUUID(), ...pr }, ...s.purchaseRequests] })),
@@ -969,6 +839,36 @@ export const useDataStore = create<DataStoreState>()(
           serials: [],
         }),
     }),
-    { name: 'amkas-erp-data-store' }
+    {
+      name: 'amkas-erp-data-store',
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          if (state.customers?.some((c) => c.id === 'c1' || c.id === 'c2')) {
+            state.customers = state.customers.filter((c) => c.id !== 'c1' && c.id !== 'c2');
+          }
+          if (state.vendors?.some((v) => v.id === 'v1' || v.id === 'v2' || v.id === 'v3')) {
+            state.vendors = state.vendors.filter((v) => v.id !== 'v1' && v.id !== 'v2' && v.id !== 'v3');
+          }
+          if (state.products?.some((p) => p.id === 'p1')) {
+            state.products = state.products.filter((p) => p.id !== 'p1');
+          }
+          if (state.categories?.some((cat) => cat.id === 'cat1')) {
+            state.categories = state.categories.filter((cat) => cat.id !== 'cat1');
+          }
+          if (state.invoices?.some((i) => i.id === 'inv1')) {
+            state.invoices = state.invoices.filter((i) => i.id !== 'inv1');
+          }
+          if (state.approvalQueue?.some((a) => a.id === 'app1')) {
+            state.approvalQueue = state.approvalQueue.filter((a) => a.id !== 'app1');
+          }
+          if (state.batches?.some((b) => b.id === 'b1')) {
+            state.batches = state.batches.filter((b) => b.id !== 'b1');
+          }
+          if (state.journalEntries?.some((j) => j.id === 'j1')) {
+            state.journalEntries = state.journalEntries.filter((j) => j.id !== 'j1');
+          }
+        }
+      },
+    }
   )
 );

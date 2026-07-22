@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Search, FileText, Package, Users, Truck, Building2, X } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { useDataStore } from '@/lib/dataStore';
+import { useAuth } from '@/lib/auth';
+import { ROLE_MODULES } from '@/lib/rbac';
 import { useSalesInvoices, useProducts, useCustomers, useVendors } from '@/lib/queries';
 
 interface Props {
@@ -11,6 +14,11 @@ interface Props {
 export function GlobalSearchModal({ isOpen, onClose }: Props) {
   const [query, setQuery] = useState('');
   const setActiveModule = useAppStore((s) => s.setActiveModule);
+  const { profile } = useAuth();
+  const { rolePermissions } = useDataStore();
+
+  const role = profile?.role ?? 'super_admin';
+  const allowed = rolePermissions[role] || ROLE_MODULES[role] || ROLE_MODULES.super_admin;
 
   const { data: invoices = [] } = useSalesInvoices();
   const { data: products = [] } = useProducts();
@@ -22,9 +30,6 @@ export function GlobalSearchModal({ isOpen, onClose }: Props) {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         if (isOpen) onClose();
-        else {
-          // toggle or open
-        }
       }
       if (e.key === 'Escape' && isOpen) onClose();
     };
@@ -36,10 +41,10 @@ export function GlobalSearchModal({ isOpen, onClose }: Props) {
 
   const q = query.toLowerCase().trim();
 
-  const filteredInvoices = q ? invoices.filter((i) => i.invoice_no.toLowerCase().includes(q)) : [];
-  const filteredProducts = q ? products.filter((p) => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q)) : [];
-  const filteredCustomers = q ? customers.filter((c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)) : [];
-  const filteredVendors = q ? vendors.filter((v) => v.name.toLowerCase().includes(q) || v.code.toLowerCase().includes(q)) : [];
+  const filteredInvoices = q && allowed.includes('sales') ? invoices.filter((i) => i.invoice_no.toLowerCase().includes(q)) : [];
+  const filteredProducts = q && allowed.includes('products') ? products.filter((p) => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q)) : [];
+  const filteredCustomers = q && allowed.includes('customers') ? customers.filter((c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)) : [];
+  const filteredVendors = q && allowed.includes('vendors') ? vendors.filter((v) => v.name.toLowerCase().includes(q) || v.code.toLowerCase().includes(q)) : [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/60 p-4 pt-20 backdrop-blur-sm">

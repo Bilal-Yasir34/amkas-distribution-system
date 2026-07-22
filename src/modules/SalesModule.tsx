@@ -19,15 +19,19 @@ import {
 } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
+import { useAuth } from '@/lib/auth';
 import { todayISO } from '@/lib/utils';
 import { InvoicePrint } from '@/components/InvoicePrint';
-import type { SalesInvoice, Customer, Quotation, SalesOrder, QuotationItem, SalesOrderItem } from '@/lib/types';
+import type { SalesInvoice, Customer, Quotation, SalesOrder, QuotationItem, SalesOrderItem, CreditNote, CreditNoteItem, CustomerReceipt } from '@/lib/types';
 
 export function SalesModule() {
   const toast = useToast();
+  const { isAdmin } = useAuth();
   const {
     customers = [],
+    vendors = [],
     products = [],
+    categories = [],
     warehouses = [],
     invoices = [],
     quotations = [],
@@ -48,6 +52,7 @@ export function SalesModule() {
     deleteSalesOrder,
     updateSalesOrder,
     addCreditNote,
+    updateCreditNote,
     deleteCreditNote,
     addCustomerReceipt,
     updateCustomerReceipt,
@@ -62,7 +67,7 @@ export function SalesModule() {
 
   const [activeSubTab, setActiveSubTab] = useState<
     'Overview' | 'Quotations' | 'Sales Orders' | 'Invoices' | 'Credit Notes' | 'Receipts' | 'Pipeline' | 'Commissions'
-  >('Invoices');
+  >('Overview');
 
   // Modals state
   const [newInvoiceOpen, setNewInvoiceOpen] = useState(false);
@@ -352,7 +357,7 @@ export function SalesModule() {
 
     if (cn.items && cn.items.length > 0) {
       setCnLineItems(
-        cn.items.map((i) => ({
+        cn.items.map((i: CreditNoteItem) => ({
           id: i.id || crypto.randomUUID(),
           product_id: i.product_id || '',
           description: i.description || '',
@@ -559,7 +564,7 @@ export function SalesModule() {
       // Smart allocation to oldest outstanding invoices
       let remaining = amt;
       const custInvoices = invoices
-        .filter((i) => i.customer_id === receiptCustomerId && i.status !== 'CANCELLED')
+        .filter((i) => i.customer_id === receiptCustomerId && (i.status as string) !== 'CANCELLED')
         .sort((a, b) => new Date(a.invoice_date).getTime() - new Date(b.invoice_date).getTime());
 
       custInvoices.forEach((inv) => {
@@ -585,8 +590,11 @@ export function SalesModule() {
         deposit_account_id: depositAccId,
         deposit_to: receiptDepositTo,
         amount: amt,
-        reference_no: receiptRefNo,
+        reference_no: receiptRefNo || null,
         currency: receiptCurrency,
+        status: 'POSTED',
+        notes: receiptNotes || null,
+        created_at: new Date().toISOString(),
       });
 
       toast.success(`Customer Receipt ${receiptNo} posted successfully!`);
@@ -936,6 +944,7 @@ export function SalesModule() {
         payment_method: 'Cash',
         deposit_account_id: 'Cash in Hand',
         amount: amountVal,
+        reference_no: null,
         notes: genericNotes,
         status: 'POSTED',
         created_at: new Date().toISOString(),
@@ -1062,15 +1071,19 @@ export function SalesModule() {
                             </td>
                             <td className="px-4 py-3 text-right">
                               <div className="flex items-center justify-end gap-2">
-                                <button onClick={() => openEditInvoiceForm(inv)} className="p-1 text-slate-400 hover:text-emerald-400" title="Edit Invoice">
-                                  <Edit className="h-3.5 w-3.5" />
-                                </button>
+                                {isAdmin && (
+                                  <button onClick={() => openEditInvoiceForm(inv)} className="p-1 text-slate-400 hover:text-emerald-400" title="Edit Invoice">
+                                    <Edit className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
                                 <button onClick={() => setPrintInvoice(inv)} className="p-1 text-slate-400 hover:text-white" title="Print Invoice">
                                   <Printer className="h-3.5 w-3.5" />
                                 </button>
-                                <button onClick={() => { deleteInvoice(inv.id); toast.success('Invoice deleted'); }} className="text-xs text-rose-500 hover:underline">
-                                  Delete
-                                </button>
+                                {isAdmin && (
+                                  <button onClick={() => { deleteInvoice(inv.id); toast.success('Invoice deleted'); }} className="text-xs text-rose-500 hover:underline">
+                                    Delete
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -1545,9 +1558,9 @@ export function SalesModule() {
                         </td>
                         <td className="px-4 py-3">
                           <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
-                            q.status === 'Accepted' || q.status === 'CONFIRMED'
+                            (q.status as string) === 'Accepted' || q.status === 'CONFIRMED' || q.status === 'APPROVED'
                               ? 'bg-emerald-500/10 text-emerald-500'
-                              : q.status === 'Sent'
+                              : (q.status as string) === 'Sent'
                               ? 'bg-blue-500/10 text-blue-400'
                               : 'bg-amber-500/10 text-amber-500'
                           }`}>
@@ -1577,7 +1590,7 @@ export function SalesModule() {
                                     salesperson: q.salesperson,
                                     currency: q.currency || 'PKR',
                                     exchange_rate: q.exchange_rate || 1,
-                                    status: 'Confirmed',
+                                    status: 'CONFIRMED',
                                     subtotal: q.subtotal,
                                     discount_total: q.discount_total || 0,
                                     tax_total: q.tax_total,
@@ -1590,7 +1603,7 @@ export function SalesModule() {
                                     converted_to_invoice: false,
                                     created_at: new Date().toISOString(),
                                   });
-                                  updateQuotation(q.id, { converted_to_order: true, status: 'Accepted' });
+                                  updateQuotation(q.id, { converted_to_order: true, status: 'APPROVED' });
                                   toast.success(`Quotation converted → Sales Order ${orderNo}`);
                                   setActiveSubTab('Sales Orders');
                                 }}
@@ -1668,7 +1681,7 @@ export function SalesModule() {
                         </td>
                         <td className="px-4 py-3">
                           <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
-                            so.status === 'Completed' || so.status === 'CONFIRMED'
+                            (so.status as string) === 'Completed' || so.status === 'CONFIRMED' || so.status === 'COMPLETED'
                               ? 'bg-emerald-500/10 text-emerald-500'
                               : 'bg-blue-500/10 text-blue-400'
                           }`}>
@@ -1711,7 +1724,7 @@ export function SalesModule() {
                                     created_by: 'admin',
                                     created_at: new Date().toISOString(),
                                   });
-                                  updateSalesOrder(so.id, { converted_to_invoice: true, status: 'Completed' });
+                                  updateSalesOrder(so.id, { converted_to_invoice: true, status: 'COMPLETED' });
                                   toast.success(`Sales Order converted → Invoice ${invNo}`);
                                   setActiveSubTab('Invoices');
                                 }}

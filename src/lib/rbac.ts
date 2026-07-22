@@ -23,6 +23,20 @@ export const ROLES: RoleInfo[] = [
   { id: 'viewer', label: 'Viewer / Management', description: 'Read-only dashboard, analytics, financial reports' },
 ];
 
+export function normalizeRole(roleStr: string | null | undefined): Role {
+  if (!roleStr) return 'super_admin';
+  const lower = roleStr.toLowerCase().trim();
+  if (lower === 'super admin' || lower === 'super_admin' || lower === 'admin') return 'super_admin';
+  if (lower === 'accountant') return 'accountant';
+  if (lower === 'sales manager' || lower === 'sales_manager') return 'sales_manager';
+  if (lower === 'purchase clerk' || lower === 'purchase_clerk') return 'purchase_clerk';
+  if (lower === 'salesman') return 'salesman';
+  if (lower === 'store keeper' || lower === 'store_keeper') return 'store_keeper';
+  if (lower === 'viewer' || lower === 'viewer / management') return 'viewer';
+  const found = ROLES.find((r) => r.id === lower || r.label.toLowerCase() === lower);
+  return (found?.id || 'super_admin') as Role;
+}
+
 export type ModuleKey =
   | 'dashboard'
   | 'approvals'

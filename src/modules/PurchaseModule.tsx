@@ -2,14 +2,18 @@ import { useState } from 'react';
 import { Plus, ShoppingCart, DollarSign, FileText, CheckCircle, Clock, X, Trash2, Edit } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
+import { useAuth } from '@/lib/auth';
 import { todayISO } from '@/lib/utils';
 import type { VendorBill, Vendor } from '@/lib/types';
 
 export function PurchaseModule() {
   const toast = useToast();
+  const { isAdmin } = useAuth();
   const {
     vendors = [],
+    customers = [],
     products = [],
+    categories = [],
     warehouses = [],
     vendorBills = [],
     purchaseRequests = [],
@@ -39,7 +43,7 @@ export function PurchaseModule() {
 
   const [activeSubTab, setActiveSubTab] = useState<
     'Overview' | 'Requests' | 'Purchase Orders' | 'Purchase Invoices' | 'Vendor Bills' | 'Debit Notes' | 'Payments'
-  >('Vendor Bills');
+  >('Overview');
 
   const [newBillOpen, setNewBillOpen] = useState(false);
   const [genericModalOpen, setGenericModalOpen] = useState(false);
@@ -864,6 +868,7 @@ export function PurchaseModule() {
         discount_total: totals.discountTotal,
         tax_total: totals.taxTotal,
         total_amount: totals.grandTotal,
+        paid_amount: 0,
         notes: vbNotes,
         created_at: new Date().toISOString(),
       });
@@ -1121,9 +1126,11 @@ export function PurchaseModule() {
         vendor_id: vpVendorId,
         payment_date: vpPaymentDate,
         payment_method: vpPayFrom,
+        paid_from_account_id: 'ba1',
         amount: amountVal,
         reference_no: vpRefNumber || paymentNo,
         currency: vpCurrency,
+        status: 'POSTED',
         notes: vpNotes,
         created_at: new Date().toISOString(),
       });
@@ -1289,6 +1296,7 @@ export function PurchaseModule() {
         payment_method: 'Cash',
         paid_from_account_id: 'Cash in Hand',
         amount: amountVal,
+        reference_no: null,
         notes: genericNotes,
         status: 'POSTED',
         created_at: new Date().toISOString(),
@@ -1415,22 +1423,28 @@ export function PurchaseModule() {
                             </td>
                             <td className="px-4 py-3 text-right">
                               <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => openEditVBForm(b)}
-                                  className="p-1 text-slate-400 hover:text-emerald-400 transition"
-                                  title="Edit Vendor Bill"
-                                >
-                                  <Edit className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    deleteVendorBill(b.id);
-                                    toast.success('Vendor bill deleted');
-                                  }}
-                                  className="text-xs text-rose-500 hover:underline"
-                                >
-                                  Delete
-                                </button>
+                                {isAdmin ? (
+                                  <>
+                                    <button
+                                      onClick={() => openEditVBForm(b)}
+                                      className="p-1 text-slate-400 hover:text-emerald-400 transition"
+                                      title="Edit Vendor Bill"
+                                    >
+                                      <Edit className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        deleteVendorBill(b.id);
+                                        toast.success('Vendor bill deleted');
+                                      }}
+                                      className="text-xs text-rose-500 hover:underline"
+                                    >
+                                      Delete
+                                    </button>
+                                  </>
+                                ) : (
+                                  <span className="text-[11px] font-semibold text-slate-400">View Only</span>
+                                )}
                               </div>
                             </td>
                           </tr>

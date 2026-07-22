@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { Toaster } from '@/components/Toaster';
 import { useAppStore } from '@/lib/store';
+import { useDataStore } from '@/lib/dataStore';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { ROLE_MODULES, type ModuleKey } from '@/lib/rbac';
 import { Login } from '@/modules/Login';
@@ -75,14 +76,17 @@ function Router() {
   const { profile } = useAuth();
   const activeModule = useAppStore((s) => s.activeModule) as ModuleKey;
   const setActiveModule = useAppStore((s) => s.setActiveModule);
+  const { rolePermissions } = useDataStore();
 
   const role = profile?.role ?? 'super_admin';
-  const allowed = ROLE_MODULES[role] || ROLE_MODULES.super_admin;
-  const effective = allowed.includes(activeModule) ? activeModule : 'dashboard';
+  const allowed = rolePermissions[role] || ROLE_MODULES[role] || ROLE_MODULES.super_admin;
+  const effective = allowed.includes(activeModule) ? activeModule : (allowed[0] || 'dashboard');
   const Component = modules[effective] || Dashboard;
 
-  useMemo(() => {
-    if (!allowed.includes(activeModule)) setActiveModule('dashboard');
+  useEffect(() => {
+    if (allowed && allowed.length > 0 && !allowed.includes(activeModule)) {
+      setActiveModule(allowed[0] || 'dashboard');
+    }
   }, [allowed, activeModule, setActiveModule]);
 
   return <Component />;

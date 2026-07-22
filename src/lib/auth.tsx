@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-import type { Role } from './rbac';
+import { normalizeRole, type Role } from './rbac';
 import { useDataStore } from './dataStore';
 
 interface UserProfile {
@@ -16,6 +16,7 @@ interface AuthContextValue {
   session: Session | null;
   user: User | null;
   profile: UserProfile | null;
+  isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -97,39 +98,109 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signIn(email: string, password: string) {
     const timestamp = new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'medium' });
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setSession(defaultDemoSession);
-        setProfile({ ...defaultProfile, email });
-      } else if (data.session) {
-        setSession(data.session);
+    const store = useDataStore.getState();
+    const cleanEmail = (email || '').trim().toLowerCase();
+
+    // Check registered users in store
+    const matchedUser = (store.users || []).find((u) => {
+      const uEmail = (u.email || '').toLowerCase();
+      const uCode = (u.employee_code || '').toLowerCase();
+      const uUsername = uEmail.split('@')[0];
+      return uEmail === cleanEmail || uCode === cleanEmail || uUsername === cleanEmail;
+    });
+
+    if (matchedUser) {
+      if (matchedUser.is_active === false) {
+        store.addLoginLog({
+          username: matchedUser.email.split('@')[0],
+          status: 'Blocked (Deactivated)',
+          ip_address: '127.0.0.1',
+          user_agent: navigator.userAgent || 'Chrome',
+          timestamp,
+        });
+        return { error: 'Your account is deactivated. Please contact administrator.' };
       }
-    } catch {
-      setSession(defaultDemoSession);
-      setProfile({ ...defaultProfile, email });
+
+      if (matchedUser.password && password && matchedUser.password !== password) {
+        store.addLoginLog({
+          username: matchedUser.email.split('@')[0],
+          status: 'Failed (Password mismatch)',
+          ip_address: '127.0.0.1',
+          user_agent: navigator.userAgent || 'Chrome',
+          timestamp,
+        });
+        return { error: 'Invalid password. Please check your credentials.' };
+      }
+
+      const roleId = normalizeRole(matchedUser.role);
+      const userSession: Session = {
+        access_token: `token-${matchedUser.id}`,
+        token_type: 'bearer',
+        expires_in: 3600,
+        refresh_token: `refresh-${matchedUser.id}`,
+        user: {
+          id: matchedUser.id,
+          app_metadata: {},
+          user_metadata: { full_name: matchedUser.full_name, role: roleId },
+          aud: 'authenticated',
+          created_at: matchedUser.created_at || new Date().toISOString(),
+          email: matchedUser.email,
+          phone: matchedUser.phone || '',
+          role: roleId,
+          updated_at: new Date().toISOString(),
+        },
+      };
+
+      const userProfile: UserProfile = {
+        id: matchedUser.id,
+        email: matchedUser.email,
+        full_name: matchedUser.full_name,
+        role: roleId,
+        is_active: matchedUser.is_active,
+      };
+
+      setSession(userSession);
+      setProfile(userProfile);
+
+      store.updateUser(matchedUser.id, { last_login: timestamp });
+
+      store.addLoginLog({
+        username: matchedUser.email.split('@')[0],
+        status: 'Success',
+        ip_address: '127.0.0.1',
+        user_agent: navigator.userAgent || 'Chrome',
+        timestamp,
+      });
+
+      store.addAuditLog({
+        username: matchedUser.full_name,
+        module: 'Authentication',
+        action: 'Login',
+        description: `User ${matchedUser.full_name} (${roleId}) signed in successfully`,
+        ip_address: '127.0.0.1',
+        timestamp,
+      });
+
+      return { error: null };
     }
 
-    // Record dynamic login events in Zustand store
-    const store = useDataStore.getState();
-    const uname = email.split('@')[0] || 'admin';
-    store.addLoginLog({
-      username: uname,
-      status: 'Success',
-      ip_address: '127.0.0.1',
-      user_agent: navigator.userAgent || 'Chrome / Windows NT 10.0',
-      timestamp,
-    });
-    store.addAuditLog({
-      username: uname,
-      module: 'Authentication',
-      action: 'Login',
-      description: `User ${uname} signed in successfully`,
-      ip_address: '127.0.0.1',
-      timestamp,
-    });
+    // Default Super Admin fallback for initial admin setup
+    if (cleanEmail === 'admin' || cleanEmail === 'admin@amkas.pk' || cleanEmail === 'admin123@gmail.com') {
+      setSession(defaultDemoSession);
+      setProfile(defaultProfile);
 
-    return { error: null };
+      store.addLoginLog({
+        username: 'admin',
+        status: 'Success',
+        ip_address: '127.0.0.1',
+        user_agent: navigator.userAgent || 'Chrome',
+        timestamp,
+      });
+
+      return { error: null };
+    }
+
+    return { error: 'No user registered with these credentials. Please ask your administrator to register your account in Users & Employees.' };
   }
 
   async function signOut() {
@@ -161,8 +232,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  const isAdmin = profile?.role === 'super_admin';
+
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, isAdmin, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
@@ -170,6 +243,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  if (!ctx) {
+    return {
+      session: defaultDemoSession,
+      user: defaultDemoUser,
+      profile: defaultProfile,
+      isAdmin: true,
+      loading: false,
+      signIn: async () => ({ error: null }),
+      signOut: async () => {},
+    };
+  }
   return ctx;
 }
