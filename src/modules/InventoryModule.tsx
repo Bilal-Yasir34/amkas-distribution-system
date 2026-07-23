@@ -554,7 +554,7 @@ export function InventoryModule() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">AMKAS INTERNATIONAL</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">AMKAS INTERNATIONAL</p>
         <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Inventory Management</h1>
       </div>
 
@@ -575,7 +575,7 @@ export function InventoryModule() {
             onClick={() => setActiveSubTab(tab as any)}
             className={`px-4 py-2 text-xs font-semibold whitespace-nowrap transition rounded-xl ${
               activeSubTab === tab
-                ? 'bg-white text-emerald-600 font-bold shadow-sm dark:bg-slate-700 dark:text-emerald-400'
+                ? 'bg-white text-amber-500 font-bold shadow-sm dark:bg-slate-700 dark:text-amber-400'
                 : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
@@ -607,21 +607,21 @@ export function InventoryModule() {
                 onClick={handleExportCSV}
                 className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               >
-                <Download className="h-3.5 w-3.5 text-emerald-500" /> Export CSV
+                <Download className="h-3.5 w-3.5 text-amber-500" /> Export CSV
               </button>
               <button
                 onClick={() => {
                   setActiveSubTab('Transfers');
                   openCreateTransferForm();
                 }}
-                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                className="flex items-center gap-1.5 btn-primary"
               >
                 <ArrowLeftRight className="h-3.5 w-3.5" /> Transfer stock
               </button>
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                 <tr>
@@ -644,7 +644,7 @@ export function InventoryModule() {
                       <td className="px-4 py-3 font-mono text-slate-400">{p.code}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">Main Warehouse</td>
                       <td className="px-4 py-3 font-mono">Rs. {cost.toFixed(2)}</td>
-                      <td className="px-4 py-3 font-mono font-bold text-emerald-500">{qty} {p.unit || 'pcs'}</td>
+                      <td className="px-4 py-3 font-mono font-bold text-amber-500">{qty} {p.unit || 'pcs'}</td>
                       <td className="px-4 py-3 font-mono font-semibold text-slate-800 dark:text-slate-100">
                         Rs. {(qty * cost).toLocaleString()}
                       </td>
@@ -665,7 +665,7 @@ export function InventoryModule() {
                                   toast.success(`Stock updated for ${p.name}`);
                                   setEditingStockId(null);
                                 }}
-                                className="rounded bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-emerald-700"
+                                className="rounded bg-amber-500 px-2 py-1 text-[10px] font-bold text-white hover:bg-amber-600"
                               >
                                 Save
                               </button>
@@ -679,7 +679,7 @@ export function InventoryModule() {
                           ) : (
                             <button
                               onClick={() => { setEditingStockId(p.id); setEditingStockQty(qty); }}
-                              className="rounded bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 dark:bg-slate-700 dark:text-slate-300"
+                              className="rounded bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600 hover:bg-amber-500/10 hover:text-amber-500 dark:bg-slate-700 dark:text-slate-300"
                             >
                               Update
                             </button>
@@ -701,7 +701,7 @@ export function InventoryModule() {
       {activeSubTab === 'Stock Ledger' && (
         <div className="space-y-6">
           {/* Filter Bar Card matching user screenshot */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 items-end">
               <div>
                 <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">
@@ -710,7 +710,7 @@ export function InventoryModule() {
                 <select
                   value={ledgerProductFilter}
                   onChange={(e) => setLedgerProductFilter(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                 >
                   <option value="all">All products</option>
                   {products.map((p) => (
@@ -728,7 +728,7 @@ export function InventoryModule() {
                 <select
                   value={ledgerWarehouseFilter}
                   onChange={(e) => setLedgerWarehouseFilter(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                 >
                   <option value="all">All warehouses</option>
                   {warehouses.map((w) => (
@@ -747,7 +747,7 @@ export function InventoryModule() {
                   type="date"
                   value={ledgerFromDate}
                   onChange={(e) => setLedgerFromDate(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -759,7 +759,7 @@ export function InventoryModule() {
                   type="date"
                   value={ledgerToDate}
                   onChange={(e) => setLedgerToDate(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -776,7 +776,7 @@ export function InventoryModule() {
           </div>
 
           {/* Stock Ledger Table Container matching user screenshot */}
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
                 <tr>
@@ -784,7 +784,7 @@ export function InventoryModule() {
                   <th className="px-5 py-4">REFERENCE</th>
                   <th className="px-5 py-4">PRODUCT</th>
                   <th className="px-5 py-4">WAREHOUSE</th>
-                  <th className="px-5 py-4 text-emerald-600 dark:text-emerald-400">IN</th>
+                  <th className="px-5 py-4 text-amber-500 dark:text-amber-400">IN</th>
                   <th className="px-5 py-4 text-rose-500">OUT</th>
                   <th className="px-5 py-4">BALANCE</th>
                   <th className="px-5 py-4">COST</th>
@@ -801,12 +801,12 @@ export function InventoryModule() {
                   filteredLedgerRecords.map((r) => (
                     <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
                       <td className="px-5 py-3.5 font-medium text-slate-500 dark:text-slate-400">{r.date}</td>
-                      <td className="px-5 py-3.5 font-mono font-bold text-emerald-600 dark:text-emerald-400">{r.reference}</td>
+                      <td className="px-5 py-3.5 font-mono font-bold text-amber-500 dark:text-amber-400">{r.reference}</td>
                       <td className="px-5 py-3.5 font-medium text-slate-800 dark:text-slate-200">
                         {r.product_name} <span className="font-mono text-slate-400">({r.product_code})</span>
                       </td>
                       <td className="px-5 py-3.5 text-slate-600 dark:text-slate-300">{r.warehouse_name}</td>
-                      <td className="px-5 py-3.5 font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      <td className="px-5 py-3.5 font-mono font-bold text-amber-500 dark:text-amber-400">
                         {r.in_qty > 0 ? `+${r.in_qty}` : '-'}
                       </td>
                       <td className="px-5 py-3.5 font-mono font-bold text-rose-500">
@@ -839,13 +839,13 @@ export function InventoryModule() {
                 </div>
                 <button
                   onClick={openCreateTransferForm}
-                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
+                  className="flex items-center gap-2 btn-primary shadow-sm"
                 >
                   <Plus className="h-4 w-4" /> New transfer
                 </button>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                     <tr>
@@ -870,12 +870,12 @@ export function InventoryModule() {
                         const toWhObj = warehouses.find((w) => w.id === st.to_warehouse_id);
                         return (
                           <tr key={st.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{st.transfer_no}</td>
+                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{st.transfer_no}</td>
                             <td className="px-4 py-3 text-slate-400">{st.transfer_date}</td>
                             <td className="px-4 py-3 text-slate-300">{fromWhObj?.name || 'Main Warehouse'}</td>
                             <td className="px-4 py-3 text-slate-300">{toWhObj?.name || 'Secondary Location'}</td>
                             <td className="px-4 py-3">
-                              <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
+                              <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
                                 {st.status}
                               </span>
                             </td>
@@ -904,7 +904,7 @@ export function InventoryModule() {
               <div className="flex justify-between items-center">
                 <button
                   onClick={() => setTransferViewMode('list')}
-                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
                 >
                   ← Back to Stock Transfers Register
                 </button>
@@ -913,7 +913,7 @@ export function InventoryModule() {
               {/* TOP SECTION: Main Metadata Card (Left) & Transfer Control Card (Right) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Metadata Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                     {editingTransferId ? 'Edit Stock Transfer' : 'New Stock Transfer'}
                   </h2>
@@ -926,7 +926,7 @@ export function InventoryModule() {
                         type="date"
                         value={transferDate}
                         onChange={(e) => setTransferDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -935,7 +935,7 @@ export function InventoryModule() {
                       <select
                         value={transferFromWh}
                         onChange={(e) => setTransferFromWh(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         {warehouses.map((w) => (
                           <option key={w.id} value={w.id}>
@@ -950,7 +950,7 @@ export function InventoryModule() {
                       <select
                         value={transferToWh}
                         onChange={(e) => setTransferToWh(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         {warehouses.map((w) => (
                           <option key={w.id} value={w.id}>
@@ -963,12 +963,12 @@ export function InventoryModule() {
                 </div>
 
                 {/* Right Card: Transfer Control (1 Column) matching screenshot */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-4">
+                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
                   <div className="space-y-4">
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Transfer control</h3>
 
                     {/* Mint Green Notice Box from screenshot */}
-                    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 p-3.5 border border-emerald-200 dark:border-emerald-800/40 text-xs font-medium text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                    <div className="rounded-xl bg-amber-500/10 dark:bg-amber-500/10 p-3.5 border border-amber-500/30 dark:border-amber-500/20 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
                       Stock is deducted from the source warehouse and added to the destination at the current weighted average cost.
                     </div>
                   </div>
@@ -994,10 +994,10 @@ export function InventoryModule() {
               </div>
 
               {/* SECOND SECTION: Line Items Table Card (Matching User Screenshot) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">LINE ITEMS</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">LINE ITEMS</p>
                     <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Products and services</h3>
                   </div>
                   <button
@@ -1037,7 +1037,7 @@ export function InventoryModule() {
                               <select
                                 value={item.product_id}
                                 onChange={(e) => updateTransferLineItem(item.id, 'product_id', e.target.value)}
-                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                               >
                                 <option value="">Select product</option>
                                 {products.map((p) => (
@@ -1054,7 +1054,7 @@ export function InventoryModule() {
                                 placeholder="Optional description"
                                 value={item.description}
                                 onChange={(e) => updateTransferLineItem(item.id, 'description', e.target.value)}
-                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                               />
                             </td>
 
@@ -1089,7 +1089,7 @@ export function InventoryModule() {
                                 type="number"
                                 value={item.rate}
                                 onChange={(e) => updateTransferLineItem(item.id, 'rate', Number(e.target.value))}
-                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                               />
                             </td>
 
@@ -1098,7 +1098,7 @@ export function InventoryModule() {
                                 type="number"
                                 value={item.discount}
                                 onChange={(e) => updateTransferLineItem(item.id, 'discount', Number(e.target.value))}
-                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                               />
                             </td>
 
@@ -1107,7 +1107,7 @@ export function InventoryModule() {
                                 type="number"
                                 value={item.tax_pct}
                                 onChange={(e) => updateTransferLineItem(item.id, 'tax_pct', Number(e.target.value))}
-                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                               />
                             </td>
 
@@ -1163,12 +1163,12 @@ export function InventoryModule() {
                         </span>
                       </div>
 
-                      {/* Dark Navy Grand Total Box (#0b1329) */}
-                      <div className="p-4 bg-[#0b1329] text-right flex flex-col justify-center">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                      {/* Grand Total Box */}
+                      <div className="grand-total-box">
+                        <span className="grand-total-label">
                           GRAND TOTAL
                         </span>
-                        <span className="font-mono text-xl font-bold text-emerald-400">
+                        <span className="grand-total-value">
                           Rs. {totals.grandTotal.toFixed(2)}
                         </span>
                       </div>
@@ -1178,14 +1178,14 @@ export function InventoryModule() {
               </div>
 
               {/* THIRD SECTION: Notes Card */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-2">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-2">
                 <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Notes</label>
                 <textarea
                   rows={4}
                   placeholder="Transfer notes or internal remarks"
                   value={transferNotes}
                   onChange={(e) => setTransferNotes(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                  className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                 />
               </div>
             </div>
@@ -1205,13 +1205,13 @@ export function InventoryModule() {
                 </div>
                 <button
                   onClick={openCreateAdjustmentForm}
-                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
+                  className="flex items-center gap-2 btn-primary shadow-sm"
                 >
                   <Plus className="h-4 w-4" /> New adjustment
                 </button>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                     <tr>
@@ -1232,11 +1232,11 @@ export function InventoryModule() {
                     ) : (
                       stockAdjustments.map((sa) => (
                         <tr key={sa.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                          <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{sa.adjustment_no}</td>
+                          <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{sa.adjustment_no}</td>
                           <td className="px-4 py-3 text-slate-400">{sa.adjustment_date}</td>
                           <td className="px-4 py-3 text-slate-300">{sa.reason}</td>
                           <td className="px-4 py-3">
-                            <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
+                            <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
                               {sa.status}
                             </span>
                           </td>
@@ -1264,7 +1264,7 @@ export function InventoryModule() {
               <div className="flex justify-between items-center">
                 <button
                   onClick={() => setAdjustmentViewMode('list')}
-                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
                 >
                   ← Back to Stock Adjustments Register
                 </button>
@@ -1273,7 +1273,7 @@ export function InventoryModule() {
               {/* TOP SECTION: Main Metadata Card (Left 2 Cols) & Accounting Impact Card (Right 1 Col) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Metadata Card (Left) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                     {editingAdjustmentId ? 'Edit Stock Adjustment' : 'New Stock Adjustment'}
                   </h2>
@@ -1286,7 +1286,7 @@ export function InventoryModule() {
                         type="date"
                         value={adjustmentDate}
                         onChange={(e) => setAdjustmentDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -1295,7 +1295,7 @@ export function InventoryModule() {
                       <select
                         value={adjustmentWarehouse}
                         onChange={(e) => setAdjustmentWarehouse(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         {warehouses.map((w) => (
                           <option key={w.id} value={w.id}>
@@ -1313,18 +1313,18 @@ export function InventoryModule() {
                       rows={4}
                       value={adjustmentReason}
                       onChange={(e) => setAdjustmentReason(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                      className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
 
                 {/* Right Card: Accounting Impact (1 Column) matching screenshot */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-4">
+                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
                   <div className="space-y-4">
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Accounting impact</h3>
 
                     {/* Mint Green Notice Box from screenshot */}
-                    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 p-3.5 border border-emerald-200 dark:border-emerald-800/40 text-xs font-medium text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                    <div className="rounded-xl bg-amber-500/10 dark:bg-amber-500/10 p-3.5 border border-amber-500/30 dark:border-amber-500/20 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
                       The value difference posts automatically between Inventory Asset and Inventory Adjustment.
                     </div>
                   </div>
@@ -1350,10 +1350,10 @@ export function InventoryModule() {
               </div>
 
               {/* SECOND SECTION: Adjustment Lines Card (Matching User Screenshot) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">ADJUSTMENT LINES</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">ADJUSTMENT LINES</p>
                     <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                       Use positive quantity for increase and negative for decrease
                     </h3>
@@ -1385,7 +1385,7 @@ export function InventoryModule() {
                             <select
                               value={item.product_id}
                               onChange={(e) => updateAdjustmentLineItem(item.id, 'product_id', e.target.value)}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             >
                               <option value="">Select product</option>
                               {products.map((p) => (
@@ -1401,7 +1401,7 @@ export function InventoryModule() {
                               type="number"
                               value={item.qty}
                               onChange={(e) => updateAdjustmentLineItem(item.id, 'qty', Number(e.target.value))}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
 
@@ -1410,7 +1410,7 @@ export function InventoryModule() {
                               type="number"
                               value={item.unit_cost}
                               onChange={(e) => updateAdjustmentLineItem(item.id, 'unit_cost', Number(e.target.value))}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
 
@@ -1419,7 +1419,7 @@ export function InventoryModule() {
                               type="text"
                               value={item.notes}
                               onChange={(e) => updateAdjustmentLineItem(item.id, 'notes', e.target.value)}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
 
@@ -1453,13 +1453,13 @@ export function InventoryModule() {
             </div>
             <button
               onClick={() => setBatchModalOpen(true)}
-              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+              className="flex items-center gap-2 btn-primary"
             >
               <Plus className="h-4 w-4" /> New batch
             </button>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                 <tr>
@@ -1482,7 +1482,7 @@ export function InventoryModule() {
                     const p = products.find((x) => x.id === b.product_id);
                     return (
                       <tr key={b.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                        <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{b.batch_number}</td>
+                        <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{b.batch_number}</td>
                         <td className="px-4 py-3 text-slate-300">{p?.name || 'Cotton Fabric'}</td>
                         <td className="px-4 py-3 text-slate-400">{b.expiry_date || '—'}</td>
                         <td className="px-4 py-3 font-mono font-bold text-slate-200">{b.quantity_on_hand}</td>
@@ -1511,13 +1511,13 @@ export function InventoryModule() {
             </div>
             <button
               onClick={() => setSerialModalOpen(true)}
-              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+              className="flex items-center gap-2 btn-primary"
             >
               <Plus className="h-4 w-4" /> New serial number
             </button>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                 <tr>
@@ -1539,10 +1539,10 @@ export function InventoryModule() {
                     const p = products.find((x) => x.id === sr.product_id);
                     return (
                       <tr key={sr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                        <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{sr.serial_number}</td>
+                        <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{sr.serial_number}</td>
                         <td className="px-4 py-3 text-slate-300">{p?.name || 'Product'}</td>
                         <td className="px-4 py-3">
-                          <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
+                          <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
                             {sr.status}
                           </span>
                         </td>
@@ -1567,9 +1567,9 @@ export function InventoryModule() {
           {/* Top Row: Generator & Live Preview Card (Left 2 Cols) + Label Configuration & Print (Right 1 Col) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Card: Select Existing Product & Generate Barcode */}
-            <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-5">
+            <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-5">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">BARCODE GENERATOR</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">BARCODE GENERATOR</p>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Generate Barcode for Existing Product</h2>
               </div>
 
@@ -1586,7 +1586,7 @@ export function InventoryModule() {
                       const p = products.find((x) => x.id === e.target.value);
                       if (p) setCustomBarcodeVal(p.barcode_value || '');
                     }}
-                    className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                    className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                   >
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -1605,7 +1605,7 @@ export function InventoryModule() {
                     placeholder="Enter or scan barcode"
                     value={customBarcodeVal}
                     onChange={(e) => setCustomBarcodeVal(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-bold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                    className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-bold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
@@ -1615,7 +1615,7 @@ export function InventoryModule() {
                 <button
                   type="button"
                   onClick={() => handleGenerateProductBarcode(selectedBarcodeProdId)}
-                  className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm transition"
+                  className="flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-xs font-bold text-white hover:bg-amber-600 shadow-sm transition"
                 >
                   <Barcode className="h-4 w-4" /> Auto-Generate Scannable Barcode
                 </button>
@@ -1670,10 +1670,10 @@ export function InventoryModule() {
             </div>
 
             {/* Right Card: Print Settings & Trigger Label Printer */}
-            <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-6">
+            <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-6">
               <div className="space-y-5">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">LABEL PRINTING</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">LABEL PRINTING</p>
                   <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Print Configuration</h3>
                 </div>
 
@@ -1681,7 +1681,7 @@ export function InventoryModule() {
                 <div>
                   <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 flex justify-between">
                     <span>Number of Labels</span>
-                    <span className="font-mono font-bold text-emerald-500">{labelPrintCount} copies</span>
+                    <span className="font-mono font-bold text-amber-500">{labelPrintCount} copies</span>
                   </label>
                   <input
                     type="range"
@@ -1689,7 +1689,7 @@ export function InventoryModule() {
                     max={48}
                     value={labelPrintCount}
                     onChange={(e) => setLabelPrintCount(Number(e.target.value))}
-                    className="w-full accent-emerald-500 cursor-pointer"
+                    className="w-full accent-amber-500 cursor-pointer"
                   />
                 </div>
 
@@ -1700,7 +1700,7 @@ export function InventoryModule() {
                       type="checkbox"
                       checked={showCompanyOnLabel}
                       onChange={(e) => setShowCompanyOnLabel(e.target.checked)}
-                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                      className="rounded border-slate-300 text-amber-500 focus:ring-amber-500 h-4 w-4"
                     />
                     Include Company Branding (`AMKAS`)
                   </label>
@@ -1710,7 +1710,7 @@ export function InventoryModule() {
                       type="checkbox"
                       checked={showPriceOnLabel}
                       onChange={(e) => setShowPriceOnLabel(e.target.checked)}
-                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                      className="rounded border-slate-300 text-amber-500 focus:ring-amber-500 h-4 w-4"
                     />
                     Include Price Tag on Label
                   </label>
@@ -1732,10 +1732,10 @@ export function InventoryModule() {
           </div>
 
           {/* Bottom Table: Product Barcode Directory & Management */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">PRODUCT BARCODE DIRECTORY</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">PRODUCT BARCODE DIRECTORY</p>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Product Barcodes & Labels Register</h3>
               </div>
 
@@ -1746,7 +1746,7 @@ export function InventoryModule() {
                   placeholder="Filter products or barcodes..."
                   value={barcodeSearch}
                   onChange={(e) => setBarcodeSearch(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white pl-9 pr-3 py-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none w-64 focus:border-emerald-500"
+                  className="rounded-xl border border-slate-300 bg-white pl-9 pr-3 py-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none w-64 focus:border-amber-500"
                 />
               </div>
             </div>
@@ -1779,7 +1779,7 @@ export function InventoryModule() {
                           <td className="px-4 py-3.5 font-mono font-semibold text-slate-500 dark:text-slate-400">{p.code}</td>
                           <td className="px-4 py-3.5 font-mono">
                             {p.barcode_value ? (
-                              <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
+                              <span className="rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-bold text-amber-500 dark:text-amber-400 border border-amber-500/30 dark:border-amber-500/20">
                                 {p.barcode_value}
                               </span>
                             ) : (
@@ -1810,7 +1810,7 @@ export function InventoryModule() {
                                 setPrintProductTarget(p);
                                 setPrintModalOpen(true);
                               }}
-                              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition"
+                              className="btn-primary transition"
                             >
                               Print Label
                             </button>
@@ -1828,21 +1828,21 @@ export function InventoryModule() {
       {/* OTHER SUBTABS */}
       {activeSubTab === 'Overview' && (
         <div className="grid gap-4 sm:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL PRODUCTS</p>
             <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">{products.length}</p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TRANSFERS</p>
-            <p className="mt-1 text-2xl font-extrabold text-emerald-500">{stockTransfers.length}</p>
+            <p className="mt-1 text-2xl font-extrabold text-amber-500">{stockTransfers.length}</p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ADJUSTMENTS</p>
             <p className="mt-1 text-2xl font-extrabold text-amber-500">{stockAdjustments.length}</p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ACTIVE BATCHES</p>
-            <p className="mt-1 text-2xl font-extrabold text-blue-500">{batches.length}</p>
+            <p className="mt-1 text-2xl font-extrabold text-purple-400">{batches.length}</p>
           </div>
         </div>
       )}
@@ -1854,7 +1854,7 @@ export function InventoryModule() {
       {/* SERIAL MODAL */}
       {serialModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Create Serial Number</h3>
               <button onClick={() => setSerialModalOpen(false)} className="text-slate-400 hover:text-white">
@@ -1875,7 +1875,7 @@ export function InventoryModule() {
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button onClick={() => setSerialModalOpen(false)} className="rounded-lg border border-slate-300 px-3.5 py-1.5 text-xs text-slate-400">Cancel</button>
-              <button onClick={handleSaveSerial} className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">Save Serial</button>
+              <button onClick={handleSaveSerial} className="btn-primary">Save Serial</button>
             </div>
           </div>
         </div>
@@ -1884,7 +1884,7 @@ export function InventoryModule() {
       {/* BATCH MODAL */}
       {batchModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Create Product Batch</h3>
               <button onClick={() => setBatchModalOpen(false)} className="text-slate-400 hover:text-white">
@@ -1905,7 +1905,7 @@ export function InventoryModule() {
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button onClick={() => setBatchModalOpen(false)} className="rounded-lg border border-slate-300 px-3.5 py-1.5 text-xs text-slate-400">Cancel</button>
-              <button onClick={handleSaveBatch} className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">Save Batch</button>
+              <button onClick={handleSaveBatch} className="btn-primary">Save Batch</button>
             </div>
           </div>
         </div>

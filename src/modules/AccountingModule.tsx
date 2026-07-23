@@ -384,7 +384,7 @@ export function AccountingModule() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">AMKAS INTERNATIONAL</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">AMKAS INTERNATIONAL</p>
         <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">ERP & Accounting</h1>
       </div>
 
@@ -396,7 +396,7 @@ export function AccountingModule() {
             onClick={() => setActiveSubTab(tab)}
             className={`px-4 py-2 text-xs font-semibold whitespace-nowrap transition rounded-xl ${
               activeSubTab === tab
-                ? 'bg-white text-emerald-600 font-bold shadow-sm dark:bg-slate-700 dark:text-emerald-400'
+                ? 'bg-white text-amber-500 font-bold shadow-sm dark:bg-slate-700 dark:text-amber-400'
                 : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
@@ -411,7 +411,7 @@ export function AccountingModule() {
           {/* Top Row: 4 Metric Cards */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {/* Card 1: TOTAL ASSETS */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-emerald-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL ASSETS</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 Rs. {totalAssets.toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -420,7 +420,7 @@ export function AccountingModule() {
             </div>
 
             {/* Card 2: TOTAL LIABILITIES */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-blue-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL LIABILITIES</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 Rs. {totalLiabilities.toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -429,7 +429,7 @@ export function AccountingModule() {
             </div>
 
             {/* Card 3: INCOME */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-amber-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">INCOME</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 Rs. {totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -438,7 +438,7 @@ export function AccountingModule() {
             </div>
 
             {/* Card 4: NET PROFIT */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-purple-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">NET PROFIT</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 Rs. {netProfit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -450,9 +450,9 @@ export function AccountingModule() {
           {/* Second Row: Quick Actions (Left) & Control (Right) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Quick Actions / Post and review Card */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-6">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">QUICK ACTIONS</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">QUICK ACTIONS</p>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Post and review</h2>
               </div>
 
@@ -466,7 +466,7 @@ export function AccountingModule() {
                   }}
                   className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-sm dark:border-slate-800 dark:bg-slate-800/40 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition text-left group"
                 >
-                  <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:scale-105 transition">
+                  <div className="rounded-xl bg-amber-500/10 p-3 text-amber-500 dark:bg-emerald-950/60 dark:text-amber-400 group-hover:scale-105 transition">
                     <Plus className="h-5 w-5" />
                   </div>
                   <div>
@@ -480,7 +480,7 @@ export function AccountingModule() {
                   onClick={() => setActiveSubTab('Expenses')}
                   className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-sm dark:border-slate-800 dark:bg-slate-800/40 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition text-left group"
                 >
-                  <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:scale-105 transition">
+                  <div className="rounded-xl bg-amber-500/10 p-3 text-amber-500 dark:bg-emerald-950/60 dark:text-amber-400 group-hover:scale-105 transition">
                     <Plus className="h-5 w-5" />
                   </div>
                   <div>
@@ -494,7 +494,7 @@ export function AccountingModule() {
                   onClick={() => setActiveSubTab('Income')}
                   className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-sm dark:border-slate-800 dark:bg-slate-800/40 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition text-left group"
                 >
-                  <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:scale-105 transition">
+                  <div className="rounded-xl bg-amber-500/10 p-3 text-amber-500 dark:bg-emerald-950/60 dark:text-amber-400 group-hover:scale-105 transition">
                     <Plus className="h-5 w-5" />
                   </div>
                   <div>
@@ -508,7 +508,7 @@ export function AccountingModule() {
                   onClick={() => setActiveSubTab('General Ledger')}
                   className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-sm dark:border-slate-800 dark:bg-slate-800/40 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition text-left group"
                 >
-                  <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:scale-105 transition">
+                  <div className="rounded-xl bg-amber-500/10 p-3 text-amber-500 dark:bg-emerald-950/60 dark:text-amber-400 group-hover:scale-105 transition">
                     <ArrowUpRight className="h-5 w-5" />
                   </div>
                   <div>
@@ -519,9 +519,9 @@ export function AccountingModule() {
             </div>
 
             {/* Control / Accounting integrity Card */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-6">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">CONTROL</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">CONTROL</p>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Accounting integrity</h2>
               </div>
 
@@ -551,13 +551,13 @@ export function AccountingModule() {
             </div>
             <button
               onClick={() => setNewJvOpen(true)}
-              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+              className="flex items-center gap-2 btn-primary"
             >
               <Plus className="h-4 w-4" /> New journal entry
             </button>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                 <tr>
@@ -577,14 +577,14 @@ export function AccountingModule() {
                 ) : (
                   journalEntries.map((je) => (
                     <tr key={je.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                      <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{je.entry_no}</td>
+                      <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{je.entry_no}</td>
                       <td className="px-4 py-3 text-slate-400">{je.entry_date}</td>
                       <td className="px-4 py-3 text-slate-400 font-mono">{je.reference_no || '—'}</td>
                       <td className="px-4 py-3 text-slate-300">{je.narration}</td>
                       <td className="px-4 py-3 font-mono font-semibold text-slate-200">Rs. {je.total_debit.toLocaleString()}</td>
                       <td className="px-4 py-3 font-mono font-semibold text-slate-200">Rs. {je.total_credit.toLocaleString()}</td>
                       <td className="px-4 py-3">
-                        <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">{je.status}</span>
+                        <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">{je.status}</span>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button onClick={() => { deleteJournalEntry(je.id); toast.success('Journal entry deleted'); }} className="text-xs text-rose-500 hover:underline">Delete</button>
@@ -602,7 +602,7 @@ export function AccountingModule() {
       {activeSubTab === 'General Ledger' && (
         <div className="space-y-6">
           {/* Top Filter & Actions Card */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-4">
               {/* Account Dropdown */}
               <div>
@@ -612,7 +612,7 @@ export function AccountingModule() {
                 <select
                   value={glAccountFilter}
                   onChange={(e) => setGlAccountFilter(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 min-w-[200px]"
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 min-w-[200px]"
                 >
                   <option value="all">All accounts</option>
                   <option value="1110">1110 · Cash in Hand</option>
@@ -637,7 +637,7 @@ export function AccountingModule() {
                   type="date"
                   value={glFromDate}
                   onChange={(e) => setGlFromDate(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 font-mono"
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-mono"
                 />
               </div>
 
@@ -650,7 +650,7 @@ export function AccountingModule() {
                   type="date"
                   value={glToDate}
                   onChange={(e) => setGlToDate(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 font-mono"
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-mono"
                 />
               </div>
 
@@ -686,7 +686,7 @@ export function AccountingModule() {
           </div>
 
           {/* General Ledger Transactions Register Table */}
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541] overflow-hidden">
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
                 <tr>
@@ -750,7 +750,7 @@ export function AccountingModule() {
               <Download className="h-3.5 w-3.5" /> Print
             </button>
           </div>
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                 <tr>
@@ -776,10 +776,10 @@ export function AccountingModule() {
                   );
                 })}
               </tbody>
-              <tfoot className="border-t-2 border-emerald-500/30 bg-slate-50 dark:bg-slate-800/50">
+              <tfoot className="border-t-2 border-amber-500/30 bg-slate-50 dark:bg-slate-800/50">
                 <tr>
                   <td colSpan={3} className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-200">TOTAL</td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-emerald-500">
+                  <td className="px-4 py-3 text-right font-mono font-bold text-amber-500">
                     {assetAccts.reduce((s, c) => s + (c.current_balance || 0), 0).toLocaleString()}
                   </td>
                   <td className="px-4 py-3 text-right font-mono font-bold text-amber-500">
@@ -804,22 +804,22 @@ export function AccountingModule() {
               <Download className="h-3.5 w-3.5" /> Print
             </button>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541] overflow-hidden">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
             {/* Revenue Section */}
-            <div className="px-5 py-3 bg-emerald-500/5 border-b border-emerald-500/20">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-500">REVENUE</p>
+            <div className="px-5 py-3 bg-amber-500/5 border-b border-amber-500/20">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-amber-500">REVENUE</p>
             </div>
             <table className="w-full text-xs">
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {revenueAccts.map((acc) => (
                   <tr key={acc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                     <td className="px-5 py-3 text-slate-700 dark:text-slate-300">{acc.name}</td>
-                    <td className="px-5 py-3 text-right font-mono font-semibold text-emerald-500">Rs. {(acc.current_balance || 0).toLocaleString()}</td>
+                    <td className="px-5 py-3 text-right font-mono font-semibold text-amber-500">Rs. {(acc.current_balance || 0).toLocaleString()}</td>
                   </tr>
                 ))}
-                <tr className="bg-emerald-500/5">
+                <tr className="bg-amber-500/5">
                   <td className="px-5 py-3 font-bold text-slate-800 dark:text-slate-100">Net Revenue from Invoices</td>
-                  <td className="px-5 py-3 text-right font-mono font-bold text-emerald-500">Rs. {totalRevenue.toLocaleString()}</td>
+                  <td className="px-5 py-3 text-right font-mono font-bold text-amber-500">Rs. {totalRevenue.toLocaleString()}</td>
                 </tr>
               </tbody>
             </table>
@@ -844,10 +844,10 @@ export function AccountingModule() {
             </table>
 
             {/* Net Profit */}
-            <div className={`px-5 py-4 border-t-2 ${netProfit >= 0 ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-rose-500/40 bg-rose-500/5'}`}>
+            <div className={`px-5 py-4 border-t-2 ${netProfit >= 0 ? 'border-amber-500/40 bg-amber-500/5' : 'border-rose-500/40 bg-rose-500/5'}`}>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-bold text-slate-800 dark:text-slate-100">NET PROFIT / (LOSS)</p>
-                <p className={`text-xl font-extrabold font-mono ${netProfit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                <p className={`text-xl font-extrabold font-mono ${netProfit >= 0 ? 'text-amber-500' : 'text-rose-500'}`}>
                   Rs. {netProfit.toLocaleString()}
                 </p>
               </div>
@@ -870,30 +870,30 @@ export function AccountingModule() {
           </div>
           <div className="grid gap-5 lg:grid-cols-2">
             {/* Assets */}
-            <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541] overflow-hidden">
-              <div className="px-5 py-3 bg-blue-500/5 border-b border-blue-500/20">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-blue-500">ASSETS</p>
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
+              <div className="px-5 py-3 bg-blue-500/5 border-b border-purple-500/20">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-purple-400">ASSETS</p>
               </div>
               <table className="w-full text-xs">
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {assetAccts.map((acc) => (
                     <tr key={acc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                       <td className="px-5 py-2.5 text-slate-700 dark:text-slate-300">{acc.name}</td>
-                      <td className="px-5 py-2.5 text-right font-mono font-semibold text-blue-400">Rs. {(acc.current_balance || 0).toLocaleString()}</td>
+                      <td className="px-5 py-2.5 text-right font-mono font-semibold text-purple-300">Rs. {(acc.current_balance || 0).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="border-t-2 border-blue-500/30 bg-blue-500/5">
+                <tfoot className="border-t-2 border-purple-500/30 bg-blue-500/5">
                   <tr>
                     <td className="px-5 py-3 font-bold text-slate-800 dark:text-slate-100">TOTAL ASSETS</td>
-                    <td className="px-5 py-3 text-right font-mono font-bold text-blue-500">Rs. {totalAssets.toLocaleString()}</td>
+                    <td className="px-5 py-3 text-right font-mono font-bold text-purple-400">Rs. {totalAssets.toLocaleString()}</td>
                   </tr>
                 </tfoot>
               </table>
             </div>
 
             {/* Liabilities + Equity */}
-            <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541] overflow-hidden">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
               <div className="px-5 py-3 bg-amber-500/5 border-b border-amber-500/20">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-amber-500">LIABILITIES</p>
               </div>
@@ -920,7 +920,7 @@ export function AccountingModule() {
                   ))}
                   <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                     <td className="px-5 py-2.5 text-slate-700 dark:text-slate-300">Retained Earnings / Net Profit</td>
-                    <td className={`px-5 py-2.5 text-right font-mono font-semibold ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>Rs. {netProfit.toLocaleString()}</td>
+                    <td className={`px-5 py-2.5 text-right font-mono font-semibold ${netProfit >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>Rs. {netProfit.toLocaleString()}</td>
                   </tr>
                 </tbody>
                 <tfoot className="border-t-2 border-amber-500/30 bg-amber-500/5">
@@ -934,7 +934,7 @@ export function AccountingModule() {
           </div>
           <div className={`rounded-xl border p-4 text-center text-xs font-semibold ${
             Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 1
-              ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-500'
+              ? 'border-amber-500/40 bg-amber-500/5 text-amber-500'
               : 'border-amber-500/40 bg-amber-500/5 text-amber-500'
           }`}>
             {Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 1
@@ -948,7 +948,7 @@ export function AccountingModule() {
       {activeSubTab === 'Party Statements' && (
         <div className="space-y-6">
           {/* Top Filter & Actions Card */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-wrap items-center gap-4">
                 {/* Statement type */}
@@ -963,7 +963,7 @@ export function AccountingModule() {
                       setStatementPartyId('');
                       setGeneratedStatementPartyId('');
                     }}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 min-w-[140px]"
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 min-w-[140px]"
                   >
                     <option value="Customer">Customer</option>
                     <option value="Vendor">Vendor</option>
@@ -978,7 +978,7 @@ export function AccountingModule() {
                   <select
                     value={statementPartyId}
                     onChange={(e) => setStatementPartyId(e.target.value)}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 min-w-[240px]"
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 min-w-[240px]"
                   >
                     <option value="">Select party</option>
                     {statementType === 'Customer'
@@ -1004,7 +1004,7 @@ export function AccountingModule() {
                     type="date"
                     value={statementFromDate}
                     onChange={(e) => setStatementFromDate(e.target.value)}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 font-mono"
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-mono"
                   />
                 </div>
 
@@ -1017,7 +1017,7 @@ export function AccountingModule() {
                     type="date"
                     value={statementToDate}
                     onChange={(e) => setStatementToDate(e.target.value)}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 font-mono"
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-mono"
                   />
                 </div>
 
@@ -1066,7 +1066,7 @@ export function AccountingModule() {
 
           {/* VIEW 1: Empty State (Before generating) matching Screenshot 1 */}
           {!generatedStatementPartyId || !activePartyObj ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
               <div className="rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 p-3.5 w-12 h-12 mx-auto flex items-center justify-center text-slate-400 dark:text-slate-500 shadow-2xs">
                 <ArrowLeftRight className="h-6 w-6" />
               </div>
@@ -1080,11 +1080,11 @@ export function AccountingModule() {
           ) : (
             /* VIEW 2: Generated Statement View matching Screenshot 2 */
             <div className="space-y-6">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-6">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-6">
                 {/* Statement Title Header */}
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">
                       {statementType.toUpperCase()} STATEMENT
                     </p>
                     <h2 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">
@@ -1099,28 +1099,28 @@ export function AccountingModule() {
 
                 {/* 4 Summary Cards matching Screenshot 2 */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-emerald-500">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">OPENING BALANCE</p>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">OPENING BALANCE</p>
                     <h3 className="mt-1.5 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                       Rs. 0.00
                     </h3>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-blue-500">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-blue-500">PERIOD DEBIT</p>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-purple-400">PERIOD DEBIT</p>
                     <h3 className="mt-1.5 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                       Rs. {(statementType === 'Customer' ? partyInvoices : partyPayments).reduce((s: number, i: any) => s + (i.total_amount || i.amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </h3>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-amber-500">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">PERIOD CREDIT</p>
                     <h3 className="mt-1.5 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                       Rs. {(statementType === 'Customer' ? partyPayments : partyInvoices).reduce((s: number, p: any) => s + (p.amount || p.total_amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </h3>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-purple-500">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-purple-500">
                       {statementType === 'Customer' ? 'CLOSING RECEIVABLE' : 'CLOSING PAYABLE'}
                     </p>
@@ -1134,7 +1134,7 @@ export function AccountingModule() {
                 </div>
 
                 {/* Statement Transactions Table */}
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541] overflow-hidden">
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
                       <tr>
@@ -1165,7 +1165,7 @@ export function AccountingModule() {
                       {partyInvoices.map((inv: any) => (
                         <tr key={inv.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
                           <td className="px-4 py-3.5 text-slate-600 dark:text-slate-400">{inv.invoice_date || inv.bill_date || '01 Jul 2026'}</td>
-                          <td className="px-4 py-3.5 font-mono font-bold text-emerald-500">{inv.invoice_no || inv.bill_no}</td>
+                          <td className="px-4 py-3.5 font-mono font-bold text-amber-500">{inv.invoice_no || inv.bill_no}</td>
                           <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{statementType === 'Customer' ? 'Invoice' : 'Bill'}</td>
                           <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{statementType === 'Customer' ? 'Sales Invoice' : 'Vendor Bill'}</td>
                           <td className="px-4 py-3.5 text-right font-mono text-slate-900 dark:text-slate-100">
@@ -1183,7 +1183,7 @@ export function AccountingModule() {
                       {partyPayments.map((pmt: any) => (
                         <tr key={pmt.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
                           <td className="px-4 py-3.5 text-slate-600 dark:text-slate-400">{pmt.receipt_date || pmt.payment_date || '01 Jul 2026'}</td>
-                          <td className="px-4 py-3.5 font-mono font-bold text-blue-500">{pmt.receipt_no || pmt.payment_no}</td>
+                          <td className="px-4 py-3.5 font-mono font-bold text-purple-400">{pmt.receipt_no || pmt.payment_no}</td>
                           <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{statementType === 'Customer' ? 'Receipt' : 'Payment'}</td>
                           <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{statementType === 'Customer' ? 'Payment Received' : 'Payment Made'}</td>
                           <td className="px-4 py-3.5 text-right font-mono text-slate-900 dark:text-slate-100">
@@ -1212,7 +1212,7 @@ export function AccountingModule() {
           {/* Top Row: 4 Metric Cards */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {/* Card 1: TOTAL BILLED */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-emerald-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL BILLED</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 Rs. {invoices.reduce((s, i) => s + (i.total_amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -1220,7 +1220,7 @@ export function AccountingModule() {
             </div>
 
             {/* Card 2: COLLECTED / PAID */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-blue-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">COLLECTED / PAID</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 Rs. {customerReceipts.reduce((s, r) => s + (r.amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -1228,7 +1228,7 @@ export function AccountingModule() {
             </div>
 
             {/* Card 3: OUTSTANDING */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-amber-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">OUTSTANDING</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 Rs. {Math.max(0, invoices.reduce((s, i) => s + (i.total_amount || 0), 0) - customerReceipts.reduce((s, r) => s + (r.amount || 0), 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -1236,7 +1236,7 @@ export function AccountingModule() {
             </div>
 
             {/* Card 4: PARTIES */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-purple-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PARTIES</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 {customers.length}
@@ -1245,13 +1245,13 @@ export function AccountingModule() {
           </div>
 
           {/* Main Table Card: Customer Aging Summary */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">ACCOUNTS RECEIVABLE</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">ACCOUNTS RECEIVABLE</p>
               <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Customer aging summary</h2>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-[#1c2541] overflow-hidden">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
                   <tr>
@@ -1308,7 +1308,7 @@ export function AccountingModule() {
           {/* Top Row: 4 Metric Cards */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {/* Card 1: TOTAL BILLED */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-emerald-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL BILLED</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 Rs. {vendorBills.reduce((s, b) => s + (b.total_amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -1316,7 +1316,7 @@ export function AccountingModule() {
             </div>
 
             {/* Card 2: COLLECTED / PAID */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-blue-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">COLLECTED / PAID</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 Rs. {vendorPayments.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -1324,7 +1324,7 @@ export function AccountingModule() {
             </div>
 
             {/* Card 3: OUTSTANDING */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-amber-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">OUTSTANDING</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 Rs. {Math.max(0, vendorBills.reduce((s, b) => s + (b.total_amount || 0), 0) - vendorPayments.reduce((s, p) => s + (p.amount || 0), 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -1332,7 +1332,7 @@ export function AccountingModule() {
             </div>
 
             {/* Card 4: PARTIES */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-purple-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PARTIES</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 {vendors.length}
@@ -1341,13 +1341,13 @@ export function AccountingModule() {
           </div>
 
           {/* Main Table Card: Vendor Aging Summary */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">ACCOUNTS PAYABLE</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">ACCOUNTS PAYABLE</p>
               <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Vendor aging summary</h2>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-[#1c2541] overflow-hidden">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
                   <tr>
@@ -1405,7 +1405,7 @@ export function AccountingModule() {
             /* Record Expense Form View (Matching Screenshot 4) */
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Form Card (Left 2 cols) */}
-              <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+              <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                 <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mb-2">Record Expense</h2>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1509,9 +1509,9 @@ export function AccountingModule() {
 
               {/* Accounting Impact Card (Right 1 col matching Screenshot 4) */}
               <div className="space-y-6">
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                   <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Accounting impact</h3>
-                  <div className="rounded-xl bg-emerald-50/80 p-4 border border-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-900/50 text-xs text-emerald-700 dark:text-emerald-300 leading-relaxed">
+                  <div className="rounded-xl bg-amber-500/10/80 p-4 border border-amber-500/20 dark:bg-amber-500/10 dark:border-amber-500/30 text-xs text-emerald-700 dark:text-amber-300 leading-relaxed">
                     Debits the selected expense account and credits the selected bank/cash account.
                   </div>
                 </div>
@@ -1536,10 +1536,10 @@ export function AccountingModule() {
             </div>
           ) : (
             /* Expense Register List (Matching Screenshot 3) */
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">CASH MANAGEMENT</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">CASH MANAGEMENT</p>
                   <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Expense register</h2>
                 </div>
                 <button
@@ -1551,7 +1551,7 @@ export function AccountingModule() {
                 </button>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-[#1c2541] overflow-hidden">
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
                     <tr>
@@ -1583,7 +1583,7 @@ export function AccountingModule() {
                             Rs. {ex.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </td>
                           <td className="px-4 py-3.5 text-center">
-                            <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                            <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-amber-400">
                               {ex.status}
                             </span>
                           </td>
@@ -1605,7 +1605,7 @@ export function AccountingModule() {
             /* Record Income Form View */
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Form Card (Left 2 cols) */}
-              <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+              <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                 <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mb-2">Record Income</h2>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1709,9 +1709,9 @@ export function AccountingModule() {
 
               {/* Accounting Impact Card */}
               <div className="space-y-6">
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                   <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Accounting impact</h3>
-                  <div className="rounded-xl bg-emerald-50/80 p-4 border border-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-900/50 text-xs text-emerald-700 dark:text-emerald-300 leading-relaxed">
+                  <div className="rounded-xl bg-amber-500/10/80 p-4 border border-amber-500/20 dark:bg-amber-500/10 dark:border-amber-500/30 text-xs text-emerald-700 dark:text-amber-300 leading-relaxed">
                     Credits the selected income account and debits the selected bank/cash account.
                   </div>
                 </div>
@@ -1736,10 +1736,10 @@ export function AccountingModule() {
             </div>
           ) : (
             /* Income Register List (Matching Screenshot 5) */
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">CASH MANAGEMENT</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">CASH MANAGEMENT</p>
                   <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Income register</h2>
                 </div>
                 <button
@@ -1751,7 +1751,7 @@ export function AccountingModule() {
                 </button>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-[#1c2541] overflow-hidden">
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
                     <tr>
@@ -1784,7 +1784,7 @@ export function AccountingModule() {
                             Rs. {inc.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </td>
                           <td className="px-4 py-3.5 text-center">
-                            <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                            <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-amber-400">
                               {inc.status}
                             </span>
                           </td>
@@ -1792,7 +1792,7 @@ export function AccountingModule() {
                             <button
                               type="button"
                               onClick={() => window.print()}
-                              className="text-xs font-bold text-emerald-600 hover:underline"
+                              className="text-xs font-bold text-amber-500 hover:underline"
                             >
                               Print
                             </button>
@@ -1811,7 +1811,7 @@ export function AccountingModule() {
       {/* NEW JV MODAL */}
       {newJvOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="my-8 w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="my-8 w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">New Journal Entry</h3>
               <button onClick={() => setNewJvOpen(false)} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
@@ -1832,8 +1832,8 @@ export function AccountingModule() {
             </div>
             <div className="mt-6 space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-500">BALANCED DEBIT & CREDIT LINES</p>
-                <button onClick={addLine} className="text-xs font-semibold text-emerald-500 hover:underline">+ Add line</button>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-amber-500">BALANCED DEBIT & CREDIT LINES</p>
+                <button onClick={addLine} className="text-xs font-semibold text-amber-500 hover:underline">+ Add line</button>
               </div>
               {lines.map((line) => (
                 <div key={line.id} className="flex items-center gap-2">
@@ -1848,12 +1848,12 @@ export function AccountingModule() {
               <div className="flex justify-between items-center border-t pt-3 font-mono text-xs">
                 <span className="text-slate-400">Total Debit: Rs. {totalDebit.toFixed(2)}</span>
                 <span className="text-slate-400">Total Credit: Rs. {totalCredit.toFixed(2)}</span>
-                <span className={`font-bold ${isBalanced ? 'text-emerald-500' : 'text-rose-500'}`}>{isBalanced ? '✓ Balanced' : '✗ Unbalanced'}</span>
+                <span className={`font-bold ${isBalanced ? 'text-amber-500' : 'text-rose-500'}`}>{isBalanced ? '✓ Balanced' : '✗ Unbalanced'}</span>
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button onClick={() => setNewJvOpen(false)} className="rounded-lg border border-slate-300 px-3.5 py-1.5 text-xs text-slate-400">Cancel</button>
-              <button onClick={handleSaveJV} disabled={!isBalanced} className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
+              <button onClick={handleSaveJV} disabled={!isBalanced} className="btn-primary disabled:opacity-50">
                 Save & Post JV
               </button>
             </div>

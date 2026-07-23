@@ -34,6 +34,7 @@ import { useAuth } from '@/lib/auth';
 import { ROLE_MODULES, MODULE_LABELS, ROLES, type ModuleKey } from '@/lib/rbac';
 import { useState, useEffect } from 'react';
 import { GlobalSearchModal } from './GlobalSearchModal';
+import { ModuleSkeleton, DashboardSkeleton } from './SkeletonLoader';
 
 const moduleIcons: Record<ModuleKey, typeof LayoutDashboard> = {
   dashboard: LayoutDashboard,
@@ -137,52 +138,60 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   ];
 
   const { companyLogo, organizations, branches } = useDataStore();
+  const [moduleLoading, setModuleLoading] = useState(false);
+
+  const handleNavModuleClick = (m: ModuleKey) => {
+    if (m === activeModule) return;
+    setModuleLoading(true);
+    setActiveModule(m);
+    setTimeout(() => setModuleLoading(false), 250);
+  };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-[#0d0c11]">
-      {/* Sidebar */}
-      <aside className="no-print flex w-60 shrink-0 flex-col bg-[#13111c] text-slate-300 border-r border-slate-800/80">
-        <div className="flex h-16 items-center gap-2.5 border-b border-slate-800/80 px-5">
+    <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#0f172a]">
+      {/* Glassmorphic Sidebar */}
+      <aside className="no-print flex w-60 shrink-0 flex-col bg-white/90 dark:bg-slate-900/90 text-slate-300 border-r border-slate-200/80 dark:border-amber-500/20 backdrop-blur-2xl shadow-2xl z-20">
+        <div className="flex h-16 items-center gap-2.5 border-b border-slate-200/80 dark:border-amber-500/20 px-5">
           {companyLogo ? (
-            <img src={companyLogo} alt="Logo" className="h-8 w-8 rounded-lg object-cover" />
+            <img src={companyLogo} alt="Logo" className="h-8 w-8 rounded-xl object-cover ring-2 ring-amber-500/30" />
           ) : (
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 font-extrabold text-slate-950 shadow-md shadow-amber-500/20">
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 font-extrabold text-slate-950 shadow-lg shadow-amber-500/30 ring-1 ring-white/30">
               A
             </div>
           )}
           <div className="leading-tight">
-            <p className="text-xs font-extrabold tracking-tight text-white font-heading">AMKAS ERP</p>
-            <p className="text-[10px] uppercase tracking-widest text-slate-400">ENTERPRISE</p>
+            <p className="text-sm font-extrabold tracking-tight text-slate-900 dark:text-white font-heading">AMKAS ERP</p>
+            <p className="text-[9px] uppercase tracking-widest text-amber-500 dark:text-amber-400 font-bold">ENTERPRISE SUITE</p>
           </div>
         </div>
 
         {/* Workspace Card */}
-        <div className="mx-3 mt-3 rounded-xl bg-slate-900/60 p-2.5 border border-slate-800/80">
-          <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">WORKSPACE</p>
-          <p className="text-xs font-bold text-amber-400 truncate">{selectedOrg}</p>
+        <div className="mx-3 mt-3.5 rounded-2xl bg-amber-500/10 p-3 border border-amber-500/20 shadow-sm backdrop-blur-md">
+          <p className="text-[9px] uppercase font-extrabold text-amber-500 tracking-wider">ACTIVE WORKSPACE</p>
+          <p className="mt-0.5 text-xs font-bold text-slate-900 dark:text-amber-300 truncate">{selectedOrg}</p>
         </div>
 
         {/* Nav Links */}
-        <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-3">
+        <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
           {groups.map((group) => {
             if (group.keys.length === 0) return null;
             return (
               <div key={group.title}>
-                <p className="px-2 pb-1 text-[10px] font-bold text-slate-500 tracking-wider uppercase">
+                <p className="px-3 pb-1.5 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 tracking-wider uppercase">
                   {group.title}
                 </p>
-                <div className="space-y-0.5">
+                <div className="space-y-1">
                   {group.keys.map((m) => {
                     const Icon = moduleIcons[m];
                     const active = activeModule === m;
                     return (
                       <button
                         key={m}
-                        onClick={() => setActiveModule(m)}
-                        className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition ${
+                        onClick={() => handleNavModuleClick(m)}
+                        className={`flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition-all duration-200 ${
                           active
-                            ? 'bg-amber-500/15 text-amber-400 border-l-2 border-amber-500 font-bold'
-                            : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                            ? 'bg-gradient-to-r from-amber-500/25 to-amber-500/10 text-amber-500 dark:text-amber-400 border-l-4 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.25)]'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-amber-500/10 hover:text-amber-500 dark:hover:text-amber-300'
                         }`}
                       >
                         <Icon className="h-4 w-4 shrink-0" />
@@ -197,14 +206,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* User Card footer */}
-        <div className="border-t border-slate-800/80 p-3">
-          <div className="flex items-center gap-2 rounded-xl bg-slate-900/50 p-2 border border-slate-800/60">
-            <div className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 font-extrabold text-slate-950 text-xs shadow-sm">
+        <div className="border-t border-slate-200/80 dark:border-amber-500/20 p-3.5">
+          <div className="flex items-center gap-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800/80 p-2.5 border border-slate-200 dark:border-slate-700/60 shadow-sm">
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 font-extrabold text-slate-950 text-xs shadow-sm">
               A
             </div>
             <div className="flex-1 truncate">
-              <p className="text-xs font-bold text-slate-200 truncate">{profile?.full_name || 'admin'}</p>
-              <p className="text-[10px] text-slate-400 truncate">{roleLabel}</p>
+              <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{profile?.full_name || 'admin'}</p>
+              <p className="text-[10px] text-amber-500 dark:text-amber-400 font-bold truncate">{roleLabel}</p>
             </div>
           </div>
         </div>
@@ -212,15 +221,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main Container */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top Header */}
-        <header className="no-print flex h-16 items-center justify-between border-b border-slate-200 bg-white px-5 dark:border-slate-800/80 dark:bg-[#14121a]">
+        {/* Top Glassmorphic Header */}
+        <header className="no-print flex h-16 items-center justify-between border-b border-slate-200/90 bg-white/80 px-6 dark:border-amber-500/20 dark:bg-slate-900/80 backdrop-blur-2xl shadow-sm z-10">
           {/* Left Pickers */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 text-xs">
               <select
                 value={selectedOrg}
                 onChange={(e) => setSelectedOrg(e.target.value)}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700/80 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                className="rounded-2xl border border-slate-300/80 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-800 dark:border-amber-500/30 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 dark:focus:shadow-[0_0_15px_rgba(245,158,11,0.25)] transition"
               >
                 {organizations.length > 0 ? (
                   organizations.map((o) => (
@@ -235,7 +244,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <select
                 value={selectedBranch}
                 onChange={(e) => setSelectedBranch(e.target.value)}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700/80 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                className="rounded-2xl border border-slate-300/80 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-800 dark:border-amber-500/30 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 dark:focus:shadow-[0_0_15px_rgba(245,158,11,0.25)] transition"
               >
                 <option value="All Branches">All Branches</option>
                 {branches.filter((b) => b.is_active !== false).map((b) => (
@@ -249,13 +258,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex w-72 items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-400 hover:border-slate-300 dark:border-slate-700/80 dark:bg-slate-800/60 dark:text-slate-400"
+              className="flex w-72 items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/80 px-3.5 py-1.5 text-xs text-slate-400 hover:border-amber-500/50 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] dark:border-amber-500/30 dark:bg-slate-800/80 dark:text-slate-400 transition-all duration-200"
             >
               <span className="flex items-center gap-2">
-                <Search className="h-3.5 w-3.5" />
+                <Search className="h-3.5 w-3.5 text-amber-500" />
                 <span>Search transactions, accounts, people...</span>
               </span>
-              <kbd className="rounded-md bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-600 dark:bg-slate-700 dark:text-slate-300 font-mono">
+              <kbd className="rounded-lg bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-600 dark:bg-slate-700 dark:text-slate-300 font-mono">
                 Ctrl K
               </kbd>
             </button>
@@ -264,30 +273,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="relative">
               <button
                 onClick={() => setUserMenu((v) => !v)}
-                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs transition hover:bg-slate-50 dark:border-slate-700/80 dark:bg-slate-800"
+                className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs transition hover:border-amber-500/40 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] dark:border-amber-500/30 dark:bg-slate-800"
               >
-                <div className="grid h-6 w-6 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 text-xs font-extrabold text-slate-950">
+                <div className="grid h-6 w-6 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 text-xs font-extrabold text-slate-950 shadow-sm">
                   A
                 </div>
                 <div className="text-left leading-tight">
-                  <p className="font-bold text-slate-700 dark:text-slate-200">{profile?.full_name || 'admin'}</p>
-                  <p className="text-[9px] text-slate-400">{roleLabel}</p>
+                  <p className="font-extrabold text-slate-800 dark:text-slate-100">{profile?.full_name || 'admin'}</p>
+                  <p className="text-[9px] text-amber-500 dark:text-amber-400 font-bold">{roleLabel}</p>
                 </div>
                 <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
               </button>
 
               {userMenu && (
-                <div className="absolute right-0 top-12 z-30 w-52 rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl dark:border-slate-800 dark:bg-[#1c1a26]">
+                <div className="absolute right-0 top-12 z-30 w-52 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-amber-500/30 dark:bg-slate-900 backdrop-blur-2xl">
                   <div className="border-b border-slate-100 px-3 py-2 dark:border-slate-800">
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{profile?.email || 'admin@amkas.pk'}</p>
-                    <p className="mt-0.5 text-[10px] text-slate-400">{roleLabel}</p>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-100">{profile?.email || 'admin@amkas.pk'}</p>
+                    <p className="mt-0.5 text-[10px] text-amber-500 font-bold">{roleLabel}</p>
                   </div>
                   <button
                     onClick={() => {
                       setUserMenu(false);
                       signOut();
                     }}
-                    className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-rose-600 transition hover:bg-rose-50 dark:hover:bg-rose-500/10 font-bold"
+                    className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs text-rose-600 transition hover:bg-rose-50 dark:hover:bg-rose-500/10 font-bold"
                   >
                     <LogOut className="h-4 w-4" />
                     Sign Out
@@ -299,26 +308,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="grid h-8 w-8 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 dark:border-slate-700/80 dark:bg-slate-800 dark:text-amber-400"
+              className="grid h-9 w-9 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-600 hover:border-amber-500/40 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] dark:border-amber-500/30 dark:bg-slate-800 dark:text-amber-400 transition"
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4 text-slate-700" />}
             </button>
           </div>
         </header>
 
         {/* Content View */}
-        <main className="flex-1 overflow-y-auto p-5">
-          {allowed && allowed.length > 0 && !allowed.includes(activeModule as ModuleKey) ? (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 bg-slate-900/50 rounded-2xl border border-slate-800">
+        <main className="flex-1 overflow-y-auto p-6">
+          {moduleLoading ? (
+            activeModule === 'dashboard' ? <DashboardSkeleton /> : <ModuleSkeleton />
+          ) : allowed && allowed.length > 0 && !allowed.includes(activeModule as ModuleKey) ? (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-3xl border border-rose-500/30 shadow-2xl">
               <Shield className="h-16 w-16 text-rose-500 mb-4 animate-bounce" />
-              <h2 className="text-xl font-bold text-slate-100">Access Restricted</h2>
-              <p className="text-sm text-slate-400 max-w-md mt-2">
-                You do not have permission from the Administrator to access the <span className="font-semibold text-amber-400">{currentLabel}</span> module.
+              <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 font-heading">Access Restricted</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mt-2">
+                You do not have permission from the Administrator to access the <span className="font-bold text-amber-500">{currentLabel}</span> module.
               </p>
               <button
-                onClick={() => setActiveModule(allowed[0] || 'dashboard')}
-                className="mt-6 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500 transition"
+                onClick={() => handleNavModuleClick(allowed[0] || 'dashboard')}
+                className="mt-6 btn-primary"
               >
                 Return to Authorized Portal Page
               </button>

@@ -4,6 +4,7 @@ import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 import type { ChartOfAccount } from '@/lib/types';
+import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 
 export function ChartOfAccounts() {
   const toast = useToast();
@@ -13,6 +14,7 @@ export function ChartOfAccounts() {
   const [activeSubTab, setActiveSubTab] = useState<'All accounts' | 'Balance sheet' | 'Profit & loss'>('All accounts');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Form state for creating/editing accounts
   const [code, setCode] = useState('');
@@ -41,10 +43,11 @@ export function ChartOfAccounts() {
     setModalOpen(true);
   };
 
-  const handleDelete = (id: string, accountName: string) => {
-    if (confirm(`Are you sure you want to delete account "${accountName}"?`)) {
-      deleteCOAccount(id);
-      toast.success(`Account "${accountName}" deleted`);
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) {
+      deleteCOAccount(deleteTarget.id);
+      toast.success(`Account "${deleteTarget.name}" deleted`);
+      setDeleteTarget(null);
     }
   };
 
@@ -92,7 +95,7 @@ export function ChartOfAccounts() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">AMKAS INTERNATIONAL</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">AMKAS INTERNATIONAL</p>
         <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Chart of Accounts</h1>
       </div>
 
@@ -104,7 +107,7 @@ export function ChartOfAccounts() {
             onClick={() => setActiveSubTab(tab as any)}
             className={`px-4 py-2 text-xs font-semibold whitespace-nowrap transition rounded-xl ${
               activeSubTab === tab
-                ? 'bg-white text-emerald-600 font-bold shadow-sm dark:bg-slate-700 dark:text-emerald-400'
+                ? 'bg-white text-amber-500 font-bold shadow-sm dark:bg-slate-700 dark:text-amber-400'
                 : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
@@ -116,7 +119,7 @@ export function ChartOfAccounts() {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">FINANCIAL STRUCTURE</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">FINANCIAL STRUCTURE</p>
             <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
               {activeSubTab} ({filteredAccounts.length})
             </h2>
@@ -131,7 +134,7 @@ export function ChartOfAccounts() {
         </div>
 
         {/* Account Table */}
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541] overflow-hidden">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
               <tr>
@@ -153,14 +156,14 @@ export function ChartOfAccounts() {
               ) : (
                 filteredAccounts.map((coa) => (
                   <tr key={coa.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
-                    <td className="px-4 py-3.5 font-mono font-bold text-emerald-600 dark:text-emerald-400">{coa.code}</td>
+                    <td className="px-4 py-3.5 font-mono font-bold text-amber-500 dark:text-amber-400">{coa.code}</td>
                     <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-100">{coa.name}</td>
                     <td className="px-4 py-3.5">
                       <span className={`rounded-md px-2.5 py-1 text-[10px] font-bold ${
-                        coa.account_type === 'Asset' ? 'bg-blue-500/10 text-blue-500' :
+                        coa.account_type === 'Asset' ? 'bg-purple-500/10 text-purple-400' :
                         coa.account_type === 'Liability' ? 'bg-amber-500/10 text-amber-500' :
                         coa.account_type === 'Equity' ? 'bg-purple-500/10 text-purple-500' :
-                        coa.account_type === 'Revenue' || coa.account_type === 'Income' ? 'bg-emerald-500/10 text-emerald-500' :
+                        coa.account_type === 'Revenue' || coa.account_type === 'Income' ? 'bg-amber-500/15 text-amber-500' :
                         'bg-rose-500/10 text-rose-500'
                       }`}>
                         {coa.account_type}
@@ -170,7 +173,7 @@ export function ChartOfAccounts() {
                       Rs. {(coa.current_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-4 py-3.5 text-center">
-                      <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                      <span className="rounded-full bg-emerald-100 px-3 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-amber-400">
                         Active
                       </span>
                     </td>
@@ -185,7 +188,7 @@ export function ChartOfAccounts() {
                             <Edit className="h-3.5 w-3.5" />
                           </button>
                           <button
-                            onClick={() => handleDelete(coa.id, `${coa.code} - ${coa.name}`)}
+                            onClick={() => setDeleteTarget({ id: coa.id, name: `${coa.code} - ${coa.name}` })}
                             className="p-1 text-slate-400 hover:text-rose-500 transition"
                             title="Delete Account"
                           >
@@ -205,7 +208,7 @@ export function ChartOfAccounts() {
       {/* ACCOUNT FORM MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
                 {editingId ? 'Edit Account' : 'New Account'}
@@ -292,6 +295,15 @@ export function ChartOfAccounts() {
           </div>
         </div>
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <DeleteConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        itemName={deleteTarget?.name}
+        itemType="chart of account"
+      />
     </div>
   );
 }

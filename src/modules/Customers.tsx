@@ -5,91 +5,96 @@ import { useToast } from '@/lib/toast';
 import { downloadCSV } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
 import type { Customer } from '@/lib/types';
+import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 
 export function Customers() {
   const toast = useToast();
   const { isAdmin } = useAuth();
   const { customers, addCustomer, updateCustomer, deleteCustomer } = useDataStore();
 
-  const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
-  // Form state
+  const [code, setCode] = useState('');
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [taxId, setTaxId] = useState('');
   const [salesperson, setSalesperson] = useState('admin');
-  const [creditLimit, setCreditLimit] = useState('0');
+  const [creditLimit, setCreditLimit] = useState('100000');
+  const [creditPeriod, setCreditPeriod] = useState('30');
   const [openingBalance, setOpeningBalance] = useState('0');
-  const [address, setAddress] = useState('');
   const [isActive, setIsActive] = useState(true);
 
   const openCreate = () => {
     setEditingId(null);
+    setCode(`CUST-0${customers.length + 1}`);
     setName('');
-    setPhone('');
+    setCompanyName('');
     setEmail('');
-    setCity('');
-    setTaxId('');
-    setSalesperson('admin');
-    setCreditLimit('0');
-    setOpeningBalance('0');
+    setPhone('');
     setAddress('');
+    setCity('Lahore');
+    setTaxId('');
+    setCreditLimit('100000');
+    setCreditPeriod('30');
     setIsActive(true);
     setModalOpen(true);
   };
 
   const openEdit = (c: Customer) => {
     setEditingId(c.id);
+    setCode(c.code);
     setName(c.name);
-    setPhone(c.phone || '');
+    setCompanyName(c.company_name || '');
     setEmail(c.email || '');
-    setCity(c.city || '');
-    setTaxId(c.tax_id || '');
-    setSalesperson(c.salesperson || 'admin');
-    setCreditLimit(String(c.credit_limit || 0));
-    setOpeningBalance(String(c.opening_balance || 0));
+    setPhone(c.phone || '');
     setAddress(c.address || '');
+    setCity(c.city || 'Lahore');
+    setTaxId(c.tax_id || '');
+    setCreditLimit(String(c.credit_limit || 0));
+    setCreditPeriod(String(c.credit_period_days || 30));
     setIsActive(c.is_active);
     setModalOpen(true);
   };
 
   const handleSave = () => {
-    if (!name.trim()) {
-      return toast.error('Customer name is required');
-    }
+    if (!name.trim()) return toast.error('Customer name is required');
 
     if (editingId) {
       updateCustomer(editingId, {
         name,
-        phone,
+        company_name: companyName,
         email,
+        phone,
+        address,
         city,
         tax_id: taxId,
-        salesperson,
         credit_limit: Number(creditLimit) || 0,
-        opening_balance: Number(openingBalance) || 0,
-        address,
+        credit_period_days: Number(creditPeriod) || 30,
         is_active: isActive,
       });
       toast.success(`Customer ${name} updated`);
     } else {
-      const code = `CUS-${String(customers.length + 1).padStart(5, '0')}`;
       addCustomer({
-        code,
+        code: code || `CUST-0${customers.length + 1}`,
         name,
+        company_name: companyName,
         contact_person: name,
-        phone,
         email,
+        phone,
+        address,
         city,
         tax_id: taxId,
-        salesperson,
         credit_limit: Number(creditLimit) || 0,
+        credit_period_days: Number(creditPeriod) || 30,
         opening_balance: Number(openingBalance) || 0,
-        address,
+        current_balance: Number(openingBalance) || 0,
         is_active: isActive,
       });
       toast.success(`Customer ${name} added`);
@@ -97,10 +102,11 @@ export function Customers() {
     setModalOpen(false);
   };
 
-  const handleDelete = (id: string, customerName: string) => {
-    if (confirm(`Are you sure you want to delete ${customerName}?`)) {
-      deleteCustomer(id);
-      toast.success(`Customer ${customerName} deleted`);
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) {
+      deleteCustomer(deleteTarget.id);
+      toast.success(`Customer ${deleteTarget.name} deleted`);
+      setDeleteTarget(null);
     }
   };
 
@@ -117,7 +123,7 @@ export function Customers() {
   );
 
   const handleExportCSV = () => {
-    downloadCSV('customers_directory', customers);
+    downloadCSV('customers_directory', customers as unknown as Record<string, unknown>[]);
     toast.success('Customer directory exported to CSV');
   };
 
@@ -127,27 +133,27 @@ export function Customers() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Customers</h1>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL CUSTOMERS</p>
           <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">{customers.length}</p>
           <p className="mt-1 text-[11px] text-slate-400">Visible in current access scope</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ACTIVE</p>
-          <p className="mt-1 text-2xl font-extrabold text-emerald-500">{activeCount}</p>
+          <p className="mt-1 text-2xl font-extrabold text-amber-500">{activeCount}</p>
           <p className="mt-1 text-[11px] text-slate-400">Available for transactions</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CITIES</p>
           <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">{uniqueCities || 1}</p>
           <p className="mt-1 text-[11px] text-slate-400">Geographic coverage</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SALESPEOPLE</p>
           <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">1</p>
           <p className="mt-1 text-[11px] text-slate-400">Attributed directory records</p>
@@ -179,14 +185,14 @@ export function Customers() {
             </button>
             <button
               onClick={openCreate}
-              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+              className="flex items-center gap-1.5 btn-primary"
             >
               <Plus className="h-4 w-4" /> Add customer
             </button>
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
               <tr>
@@ -224,7 +230,7 @@ export function Customers() {
                     <td className="px-4 py-3">
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                          c.is_active ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                          c.is_active ? 'bg-amber-500/15 text-amber-500 dark:text-amber-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                         }`}
                       >
                         {c.is_active ? 'Active' : 'Deactivated'}
@@ -239,7 +245,7 @@ export function Customers() {
                             className={`flex items-center gap-1 text-xs font-bold transition px-2 py-1 rounded-lg border ${
                               c.is_active
                                 ? 'border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400'
-                                : 'border-emerald-200 bg-emerald-50/50 text-emerald-600 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                : 'border-amber-500/30 bg-amber-500/10/50 text-amber-500 hover:bg-amber-500/20 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400'
                             }`}
                           >
                             <Power className="h-3.5 w-3.5" />
@@ -252,7 +258,7 @@ export function Customers() {
                             <Edit className="h-3.5 w-3.5" /> Edit
                           </button>
                           <button
-                            onClick={() => handleDelete(c.id, c.name)}
+                            onClick={() => setDeleteTarget({ id: c.id, name: c.name })}
                             className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-400"
                           >
                             <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -273,7 +279,7 @@ export function Customers() {
       {/* FORM MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="my-8 w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="my-8 w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SHARED DIRECTORY</p>
@@ -416,7 +422,7 @@ export function Customers() {
               </button>
               <button
                 onClick={handleSave}
-                className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                className="btn-primary"
               >
                 {editingId ? 'Update customer' : 'Save customer'}
               </button>
@@ -424,6 +430,15 @@ export function Customers() {
           </div>
         </div>
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <DeleteConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        itemName={deleteTarget?.name}
+        itemType="customer"
+      />
     </div>
   );
 }

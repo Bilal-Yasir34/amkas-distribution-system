@@ -83,13 +83,13 @@ export function PayPayment() {
     <div className="mx-auto max-w-6xl space-y-6 p-2 sm:p-6">
       {/* Title Outside Card matching screenshot */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">AMKAS INTERNATIONAL</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">AMKAS INTERNATIONAL</p>
         <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Pay Payment</h1>
       </div>
 
       <form onSubmit={handlePostPayment} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Card (Left - 2 Columns) */}
-        <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+        <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
           <div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Pay Payment</h2>
             <p className="text-xs font-medium text-slate-500 mt-1">
@@ -104,7 +104,7 @@ export function PayPayment() {
               <select
                 value={paidTo}
                 onChange={(e) => setPaidTo(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               >
                 <option value="">Select customer, vendor or account</option>
                 <optgroup label="Vendors">
@@ -136,7 +136,7 @@ export function PayPayment() {
                 type="date"
                 value={paymentDate}
                 onChange={(e) => setPaymentDate(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               />
             </div>
           </div>
@@ -146,20 +146,19 @@ export function PayPayment() {
             <div>
               <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Pay from</label>
               <select
-                value={payFrom}
+                value={payFrom || bankAccounts[0]?.account_name || ''}
                 onChange={(e) => setPayFrom(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="input"
               >
-                <option value="Cash in Hand">Cash in Hand</option>
-                <option value="HBL Main Account">HBL Main Account</option>
-                <option value="Meezan Operations Account">Meezan Operations Account</option>
-                <option value="Bank Transfer">Bank Transfer</option>
-                <option value="Petty Cash">Petty Cash</option>
-                {bankAccounts.map((b) => (
-                  <option key={b.id} value={b.account_name}>
-                    {b.account_name} ({b.bank_name})
-                  </option>
-                ))}
+                {bankAccounts.length === 0 ? (
+                  <option value="">No bank accounts added in system</option>
+                ) : (
+                  bankAccounts.map((b) => (
+                    <option key={b.id} value={b.account_name}>
+                      {b.account_name} ({b.bank_name})
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
@@ -170,7 +169,7 @@ export function PayPayment() {
                 placeholder="Amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               />
             </div>
           </div>
@@ -182,7 +181,7 @@ export function PayPayment() {
               <select
                 value={accountCategory}
                 onChange={(e) => setAccountCategory(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               >
                 <option value="Auto select based on selected party">Auto select based on selected party</option>
                 <option value="Accounts Payable">Accounts Payable</option>
@@ -198,7 +197,7 @@ export function PayPayment() {
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               >
                 <option value="PKR">PKR</option>
                 <option value="USD">USD</option>
@@ -218,7 +217,7 @@ export function PayPayment() {
                 type="number"
                 value={exchangeRate}
                 onChange={(e) => setExchangeRate(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               />
             </div>
 
@@ -229,7 +228,7 @@ export function PayPayment() {
                 placeholder="Reference number"
                 value={refNo}
                 onChange={(e) => setRefNo(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               />
             </div>
           </div>
@@ -242,18 +241,18 @@ export function PayPayment() {
               placeholder="Notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
             />
           </div>
         </div>
 
         {/* Right Card: Posting rules (1 Column) matching screenshot */}
-        <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-6">
+        <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-6">
           <div className="space-y-4">
             <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Posting rules</h3>
 
             {/* Light Emerald Notice Box matching screenshot */}
-            <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 p-3.5 border border-emerald-200 dark:border-emerald-800/40 text-xs font-medium text-emerald-800 dark:text-emerald-300 leading-relaxed">
+            <div className="rounded-xl bg-amber-500/10 dark:bg-amber-500/10 p-3.5 border border-amber-500/30 dark:border-amber-500/20 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
               Vendor payments auto-allocate to outstanding bills. Customer/account payments post directly through the journal with CP numbering.
             </div>
           </div>

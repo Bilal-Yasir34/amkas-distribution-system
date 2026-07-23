@@ -97,6 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   async function signIn(email: string, password: string) {
+    setLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     const timestamp = new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'medium' });
     const store = useDataStore.getState();
     const cleanEmail = (email || '').trim().toLowerCase();
@@ -118,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           user_agent: navigator.userAgent || 'Chrome',
           timestamp,
         });
+        setLoading(false);
         return { error: 'Your account is deactivated. Please contact administrator.' };
       }
 
@@ -129,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           user_agent: navigator.userAgent || 'Chrome',
           timestamp,
         });
+        setLoading(false);
         return { error: 'Invalid password. Please check your credentials.' };
       }
 
@@ -181,6 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         timestamp,
       });
 
+      setLoading(false);
       return { error: null };
     }
 
@@ -197,9 +202,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         timestamp,
       });
 
+      setLoading(false);
       return { error: null };
     }
 
+    setLoading(false);
     return { error: 'No user registered with these credentials. Please ask your administrator to register your account in Users & Employees.' };
   }
 

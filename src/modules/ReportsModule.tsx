@@ -158,29 +158,29 @@ export function ReportsModule() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Reports & Analytics</h1>
       </div>
 
       {!selectedReport ? (
         <div className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">FINANCIAL STATEMENTS</p>
               <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">4</p>
               <p className="mt-1 text-[11px] text-slate-400">Trial balance, P&L, balance sheet, cash flow</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">OPERATIONAL REPORTS</p>
               <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">10+</p>
               <p className="mt-1 text-[11px] text-slate-400">Sales, purchases, aging, inventory, tax</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL INVOICES</p>
-              <p className="mt-1 text-2xl font-extrabold text-emerald-500">{invoices.filter((i) => i.status === 'POSTED').length}</p>
+              <p className="mt-1 text-2xl font-extrabold text-amber-500">{invoices.filter((i) => i.status === 'POSTED').length}</p>
               <p className="mt-1 text-[11px] text-slate-400">Posted sales invoices</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">OUTSTANDING AR</p>
               <p className="mt-1 text-2xl font-extrabold text-amber-500">
                 {formatCurrency(invoices.filter((i) => i.status === 'POSTED').reduce((s, i) => s + ((i.total_amount || 0) - (i.paid_amount || 0)), 0))}
@@ -191,9 +191,9 @@ export function ReportsModule() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {REPORT_LIST.map((rep) => (
-              <div key={rep.code} className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] hover:border-emerald-500/40 transition-colors">
+              <div key={rep.code} className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 hover:border-amber-500/40 transition-colors">
                 <div>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 font-bold text-emerald-500 text-xs">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/15 font-bold text-amber-500 text-xs">
                     {rep.code}
                   </div>
                   <div className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{rep.category}</div>
@@ -202,7 +202,7 @@ export function ReportsModule() {
                 </div>
                 <button
                   onClick={() => setSelectedReport(rep)}
-                  className="mt-4 text-xs font-semibold text-emerald-500 hover:underline text-left"
+                  className="mt-4 text-xs font-semibold text-amber-500 hover:underline text-left"
                 >
                   Open report →
                 </button>
@@ -216,11 +216,11 @@ export function ReportsModule() {
             <button onClick={() => setSelectedReport(null)} className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white">
               <ArrowLeft className="h-4 w-4" /> Report Center
             </button>
-            <span className="rounded-md bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-500">{selectedReport.name}</span>
+            <span className="rounded-md bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-500">{selectedReport.name}</span>
           </div>
 
           {/* Filter Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/70">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs dark:border-slate-700 dark:bg-slate-800">
                 <span className="text-slate-400">From</span>
@@ -230,7 +230,7 @@ export function ReportsModule() {
                 <span className="text-slate-400">To</span>
                 <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="bg-transparent font-medium outline-none text-slate-700 dark:text-slate-200" />
               </div>
-              <button className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">Apply</button>
+              <button className="btn-primary">Apply</button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button onClick={() => window.print()} className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
@@ -247,10 +247,10 @@ export function ReportsModule() {
 
           {/* SALES REPORT */}
           {selectedReport.code === 'S' && (
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-700 grid grid-cols-3 gap-4 text-xs">
-                <div><p className="text-slate-400">Total Revenue</p><p className="font-bold text-emerald-500">{formatCurrency(salesTotal)}</p></div>
-                <div><p className="text-slate-400">Collected</p><p className="font-bold text-blue-400">{formatCurrency(salesPaid)}</p></div>
+                <div><p className="text-slate-400">Total Revenue</p><p className="font-bold text-amber-500">{formatCurrency(salesTotal)}</p></div>
+                <div><p className="text-slate-400">Collected</p><p className="font-bold text-purple-300">{formatCurrency(salesPaid)}</p></div>
                 <div><p className="text-slate-400">Outstanding</p><p className="font-bold text-amber-500">{formatCurrency(salesTotal - salesPaid)}</p></div>
               </div>
               <table className="w-full text-xs text-left">
@@ -262,11 +262,11 @@ export function ReportsModule() {
                     <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No posted invoices yet.</td></tr>
                   ) : salesRows.map((r, i) => (
                     <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                      <td className="px-4 py-2.5 font-mono font-semibold text-emerald-500">{r.invoice_no}</td>
+                      <td className="px-4 py-2.5 font-mono font-semibold text-amber-500">{r.invoice_no}</td>
                       <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">{r.customer}</td>
                       <td className="px-4 py-2.5 text-slate-400">{r.date}</td>
                       <td className="px-4 py-2.5 text-right font-mono">{formatCurrency(r.total)}</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-emerald-400">{formatCurrency(r.paid)}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-amber-400">{formatCurrency(r.paid)}</td>
                       <td className={`px-4 py-2.5 text-right font-mono font-bold ${r.balance > 0 ? 'text-amber-500' : 'text-slate-400'}`}>{formatCurrency(r.balance)}</td>
                     </tr>
                   ))}
@@ -277,7 +277,7 @@ export function ReportsModule() {
 
           {/* PURCHASE REPORT */}
           {selectedReport.code === 'P' && (
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-700 text-xs">
                 <p className="text-slate-400">Total Purchases</p>
                 <p className="font-bold text-rose-500">{formatCurrency(purchaseTotal)}</p>
@@ -295,7 +295,7 @@ export function ReportsModule() {
                       <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">{r.vendor}</td>
                       <td className="px-4 py-2.5 text-slate-400">{r.date}</td>
                       <td className="px-4 py-2.5 text-right font-mono">{formatCurrency(r.total)}</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-emerald-400">{formatCurrency(r.paid)}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-amber-400">{formatCurrency(r.paid)}</td>
                       <td className={`px-4 py-2.5 text-right font-mono font-bold ${r.balance > 0 ? 'text-amber-500' : 'text-slate-400'}`}>{formatCurrency(r.balance)}</td>
                     </tr>
                   ))}
@@ -306,10 +306,10 @@ export function ReportsModule() {
 
           {/* INVENTORY VALUATION */}
           {selectedReport.code === 'IV' && (
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-700 text-xs">
                 <p className="text-slate-400">Total Inventory Value</p>
-                <p className="font-bold text-blue-400">{formatCurrency(inventoryTotal)}</p>
+                <p className="font-bold text-purple-300">{formatCurrency(inventoryTotal)}</p>
               </div>
               <table className="w-full text-xs text-left">
                 <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
@@ -322,14 +322,14 @@ export function ReportsModule() {
                       <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300 font-medium">{r.name}</td>
                       <td className="px-4 py-2.5 text-right font-mono">{r.qty.toLocaleString()}</td>
                       <td className="px-4 py-2.5 text-right font-mono">{formatCurrency(r.unit_cost)}</td>
-                      <td className="px-4 py-2.5 text-right font-mono font-bold text-blue-400">{formatCurrency(r.total_value)}</td>
+                      <td className="px-4 py-2.5 text-right font-mono font-bold text-purple-300">{formatCurrency(r.total_value)}</td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="border-t-2 border-blue-500/30 bg-slate-50 dark:bg-slate-800/50">
+                <tfoot className="border-t-2 border-purple-500/30 bg-slate-50 dark:bg-slate-800/50">
                   <tr>
                     <td colSpan={4} className="px-4 py-3 font-bold text-slate-800 dark:text-slate-100 text-right">TOTAL STOCK VALUE</td>
-                    <td className="px-4 py-3 text-right font-mono font-bold text-blue-400">{formatCurrency(inventoryTotal)}</td>
+                    <td className="px-4 py-3 text-right font-mono font-bold text-purple-300">{formatCurrency(inventoryTotal)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -338,7 +338,7 @@ export function ReportsModule() {
 
           {/* CUSTOMER AGING REPORT */}
           {selectedReport.code === 'AR' && (
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <table className="w-full text-xs text-left">
                 <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                   <tr>
@@ -357,8 +357,8 @@ export function ReportsModule() {
                   ) : agingRows.map((r, i) => (
                     <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                       <td className="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-200">{r.name}<span className="ml-1.5 text-[10px] text-slate-400">{r.code}</span></td>
-                      <td className="px-4 py-2.5 text-right font-mono text-emerald-400">{r.current > 0 ? formatCurrency(r.current) : '—'}</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-blue-400">{r.d30 > 0 ? formatCurrency(r.d30) : '—'}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-amber-400">{r.current > 0 ? formatCurrency(r.current) : '—'}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-purple-300">{r.d30 > 0 ? formatCurrency(r.d30) : '—'}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-amber-400">{r.d60 > 0 ? formatCurrency(r.d60) : '—'}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-orange-400">{r.d90 > 0 ? formatCurrency(r.d90) : '—'}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-rose-500">{r.d90p > 0 ? formatCurrency(r.d90p) : '—'}</td>
@@ -387,7 +387,7 @@ export function ReportsModule() {
 
           {/* VENDOR AGING REPORT */}
           {selectedReport.code === 'AP' && (
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <table className="w-full text-xs text-left">
                 <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                   <tr>
@@ -406,8 +406,8 @@ export function ReportsModule() {
                   ) : vendorAgingRows.map((r, i) => (
                     <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                       <td className="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-200">{r.name}</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-emerald-400">{r.current > 0 ? formatCurrency(r.current) : '—'}</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-blue-400">{r.d30 > 0 ? formatCurrency(r.d30) : '—'}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-amber-400">{r.current > 0 ? formatCurrency(r.current) : '—'}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-purple-300">{r.d30 > 0 ? formatCurrency(r.d30) : '—'}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-amber-400">{r.d60 > 0 ? formatCurrency(r.d60) : '—'}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-orange-400">{r.d90 > 0 ? formatCurrency(r.d90) : '—'}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-rose-500">{r.d90p > 0 ? formatCurrency(r.d90p) : '—'}</td>
@@ -421,7 +421,7 @@ export function ReportsModule() {
 
           {/* FALLBACK for other report types */}
           {!['S','P','IV','AR','AP'].includes(selectedReport.code) && (
-            <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <BarChart3 className="mx-auto h-8 w-8 text-slate-400 mb-3" />
               <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{selectedReport.name}</p>
               <p className="text-xs text-slate-400 mt-1">Use the Accounting module's dedicated tabs for P&L, Balance Sheet, and Trial Balance reports with full drill-down capability.</p>
@@ -433,7 +433,7 @@ export function ReportsModule() {
       {/* EMAIL MODAL */}
       {emailModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Email report</h3>
               <button onClick={() => setEmailModalOpen(false)} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
@@ -444,13 +444,13 @@ export function ReportsModule() {
                 <input type="email" placeholder="name@company.com" value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none" />
               </div>
-              <div className="rounded-lg bg-emerald-500/10 p-3 text-[11px] text-emerald-400">
+              <div className="rounded-lg bg-amber-500/15 p-3 text-[11px] text-amber-400">
                 The report will be queued and sent as PDF attachment.
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button onClick={() => setEmailModalOpen(false)} className="rounded-lg border border-slate-300 px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:text-slate-300">Cancel</button>
-              <button onClick={() => { setEmailModalOpen(false); }} className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">Queue email</button>
+              <button onClick={() => { setEmailModalOpen(false); }} className="btn-primary">Queue email</button>
             </div>
           </div>
         </div>

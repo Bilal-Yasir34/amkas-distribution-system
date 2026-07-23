@@ -4,6 +4,7 @@ import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 import type { Branch } from '@/lib/types';
+import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 
 export function Branches() {
   const toast = useToast();
@@ -12,6 +13,7 @@ export function Branches() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -38,7 +40,7 @@ export function Branches() {
     setAddress(b.address || '');
     setPhone(b.phone || '');
     setEmail(b.email || '');
-    setIsActive(b.is_active ?? true);
+    setIsActive(b.is_active !== false);
     setModalOpen(true);
   };
 
@@ -48,7 +50,7 @@ export function Branches() {
     if (editingId) {
       updateBranch(editingId, {
         name,
-        code: code || 'BR',
+        code,
         address,
         phone,
         email,
@@ -70,10 +72,11 @@ export function Branches() {
     setModalOpen(false);
   };
 
-  const handleDelete = (id: string, bName: string) => {
-    if (confirm(`Are you sure you want to delete branch ${bName}?`)) {
-      deleteBranch(id);
-      toast.success(`Branch ${bName} deleted`);
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) {
+      deleteBranch(deleteTarget.id);
+      toast.success(`Branch ${deleteTarget.name} deleted`);
+      setDeleteTarget(null);
     }
   };
 
@@ -86,7 +89,7 @@ export function Branches() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Branches</h1>
       </div>
 
@@ -98,13 +101,13 @@ export function Branches() {
           </div>
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+            className="flex items-center gap-2 btn-primary"
           >
             <Plus className="h-4 w-4" /> Add branch
           </button>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
               <tr>
@@ -133,7 +136,7 @@ export function Branches() {
                     <td className="px-4 py-3">
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                          b.is_active !== false ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                          b.is_active !== false ? 'bg-amber-500/15 text-amber-500 dark:text-amber-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                         }`}
                       >
                         {b.is_active !== false ? 'Active' : 'Deactivated'}
@@ -148,7 +151,7 @@ export function Branches() {
                             className={`flex items-center gap-1 text-xs font-bold transition px-2 py-1 rounded-lg border ${
                               b.is_active !== false
                                 ? 'border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400'
-                                : 'border-emerald-200 bg-emerald-50/50 text-emerald-600 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                : 'border-amber-500/30 bg-amber-500/10/50 text-amber-500 hover:bg-amber-500/20 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400'
                             }`}
                           >
                             <Power className="h-3.5 w-3.5" />
@@ -161,7 +164,7 @@ export function Branches() {
                             <Edit className="h-3.5 w-3.5" /> Edit
                           </button>
                           <button
-                            onClick={() => handleDelete(b.id, b.name)}
+                            onClick={() => setDeleteTarget({ id: b.id, name: b.name })}
                             className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-400"
                           >
                             <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -182,7 +185,7 @@ export function Branches() {
       {/* FORM MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ORGANIZATION STRUCTURE</p>
@@ -252,7 +255,7 @@ export function Branches() {
                   type="checkbox"
                   checked={isActive}
                   onChange={(e) => setIsActive(e.target.checked)}
-                  className="h-4 w-4 rounded accent-emerald-500"
+                  className="h-4 w-4 rounded accent-amber-500"
                 />
                 <span className="text-xs text-slate-700 dark:text-slate-300">Active Branch</span>
               </label>
@@ -267,7 +270,7 @@ export function Branches() {
               </button>
               <button
                 onClick={handleSave}
-                className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                className="btn-primary"
               >
                 {editingId ? 'Update branch' : 'Save branch'}
               </button>
@@ -275,6 +278,15 @@ export function Branches() {
           </div>
         </div>
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <DeleteConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        itemName={deleteTarget?.name}
+        itemType="branch"
+      />
     </div>
   );
 }

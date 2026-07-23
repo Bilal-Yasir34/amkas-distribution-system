@@ -9,7 +9,7 @@ const iconMap = {
 };
 
 const toneMap = {
-  success: 'border-emerald-500/40 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+  success: 'border-amber-500/40 bg-amber-500/10 text-emerald-700 dark:bg-amber-500/15 dark:text-amber-300',
   error: 'border-rose-500/40 bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
   info: 'border-sky-500/40 bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300',
 };

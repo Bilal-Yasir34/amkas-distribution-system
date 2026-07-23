@@ -40,8 +40,8 @@ export function InvoicePrint({ invoice, onClose }: Props) {
       footer={
         <>
           <div className="mr-auto flex rounded-lg border border-slate-300 p-0.5 dark:border-slate-600">
-            <button onClick={() => setMode('invoice')} className={`rounded-md px-3 py-1 text-xs ${mode === 'invoice' ? 'bg-emerald-600 text-white' : 'text-slate-500'}`}>Tax Invoice</button>
-            <button onClick={() => setMode('gatepass')} className={`rounded-md px-3 py-1 text-xs ${mode === 'gatepass' ? 'bg-emerald-600 text-white' : 'text-slate-500'}`}>Gate Pass</button>
+            <button onClick={() => setMode('invoice')} className={`rounded-md px-3 py-1 text-xs ${mode === 'invoice' ? 'bg-amber-500 text-white' : 'text-slate-500'}`}>Tax Invoice</button>
+            <button onClick={() => setMode('gatepass')} className={`rounded-md px-3 py-1 text-xs ${mode === 'gatepass' ? 'bg-amber-500 text-white' : 'text-slate-500'}`}>Gate Pass</button>
           </div>
           <button onClick={onClose} className="btn-secondary"><X className="h-4 w-4" /> Close</button>
           <button onClick={doPrint} className="btn-primary"><Printer className="h-4 w-4" /> Print</button>
@@ -58,7 +58,7 @@ export function InvoicePrint({ invoice, onClose }: Props) {
             <p className="text-sm text-slate-600">NTN: NTN-4400000-1</p>
           </div>
           <div className="text-right">
-            <div className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1 text-white">
+            <div className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-3 py-1 text-white">
               <FileText className="h-4 w-4" />
               <span className="font-semibold">{mode === 'invoice' ? 'TAX INVOICE' : 'GATE PASS'}</span>
             </div>

@@ -15,6 +15,7 @@ export function PurchaseModule() {
     products = [],
     categories = [],
     warehouses = [],
+    bankAccounts = [],
     vendorBills = [],
     purchaseRequests = [],
     purchaseOrders = [],
@@ -1312,7 +1313,7 @@ export function PurchaseModule() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Purchase Management</h1>
       </div>
 
@@ -1325,7 +1326,7 @@ export function PurchaseModule() {
               onClick={() => setActiveSubTab(tab as any)}
               className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition border-b-2 ${
                 activeSubTab === tab
-                  ? 'border-emerald-500 text-emerald-500 bg-emerald-500/5'
+                  ? 'border-amber-500 text-amber-500 bg-amber-500/5'
                   : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -1339,21 +1340,21 @@ export function PurchaseModule() {
       {activeSubTab === 'Overview' && (
         <div className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL PROCURED</p>
               <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">
                 Rs. {totalProcuredSum.toLocaleString()}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PURCHASE ORDERS</p>
               <p className="mt-1 text-2xl font-extrabold text-amber-500">{purchaseOrders.length}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">VENDOR BILLS</p>
-              <p className="mt-1 text-2xl font-extrabold text-blue-500">{vendorBills.length}</p>
+              <p className="mt-1 text-2xl font-extrabold text-purple-400">{vendorBills.length}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">DEBIT NOTES</p>
               <p className="mt-1 text-2xl font-extrabold text-rose-500">{debitNotes.length}</p>
             </div>
@@ -1373,13 +1374,13 @@ export function PurchaseModule() {
                 </div>
                 <button
                   onClick={openCreateVBForm}
-                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
+                  className="flex items-center gap-2 btn-primary shadow-sm"
                 >
                   <Plus className="h-4 w-4" /> New vendor bill
                 </button>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                     <tr>
@@ -1405,17 +1406,17 @@ export function PurchaseModule() {
                         const wh = warehouses.find((w) => w.id === b.warehouse_id);
                         return (
                           <tr key={b.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{b.bill_no}</td>
+                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{b.bill_no}</td>
                             <td className="px-4 py-3 text-slate-400">{b.bill_date || b.document_date}</td>
                             <td className="px-4 py-3 font-medium text-slate-200">{vend?.name || 'Vendor'}</td>
                             <td className="px-4 py-3 text-slate-400">{wh?.name || 'Main Warehouse'}</td>
-                            <td className="px-4 py-3 font-mono font-semibold text-emerald-400">
+                            <td className="px-4 py-3 font-mono font-semibold text-amber-400">
                               Rs. {(b.total_amount || 0).toLocaleString()}
                             </td>
                             <td className="px-4 py-3">
                               <span
                                 className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
-                                  b.status === 'POSTED' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
+                                  b.status === 'POSTED' ? 'bg-amber-500/15 text-amber-500' : 'bg-amber-500/10 text-amber-500'
                                 }`}
                               >
                                 {b.status || 'POSTED'}
@@ -1427,7 +1428,7 @@ export function PurchaseModule() {
                                   <>
                                     <button
                                       onClick={() => openEditVBForm(b)}
-                                      className="p-1 text-slate-400 hover:text-emerald-400 transition"
+                                      className="p-1 text-slate-400 hover:text-amber-400 transition"
                                       title="Edit Vendor Bill"
                                     >
                                       <Edit className="h-3.5 w-3.5" />
@@ -1461,7 +1462,7 @@ export function PurchaseModule() {
               <div className="flex justify-between items-center">
                 <button
                   onClick={() => setVbViewMode('list')}
-                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
                 >
                   ← Back to Vendor Bills Register
                 </button>
@@ -1470,7 +1471,7 @@ export function PurchaseModule() {
               {/* TOP SECTION: Main Header Card (Left) & Procurement Workflow (Right) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Header Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                     {editingVBId ? 'Edit Vendor Bill' : 'New Vendor Bill'}
                   </h2>
@@ -1482,7 +1483,7 @@ export function PurchaseModule() {
                       <select
                         value={vbVendorId}
                         onChange={(e) => setVbVendorId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="">Select vendor</option>
                         {vendors.map((v) => (
@@ -1499,7 +1500,7 @@ export function PurchaseModule() {
                         type="date"
                         value={vbDocDate}
                         onChange={(e) => setVbDocDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -1509,7 +1510,7 @@ export function PurchaseModule() {
                         type="date"
                         value={vbDueDate}
                         onChange={(e) => setVbDueDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -1520,7 +1521,7 @@ export function PurchaseModule() {
                     <select
                       value={vbWarehouseId}
                       onChange={(e) => setVbWarehouseId(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     >
                       <option value="">Select warehouse</option>
                       {warehouses.map((w) => (
@@ -1540,7 +1541,7 @@ export function PurchaseModule() {
                         placeholder="Manual gate pass no."
                         value={vbGatePassNo}
                         onChange={(e) => setVbGatePassNo(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -1549,7 +1550,7 @@ export function PurchaseModule() {
                       <select
                         value={vbAccountCategory}
                         onChange={(e) => setVbAccountCategory(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="All account categories">All account categories</option>
                         <option value="Current Assets">Current Assets</option>
@@ -1563,7 +1564,7 @@ export function PurchaseModule() {
                       <select
                         value={vbAccountHead}
                         onChange={(e) => setVbAccountHead(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="Default Inventory / Purchase Account">Default Inventory / Purchase Account</option>
                         <option value="Inventory - Main Stock">Inventory - Main Stock</option>
@@ -1583,7 +1584,7 @@ export function PurchaseModule() {
                       <select
                         value={vbCurrency}
                         onChange={(e) => setVbCurrency(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="PKR">PKR</option>
                         <option value="USD">USD</option>
@@ -1600,7 +1601,7 @@ export function PurchaseModule() {
                         type="number"
                         value={vbExchangeRate}
                         onChange={(e) => setVbExchangeRate(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -1611,19 +1612,19 @@ export function PurchaseModule() {
                         placeholder="Supplier invoice/reference"
                         value={vbSupplierRef}
                         onChange={(e) => setVbSupplierRef(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Procurement Workflow Card (Right - 1 Column) matching screenshot */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-4">
+                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
                   <div className="space-y-4">
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Procurement workflow</h3>
 
                     {/* Light Emerald Notice Box from screenshot */}
-                    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 p-3.5 border border-emerald-200 dark:border-emerald-800/40 text-xs font-medium text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                    <div className="rounded-xl bg-amber-500/10 dark:bg-amber-500/10 p-3.5 border border-amber-500/30 dark:border-amber-500/20 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
                       Posting updates stock, payables and the general ledger.
                     </div>
 
@@ -1662,10 +1663,10 @@ export function PurchaseModule() {
               </div>
 
               {/* LINE ITEMS CARD (Matching Screenshots) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">LINE ITEMS</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">LINE ITEMS</p>
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Products and services</h3>
                   </div>
                   <button
@@ -1696,7 +1697,7 @@ export function PurchaseModule() {
                             <select
                               value={item.product_id}
                               onChange={(e) => updateVBLineItem(item.id, { product_id: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             >
                               <option value="">Select product</option>
                               {products.map((p) => (
@@ -1712,7 +1713,7 @@ export function PurchaseModule() {
                               placeholder="Optional description"
                               value={item.description}
                               onChange={(e) => updateVBLineItem(item.id, { description: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3">
@@ -1744,7 +1745,7 @@ export function PurchaseModule() {
                               type="number"
                               value={item.rate}
                               onChange={(e) => updateVBLineItem(item.id, { rate: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3">
@@ -1752,7 +1753,7 @@ export function PurchaseModule() {
                               type="number"
                               value={item.discount}
                               onChange={(e) => updateVBLineItem(item.id, { discount: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -1796,10 +1797,10 @@ export function PurchaseModule() {
                         </p>
                       </div>
 
-                      {/* Dark Navy Container for GRAND TOTAL matching Screenshots */}
-                      <div className="p-3.5 bg-[#0b1329] text-white">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">GRAND TOTAL</p>
-                        <p className="mt-1 text-base font-extrabold font-mono text-white">
+                      {/* Grand Total Box */}
+                      <div className="grand-total-box">
+                        <p className="grand-total-label">GRAND TOTAL</p>
+                        <p className="grand-total-value">
                           Rs. {t.grandTotal.toFixed(2)}
                         </p>
                       </div>
@@ -1809,13 +1810,13 @@ export function PurchaseModule() {
               </div>
 
               {/* Notes Bottom Card */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Notes</label>
                 <textarea
                   rows={4}
                   value={vbNotes}
                   onChange={(e) => setVbNotes(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                 />
               </div>
             </div>
@@ -1835,13 +1836,13 @@ export function PurchaseModule() {
                 </div>
                 <button
                   onClick={openCreatePRForm}
-                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
+                  className="flex items-center gap-2 btn-primary shadow-sm"
                 >
                   <Plus className="h-4 w-4" /> New request
                 </button>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                     <tr>
@@ -1863,10 +1864,10 @@ export function PurchaseModule() {
                     ) : (
                       (purchaseRequests || []).map((pr) => (
                         <tr key={pr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                          <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{pr.request_no}</td>
+                          <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{pr.request_no}</td>
                           <td className="px-4 py-3 text-slate-400">{pr.request_date || pr.document_date}</td>
                           <td className="px-4 py-3 text-slate-300">{pr.required_date || '-'}</td>
-                          <td className="px-4 py-3 font-mono font-semibold text-emerald-400">
+                          <td className="px-4 py-3 font-mono font-semibold text-amber-400">
                             Rs. {(pr.total_amount || 0).toLocaleString()}
                           </td>
                           <td className="px-4 py-3">
@@ -1878,7 +1879,7 @@ export function PurchaseModule() {
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 onClick={() => openEditPRForm(pr)}
-                                className="p-1 text-slate-400 hover:text-emerald-400 transition"
+                                className="p-1 text-slate-400 hover:text-amber-400 transition"
                                 title="Edit Request"
                               >
                                 <Edit className="h-3.5 w-3.5" />
@@ -1907,7 +1908,7 @@ export function PurchaseModule() {
               <div className="flex justify-between items-center">
                 <button
                   onClick={() => setPrViewMode('list')}
-                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
                 >
                   ← Back to Purchase Requests Register
                 </button>
@@ -1916,7 +1917,7 @@ export function PurchaseModule() {
               {/* TOP SECTION: Main Header Card (Left) & Procurement Workflow (Right) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Header Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                     {editingPRId ? 'Edit Purchase Request' : 'New Purchase Request'}
                   </h2>
@@ -1929,7 +1930,7 @@ export function PurchaseModule() {
                         type="date"
                         value={prDocDate}
                         onChange={(e) => setPrDocDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -1939,14 +1940,14 @@ export function PurchaseModule() {
                         type="date"
                         value={prRequiredDate}
                         onChange={(e) => setPrRequiredDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Procurement Workflow Card (Right - 1 Column) */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-4">
+                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
                   <div className="space-y-4">
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Procurement workflow</h3>
 
@@ -1955,7 +1956,7 @@ export function PurchaseModule() {
                       <select
                         value={prStatus}
                         onChange={(e) => setPrStatus(e.target.value as any)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="Draft">Draft</option>
                         <option value="Submitted">Submitted</option>
@@ -1999,10 +2000,10 @@ export function PurchaseModule() {
               </div>
 
               {/* LINE ITEMS CARD (Matching Screenshot) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">LINE ITEMS</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">LINE ITEMS</p>
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Products and services</h3>
                   </div>
                   <button
@@ -2033,7 +2034,7 @@ export function PurchaseModule() {
                             <select
                               value={item.product_id}
                               onChange={(e) => updatePRLineItem(item.id, { product_id: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             >
                               <option value="">Select product</option>
                               {products.map((p) => (
@@ -2049,7 +2050,7 @@ export function PurchaseModule() {
                               placeholder="Optional description"
                               value={item.description}
                               onChange={(e) => updatePRLineItem(item.id, { description: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3">
@@ -2081,7 +2082,7 @@ export function PurchaseModule() {
                               type="number"
                               value={item.rate}
                               onChange={(e) => updatePRLineItem(item.id, { rate: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3">
@@ -2089,7 +2090,7 @@ export function PurchaseModule() {
                               type="number"
                               value={item.discount}
                               onChange={(e) => updatePRLineItem(item.id, { discount: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -2133,10 +2134,10 @@ export function PurchaseModule() {
                         </p>
                       </div>
 
-                      {/* Dark Navy Container for GRAND TOTAL matching Screenshot */}
-                      <div className="p-3.5 bg-[#0b1329] text-white">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">GRAND TOTAL</p>
-                        <p className="mt-1 text-base font-extrabold font-mono text-white">
+                      {/* Grand Total Box */}
+                      <div className="grand-total-box">
+                        <p className="grand-total-label">GRAND TOTAL</p>
+                        <p className="grand-total-value">
                           Rs. {t.grandTotal.toFixed(2)}
                         </p>
                       </div>
@@ -2161,13 +2162,13 @@ export function PurchaseModule() {
                 </div>
                 <button
                   onClick={openCreatePOForm}
-                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
+                  className="flex items-center gap-2 btn-primary shadow-sm"
                 >
                   <Plus className="h-4 w-4" /> New purchase order
                 </button>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                     <tr>
@@ -2192,15 +2193,15 @@ export function PurchaseModule() {
                         const vend = vendors.find((v) => v.id === po.vendor_id);
                         return (
                           <tr key={po.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{po.po_no}</td>
+                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{po.po_no}</td>
                             <td className="px-4 py-3 text-slate-400">{po.po_date || po.document_date}</td>
                             <td className="px-4 py-3 font-medium text-slate-200">{vend?.name || 'Vendor'}</td>
                             <td className="px-4 py-3 text-slate-400">{po.expected_date || po.expected_delivery || '-'}</td>
-                            <td className="px-4 py-3 font-mono font-semibold text-emerald-400">
+                            <td className="px-4 py-3 font-mono font-semibold text-amber-400">
                               {po.currency || 'Rs.'} {po.total_amount?.toLocaleString()}
                             </td>
                             <td className="px-4 py-3">
-                              <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
+                              <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
                                 {po.status}
                               </span>
                             </td>
@@ -2208,7 +2209,7 @@ export function PurchaseModule() {
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => openEditPOForm(po)}
-                                  className="p-1 text-slate-400 hover:text-emerald-400 transition"
+                                  className="p-1 text-slate-400 hover:text-amber-400 transition"
                                   title="Edit Purchase Order"
                                 >
                                   <Edit className="h-3.5 w-3.5" />
@@ -2238,7 +2239,7 @@ export function PurchaseModule() {
               <div className="flex justify-between items-center">
                 <button
                   onClick={() => setPoViewMode('list')}
-                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
                 >
                   ← Back to Purchase Orders Register
                 </button>
@@ -2247,7 +2248,7 @@ export function PurchaseModule() {
               {/* TOP SECTION: Main Header Card (Left) & Procurement Workflow (Right) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Header Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                     {editingPOId ? 'Edit Purchase Order' : 'New Purchase Order'}
                   </h2>
@@ -2259,7 +2260,7 @@ export function PurchaseModule() {
                       <select
                         value={poVendorId}
                         onChange={(e) => setPoVendorId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="">Select vendor</option>
                         {vendors.map((v) => (
@@ -2276,7 +2277,7 @@ export function PurchaseModule() {
                         type="date"
                         value={poDocDate}
                         onChange={(e) => setPoDocDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -2286,7 +2287,7 @@ export function PurchaseModule() {
                         type="date"
                         value={poExpectedDate}
                         onChange={(e) => setPoExpectedDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -2298,7 +2299,7 @@ export function PurchaseModule() {
                       <select
                         value={poCurrency}
                         onChange={(e) => setPoCurrency(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="PKR">PKR</option>
                         <option value="USD">USD</option>
@@ -2315,7 +2316,7 @@ export function PurchaseModule() {
                         type="number"
                         value={poExchangeRate}
                         onChange={(e) => setPoExchangeRate(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -2326,14 +2327,14 @@ export function PurchaseModule() {
                         placeholder="Supplier invoice/reference"
                         value={poSupplierRef}
                         onChange={(e) => setPoSupplierRef(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Procurement Workflow Card (Right - 1 Column) */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-4">
+                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
                   <div className="space-y-4">
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Procurement workflow</h3>
 
@@ -2342,7 +2343,7 @@ export function PurchaseModule() {
                       <select
                         value={poStatus}
                         onChange={(e) => setPoStatus(e.target.value as any)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="Draft">Draft</option>
                         <option value="Submitted">Submitted</option>
@@ -2386,10 +2387,10 @@ export function PurchaseModule() {
               </div>
 
               {/* LINE ITEMS CARD (Matching Screenshot) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">LINE ITEMS</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">LINE ITEMS</p>
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Products and services</h3>
                   </div>
                   <button
@@ -2420,7 +2421,7 @@ export function PurchaseModule() {
                             <select
                               value={item.product_id}
                               onChange={(e) => updatePOLineItem(item.id, { product_id: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             >
                               <option value="">Select product</option>
                               {products.map((p) => (
@@ -2436,7 +2437,7 @@ export function PurchaseModule() {
                               placeholder="Optional description"
                               value={item.description}
                               onChange={(e) => updatePOLineItem(item.id, { description: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3">
@@ -2468,7 +2469,7 @@ export function PurchaseModule() {
                               type="number"
                               value={item.rate}
                               onChange={(e) => updatePOLineItem(item.id, { rate: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3">
@@ -2476,7 +2477,7 @@ export function PurchaseModule() {
                               type="number"
                               value={item.discount}
                               onChange={(e) => updatePOLineItem(item.id, { discount: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -2520,10 +2521,10 @@ export function PurchaseModule() {
                         </p>
                       </div>
 
-                      {/* Dark Navy Container for GRAND TOTAL matching Screenshot */}
-                      <div className="p-3.5 bg-[#0b1329] text-white">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">GRAND TOTAL</p>
-                        <p className="mt-1 text-base font-extrabold font-mono text-white">
+                      {/* Grand Total Box */}
+                      <div className="grand-total-box">
+                        <p className="grand-total-label">GRAND TOTAL</p>
+                        <p className="grand-total-value">
                           Rs. {t.grandTotal.toFixed(2)}
                         </p>
                       </div>
@@ -2533,13 +2534,13 @@ export function PurchaseModule() {
               </div>
 
               {/* Notes Bottom Card */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Notes</label>
                 <textarea
                   rows={4}
                   value={poNotes}
                   onChange={(e) => setPoNotes(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                 />
               </div>
             </div>
@@ -2559,13 +2560,13 @@ export function PurchaseModule() {
                 </div>
                 <button
                   onClick={openCreatePIForm}
-                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
+                  className="flex items-center gap-2 btn-primary shadow-sm"
                 >
                   <Plus className="h-4 w-4" /> New purchase invoice
                 </button>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                     <tr>
@@ -2591,15 +2592,15 @@ export function PurchaseModule() {
                         const wh = warehouses.find((w) => w.id === pi.warehouse_id);
                         return (
                           <tr key={pi.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{pi.grn_no || pi.invoice_no}</td>
+                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{pi.grn_no || pi.invoice_no}</td>
                             <td className="px-4 py-3 text-slate-400">{pi.received_date || pi.document_date}</td>
                             <td className="px-4 py-3 font-medium text-slate-200">{vend?.name || 'Vendor'}</td>
                             <td className="px-4 py-3 text-slate-400">{wh?.name || 'Main Warehouse'}</td>
-                            <td className="px-4 py-3 font-mono font-semibold text-emerald-400">
+                            <td className="px-4 py-3 font-mono font-semibold text-amber-400">
                               Rs. {(pi.total_amount || 0).toLocaleString()}
                             </td>
                             <td className="px-4 py-3">
-                              <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
+                              <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
                                 {pi.status || 'POSTED'}
                               </span>
                             </td>
@@ -2607,7 +2608,7 @@ export function PurchaseModule() {
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => openEditPIForm(pi)}
-                                  className="p-1 text-slate-400 hover:text-emerald-400 transition"
+                                  className="p-1 text-slate-400 hover:text-amber-400 transition"
                                   title="Edit Purchase Invoice"
                                 >
                                   <Edit className="h-3.5 w-3.5" />
@@ -2637,7 +2638,7 @@ export function PurchaseModule() {
               <div className="flex justify-between items-center">
                 <button
                   onClick={() => setPiViewMode('list')}
-                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
                 >
                   ← Back to Purchase Invoices Register
                 </button>
@@ -2646,7 +2647,7 @@ export function PurchaseModule() {
               {/* TOP SECTION: Main Header Card (Left) & Procurement Workflow (Right) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Header Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                     {editingPIId ? 'Edit Purchase Invoice' : 'New Purchase Invoice'}
                   </h2>
@@ -2658,7 +2659,7 @@ export function PurchaseModule() {
                       <select
                         value={piVendorId}
                         onChange={(e) => setPiVendorId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="">Select vendor</option>
                         {vendors.map((v) => (
@@ -2675,7 +2676,7 @@ export function PurchaseModule() {
                         type="date"
                         value={piDocDate}
                         onChange={(e) => setPiDocDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -2685,7 +2686,7 @@ export function PurchaseModule() {
                         type="date"
                         value={piDueDate}
                         onChange={(e) => setPiDueDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -2696,7 +2697,7 @@ export function PurchaseModule() {
                     <select
                       value={piWarehouseId}
                       onChange={(e) => setPiWarehouseId(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     >
                       <option value="">Select warehouse</option>
                       {warehouses.map((w) => (
@@ -2716,7 +2717,7 @@ export function PurchaseModule() {
                         placeholder="Manual gate pass no."
                         value={piGatePassNo}
                         onChange={(e) => setPiGatePassNo(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -2725,7 +2726,7 @@ export function PurchaseModule() {
                       <select
                         value={piAccountCategory}
                         onChange={(e) => setPiAccountCategory(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="All account categories">All account categories</option>
                         <option value="Current Assets">Current Assets</option>
@@ -2739,7 +2740,7 @@ export function PurchaseModule() {
                       <select
                         value={piAccountHead}
                         onChange={(e) => setPiAccountHead(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="Default Inventory / Purchase Account">Default Inventory / Purchase Account</option>
                         <option value="Inventory - Main Stock">Inventory - Main Stock</option>
@@ -2754,12 +2755,12 @@ export function PurchaseModule() {
                 </div>
 
                 {/* Procurement Workflow Card (Right - 1 Column) matching screenshot */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-4">
+                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
                   <div className="space-y-4">
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Procurement workflow</h3>
 
                     {/* Green Notice Box from screenshot */}
-                    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 p-3.5 border border-emerald-200 dark:border-emerald-800/40 text-xs font-medium text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                    <div className="rounded-xl bg-amber-500/10 dark:bg-amber-500/10 p-3.5 border border-amber-500/30 dark:border-amber-500/20 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
                       Posting a purchase invoice receives stock. Use vendor bill only if you need a separate accounting liability workflow.
                     </div>
 
@@ -2798,10 +2799,10 @@ export function PurchaseModule() {
               </div>
 
               {/* LINE ITEMS CARD (Matching Screenshots) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">LINE ITEMS</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">LINE ITEMS</p>
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Products and services</h3>
                   </div>
                   <button
@@ -2832,7 +2833,7 @@ export function PurchaseModule() {
                             <select
                               value={item.product_id}
                               onChange={(e) => updatePILineItem(item.id, { product_id: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             >
                               <option value="">Select product</option>
                               {products.map((p) => (
@@ -2848,7 +2849,7 @@ export function PurchaseModule() {
                               placeholder="Optional description"
                               value={item.description}
                               onChange={(e) => updatePILineItem(item.id, { description: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3">
@@ -2880,7 +2881,7 @@ export function PurchaseModule() {
                               type="number"
                               value={item.rate}
                               onChange={(e) => updatePILineItem(item.id, { rate: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3">
@@ -2888,7 +2889,7 @@ export function PurchaseModule() {
                               type="number"
                               value={item.discount}
                               onChange={(e) => updatePILineItem(item.id, { discount: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -2932,10 +2933,10 @@ export function PurchaseModule() {
                         </p>
                       </div>
 
-                      {/* Dark Navy Container for GRAND TOTAL matching Screenshot */}
-                      <div className="p-3.5 bg-[#0b1329] text-white">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">GRAND TOTAL</p>
-                        <p className="mt-1 text-base font-extrabold font-mono text-white">
+                      {/* Grand Total Box */}
+                      <div className="grand-total-box">
+                        <p className="grand-total-label">GRAND TOTAL</p>
+                        <p className="grand-total-value">
                           Rs. {t.grandTotal.toFixed(2)}
                         </p>
                       </div>
@@ -2945,13 +2946,13 @@ export function PurchaseModule() {
               </div>
 
               {/* Notes Bottom Card */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Notes</label>
                 <textarea
                   rows={4}
                   value={piNotes}
                   onChange={(e) => setPiNotes(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                 />
               </div>
             </div>
@@ -2971,13 +2972,13 @@ export function PurchaseModule() {
                 </div>
                 <button
                   onClick={openCreateDNForm}
-                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
+                  className="flex items-center gap-2 btn-primary shadow-sm"
                 >
                   <Plus className="h-4 w-4" /> New debit note
                 </button>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                     <tr>
@@ -3002,7 +3003,7 @@ export function PurchaseModule() {
                         const vend = vendors.find((v) => v.id === dn.vendor_id);
                         return (
                           <tr key={dn.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{dn.debit_note_no}</td>
+                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{dn.debit_note_no}</td>
                             <td className="px-4 py-3 text-slate-400">{dn.note_date || dn.document_date}</td>
                             <td className="px-4 py-3 font-medium text-slate-200">{vend?.name || 'Vendor'}</td>
                             <td className="px-4 py-3 text-slate-400">{dn.reason || dn.purpose_reason || 'Purchase Return'}</td>
@@ -3018,7 +3019,7 @@ export function PurchaseModule() {
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => openEditDNForm(dn)}
-                                  className="p-1 text-slate-400 hover:text-emerald-400 transition"
+                                  className="p-1 text-slate-400 hover:text-amber-400 transition"
                                   title="Edit Debit Note"
                                 >
                                   <Edit className="h-3.5 w-3.5" />
@@ -3048,7 +3049,7 @@ export function PurchaseModule() {
               <div className="flex justify-between items-center">
                 <button
                   onClick={() => setDnViewMode('list')}
-                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
                 >
                   ← Back to Debit Notes Register
                 </button>
@@ -3057,7 +3058,7 @@ export function PurchaseModule() {
               {/* TOP SECTION: Main Header Card (Left) & Procurement Workflow (Right) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Header Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                     {editingDNId ? 'Edit Purchase Return' : 'New Purchase Return'}
                   </h2>
@@ -3069,7 +3070,7 @@ export function PurchaseModule() {
                       <select
                         value={dnVendorId}
                         onChange={(e) => setDnVendorId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="">Select vendor</option>
                         {vendors.map((v) => (
@@ -3086,7 +3087,7 @@ export function PurchaseModule() {
                         type="date"
                         value={dnDocDate}
                         onChange={(e) => setDnDocDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -3096,7 +3097,7 @@ export function PurchaseModule() {
                         type="date"
                         value={dnDueDate}
                         onChange={(e) => setDnDueDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -3107,7 +3108,7 @@ export function PurchaseModule() {
                     <select
                       value={dnWarehouseId}
                       onChange={(e) => setDnWarehouseId(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     >
                       <option value="">Select warehouse</option>
                       {warehouses.map((w) => (
@@ -3120,12 +3121,12 @@ export function PurchaseModule() {
                 </div>
 
                 {/* Procurement Workflow Card (Right - 1 Column) matching screenshot */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-4">
+                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
                   <div className="space-y-4">
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Procurement workflow</h3>
 
                     {/* Light Emerald Notice Box from screenshot */}
-                    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 p-3.5 border border-emerald-200 dark:border-emerald-800/40 text-xs font-medium text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                    <div className="rounded-xl bg-amber-500/10 dark:bg-amber-500/10 p-3.5 border border-amber-500/30 dark:border-amber-500/20 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
                       Posting updates stock, payables and the general ledger.
                     </div>
 
@@ -3164,10 +3165,10 @@ export function PurchaseModule() {
               </div>
 
               {/* LINE ITEMS CARD (Matching Screenshots) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">LINE ITEMS</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">LINE ITEMS</p>
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Products and services</h3>
                   </div>
                   <button
@@ -3198,7 +3199,7 @@ export function PurchaseModule() {
                             <select
                               value={item.product_id}
                               onChange={(e) => updateDNLineItem(item.id, { product_id: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             >
                               <option value="">Select product</option>
                               {products.map((p) => (
@@ -3214,7 +3215,7 @@ export function PurchaseModule() {
                               placeholder="Optional description"
                               value={item.description}
                               onChange={(e) => updateDNLineItem(item.id, { description: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3">
@@ -3246,7 +3247,7 @@ export function PurchaseModule() {
                               type="number"
                               value={item.rate}
                               onChange={(e) => updateDNLineItem(item.id, { rate: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3">
@@ -3254,7 +3255,7 @@ export function PurchaseModule() {
                               type="number"
                               value={item.discount}
                               onChange={(e) => updateDNLineItem(item.id, { discount: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                             />
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -3298,10 +3299,10 @@ export function PurchaseModule() {
                         </p>
                       </div>
 
-                      {/* Dark Navy Container for GRAND TOTAL matching Screenshots */}
-                      <div className="p-3.5 bg-[#0b1329] text-white">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">GRAND TOTAL</p>
-                        <p className="mt-1 text-base font-extrabold font-mono text-white">
+                      {/* Grand Total Box */}
+                      <div className="grand-total-box">
+                        <p className="grand-total-label">GRAND TOTAL</p>
+                        <p className="grand-total-value">
                           Rs. {t.grandTotal.toFixed(2)}
                         </p>
                       </div>
@@ -3311,13 +3312,13 @@ export function PurchaseModule() {
               </div>
 
               {/* Purpose / Reason Bottom Card */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Purpose / Reason</label>
                 <textarea
                   rows={4}
                   value={dnPurposeReason}
                   onChange={(e) => setDnPurposeReason(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                 />
               </div>
             </div>
@@ -3337,13 +3338,13 @@ export function PurchaseModule() {
                 </div>
                 <button
                   onClick={openCreateVPForm}
-                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
+                  className="flex items-center gap-2 btn-primary shadow-sm"
                 >
                   <Plus className="h-4 w-4" /> New payment
                 </button>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                     <tr>
@@ -3368,19 +3369,19 @@ export function PurchaseModule() {
                         const vend = vendors.find((v) => v.id === vp.vendor_id);
                         return (
                           <tr key={vp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{vp.payment_no}</td>
+                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{vp.payment_no}</td>
                             <td className="px-4 py-3 text-slate-400">{vp.payment_date}</td>
                             <td className="px-4 py-3 font-medium text-slate-200">{vend?.name || 'Vendor'}</td>
                             <td className="px-4 py-3 text-slate-300">{vp.payment_method || 'Cash in Hand'}</td>
                             <td className="px-4 py-3 font-mono text-slate-400">{vp.reference_no || '-'}</td>
-                            <td className="px-4 py-3 font-mono font-semibold text-emerald-400">
+                            <td className="px-4 py-3 font-mono font-semibold text-amber-400">
                               Rs. {(vp.amount || 0).toLocaleString()}
                             </td>
                             <td className="px-4 py-3 text-right">
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => openEditVPForm(vp)}
-                                  className="p-1 text-slate-400 hover:text-emerald-400 transition"
+                                  className="p-1 text-slate-400 hover:text-amber-400 transition"
                                   title="Edit Payment"
                                 >
                                   <Edit className="h-3.5 w-3.5" />
@@ -3410,7 +3411,7 @@ export function PurchaseModule() {
               <div className="flex justify-between items-center">
                 <button
                   onClick={() => setVpViewMode('list')}
-                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
                 >
                   ← Back to Vendor Payments Register
                 </button>
@@ -3418,14 +3419,14 @@ export function PurchaseModule() {
 
               {/* Title Outside Card matching screenshot */}
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">AMKAS INTERNATIONAL</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">AMKAS INTERNATIONAL</p>
                 <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Pay Payment</h1>
               </div>
 
               {/* TOP SECTION: Main Header Card (Left) & Posting Rules Card (Right) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Header Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                   <div>
                     <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                       {editingVPId ? 'Edit Payment' : 'Pay Payment'}
@@ -3442,7 +3443,7 @@ export function PurchaseModule() {
                       <select
                         value={vpVendorId}
                         onChange={(e) => setVpVendorId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="">Select customer, vendor or account</option>
                         <optgroup label="Vendors">
@@ -3474,7 +3475,7 @@ export function PurchaseModule() {
                         type="date"
                         value={vpPaymentDate}
                         onChange={(e) => setVpPaymentDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -3484,15 +3485,19 @@ export function PurchaseModule() {
                     <div>
                       <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Pay from</label>
                       <select
-                        value={vpPayFrom}
+                        value={vpPayFrom || bankAccounts[0]?.account_name || ''}
                         onChange={(e) => setVpPayFrom(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="input"
                       >
-                        <option value="Cash in Hand">Cash in Hand</option>
-                        <option value="HBL Main Account">HBL Main Account</option>
-                        <option value="Meezan Operations Account">Meezan Operations Account</option>
-                        <option value="Bank Transfer">Bank Transfer</option>
-                        <option value="Petty Cash">Petty Cash</option>
+                        {bankAccounts.length === 0 ? (
+                          <option value="">No bank accounts added in system</option>
+                        ) : (
+                          bankAccounts.map((b) => (
+                            <option key={b.id} value={b.account_name}>
+                              {b.account_name} ({b.bank_name})
+                            </option>
+                          ))
+                        )}
                       </select>
                     </div>
 
@@ -3503,7 +3508,7 @@ export function PurchaseModule() {
                         placeholder="Amount"
                         value={vpAmount}
                         onChange={(e) => setVpAmount(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -3515,7 +3520,7 @@ export function PurchaseModule() {
                       <select
                         value={vpAccountCategory}
                         onChange={(e) => setVpAccountCategory(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="Auto select based on selected party">Auto select based on selected party</option>
                         <option value="Accounts Payable">Accounts Payable</option>
@@ -3531,7 +3536,7 @@ export function PurchaseModule() {
                       <select
                         value={vpCurrency}
                         onChange={(e) => setVpCurrency(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="PKR">PKR</option>
                         <option value="USD">USD</option>
@@ -3551,7 +3556,7 @@ export function PurchaseModule() {
                         type="number"
                         value={vpExchangeRate}
                         onChange={(e) => setVpExchangeRate(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -3562,7 +3567,7 @@ export function PurchaseModule() {
                         placeholder="Reference number"
                         value={vpRefNumber}
                         onChange={(e) => setVpRefNumber(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -3575,18 +3580,18 @@ export function PurchaseModule() {
                       placeholder="Notes"
                       value={vpNotes}
                       onChange={(e) => setVpNotes(e.target.value)}
-                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
 
                 {/* Posting rules Card (Right - 1 Column) matching screenshot */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-4">
+                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
                   <div className="space-y-4">
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Posting rules</h3>
 
                     {/* Light Emerald Notice Box from screenshot */}
-                    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 p-3.5 border border-emerald-200 dark:border-emerald-800/40 text-xs font-medium text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                    <div className="rounded-xl bg-amber-500/10 dark:bg-amber-500/10 p-3.5 border border-amber-500/30 dark:border-amber-500/20 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
                       Vendor payments auto-allocate to outstanding bills. Customer/account payments post directly through the journal with CP numbering.
                     </div>
                   </div>
@@ -3618,7 +3623,7 @@ export function PurchaseModule() {
       {/* GENERIC PURCHASE MODAL */}
       {genericModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
                 New {activeSubTab.slice(0, -1)}
@@ -3661,7 +3666,7 @@ export function PurchaseModule() {
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button onClick={() => setGenericModalOpen(false)} className="rounded-lg border border-slate-300 px-3.5 py-1.5 text-xs text-slate-400">Cancel</button>
-              <button onClick={handleSaveGenericRecord} className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">Save Record</button>
+              <button onClick={handleSaveGenericRecord} className="btn-primary">Save Record</button>
             </div>
           </div>
         </div>
@@ -3670,7 +3675,7 @@ export function PurchaseModule() {
       {/* NEW VENDOR BILL MODAL */}
       {newBillOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="my-8 w-full max-w-4xl rounded-xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="my-8 w-full max-w-4xl rounded-xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
                 {editingId ? 'Edit Vendor Bill' : 'New Vendor Bill'}
@@ -3719,10 +3724,10 @@ export function PurchaseModule() {
             {/* Line Items */}
             <div className="mt-6">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-500">LINE ITEMS</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-amber-500">LINE ITEMS</p>
                 <button
                   onClick={addLine}
-                  className="flex items-center gap-1 text-xs font-semibold text-emerald-500 hover:underline"
+                  className="flex items-center gap-1 text-xs font-semibold text-amber-500 hover:underline"
                 >
                   + Add line
                 </button>
@@ -3775,7 +3780,7 @@ export function PurchaseModule() {
                   </div>
                   <div className="flex justify-between font-bold text-slate-800 dark:text-slate-100 text-sm border-t pt-1">
                     <span>Grand Total:</span>
-                    <span className="font-mono text-emerald-500">Rs. {totals.grandTotal.toFixed(2)}</span>
+                    <span className="font-mono text-amber-500">Rs. {totals.grandTotal.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -3796,7 +3801,7 @@ export function PurchaseModule() {
               </button>
               <button
                 onClick={() => handleSaveBill('POSTED')}
-                className="rounded-lg bg-emerald-600 px-5 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                className="btn-primary"
               >
                 Save & Post
               </button>

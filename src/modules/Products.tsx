@@ -5,6 +5,7 @@ import { useToast } from '@/lib/toast';
 import { downloadCSV } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
 import type { Product } from '@/lib/types';
+import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 
 export function Products() {
   const toast = useToast();
@@ -14,6 +15,7 @@ export function Products() {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Form State
   const [name, setName] = useState('');
@@ -116,10 +118,11 @@ export function Products() {
     setModalOpen(false);
   };
 
-  const handleDelete = (id: string, prodName: string) => {
-    if (confirm(`Are you sure you want to delete ${prodName}?`)) {
-      deleteProduct(id);
-      toast.success(`Product ${prodName} deleted`);
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) {
+      deleteProduct(deleteTarget.id);
+      toast.success(`Product ${deleteTarget.name} deleted`);
+      setDeleteTarget(null);
     }
   };
 
@@ -136,14 +139,14 @@ export function Products() {
   );
 
   const handleExportCSV = () => {
-    downloadCSV('products_catalog', products);
+    downloadCSV('products_catalog', products as unknown as Record<string, unknown>[]);
     toast.success('Product catalog exported to CSV');
   };
 
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Products</h1>
       </div>
 
@@ -172,14 +175,14 @@ export function Products() {
             </button>
             <button
               onClick={openCreate}
-              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+              className="flex items-center gap-1.5 btn-primary"
             >
               <Plus className="h-4 w-4" /> Add product
             </button>
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
               <tr>
@@ -227,7 +230,7 @@ export function Products() {
                     <td className="px-4 py-3">
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                          p.is_active ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                          p.is_active ? 'bg-amber-500/15 text-amber-500 dark:text-amber-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                         }`}
                       >
                         {p.is_active ? 'Active' : 'Deactivated'}
@@ -242,7 +245,7 @@ export function Products() {
                             className={`flex items-center gap-1 text-xs font-bold transition px-2 py-1 rounded-lg border ${
                               p.is_active
                                 ? 'border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400'
-                                : 'border-emerald-200 bg-emerald-50/50 text-emerald-600 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                : 'border-amber-500/30 bg-amber-500/10/50 text-amber-500 hover:bg-amber-500/20 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400'
                             }`}
                           >
                             <Power className="h-3.5 w-3.5" />
@@ -255,7 +258,7 @@ export function Products() {
                             <Edit className="h-3.5 w-3.5" /> Edit
                           </button>
                           <button
-                            onClick={() => handleDelete(p.id, p.name)}
+                            onClick={() => setDeleteTarget({ id: p.id, name: p.name })}
                             className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-400"
                           >
                             <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -276,7 +279,7 @@ export function Products() {
       {/* FORM MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="my-8 w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="my-8 w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PRODUCT CATALOG</p>
@@ -409,7 +412,7 @@ export function Products() {
                     type="checkbox"
                     checked={trackBatches}
                     onChange={(e) => setTrackBatches(e.target.checked)}
-                    className="h-4 w-4 rounded accent-emerald-500"
+                    className="h-4 w-4 rounded accent-amber-500"
                   />
                 </label>
                 <label className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
@@ -418,7 +421,7 @@ export function Products() {
                     type="checkbox"
                     checked={trackSerials}
                     onChange={(e) => setTrackSerials(e.target.checked)}
-                    className="h-4 w-4 rounded accent-emerald-500"
+                    className="h-4 w-4 rounded accent-amber-500"
                   />
                 </label>
               </div>
@@ -445,7 +448,7 @@ export function Products() {
               </button>
               <button
                 onClick={handleSave}
-                className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                className="btn-primary"
               >
                 {editingId ? 'Update product' : 'Save product'}
               </button>
@@ -453,6 +456,15 @@ export function Products() {
           </div>
         </div>
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <DeleteConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        itemName={deleteTarget?.name}
+        itemType="product"
+      />
     </div>
   );
 }

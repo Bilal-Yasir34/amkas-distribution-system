@@ -31,7 +31,7 @@ export function Modal({ open, onClose, title, subtitle, children, footer, size =
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
             transition={{ type: 'spring', duration: 0.25, bounce: 0.1 }}
-            className={`relative z-10 flex max-h-[90vh] w-full ${sizeMap[size]} flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-[#1e293b]`}
+            className={`relative z-10 flex max-h-[90vh] w-full ${sizeMap[size]} flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900/80`}
           >
             <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
               <div>

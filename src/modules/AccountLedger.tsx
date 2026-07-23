@@ -69,7 +69,7 @@ export function AccountLedger() {
                   <td className="px-4 py-2.5"><span className="badge bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">{l.voucher_type ?? '—'}</span></td>
                   <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{accountCode(l.account_id)} — {accountName(l.account_id)}</td>
                   <td className="px-4 py-2.5 text-slate-500">{l.description ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-right text-emerald-600 dark:text-emerald-400">{l.debit ? formatCurrency(l.debit) : '—'}</td>
+                  <td className="px-4 py-2.5 text-right text-amber-500 dark:text-amber-400">{l.debit ? formatCurrency(l.debit) : '—'}</td>
                   <td className="px-4 py-2.5 text-right text-rose-600 dark:text-rose-400">{l.credit ? formatCurrency(l.credit) : '—'}</td>
                   <td className="px-4 py-2.5 text-right font-medium text-slate-700 dark:text-slate-200">{formatCurrency(l.balance)}</td>
                 </tr>
@@ -80,7 +80,7 @@ export function AccountLedger() {
               <tfoot className="bg-slate-50 font-semibold dark:bg-slate-700/40">
                 <tr>
                   <td className="px-4 py-2.5" colSpan={5}>Totals</td>
-                  <td className="px-4 py-2.5 text-right text-emerald-700 dark:text-emerald-400">{formatCurrency(totalDebit)}</td>
+                  <td className="px-4 py-2.5 text-right text-emerald-700 dark:text-amber-400">{formatCurrency(totalDebit)}</td>
                   <td className="px-4 py-2.5 text-right text-rose-700 dark:text-rose-400">{formatCurrency(totalCredit)}</td>
                   <td className="px-4 py-2.5 text-right text-slate-700 dark:text-slate-200">{formatCurrency(totalDebit - totalCredit)}</td>
                 </tr>

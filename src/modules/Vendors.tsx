@@ -5,6 +5,7 @@ import { useToast } from '@/lib/toast';
 import { downloadCSV } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
 import type { Vendor } from '@/lib/types';
+import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 
 export function Vendors() {
   const toast = useToast();
@@ -14,6 +15,7 @@ export function Vendors() {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Form state
   const [name, setName] = useState('');
@@ -85,6 +87,7 @@ export function Vendors() {
         salesperson,
         credit_limit: 0,
         opening_balance: Number(openingBalance) || 0,
+        current_balance: Number(openingBalance) || 0,
         address,
         is_active: isActive,
       });
@@ -93,10 +96,11 @@ export function Vendors() {
     setModalOpen(false);
   };
 
-  const handleDelete = (id: string, vendorName: string) => {
-    if (confirm(`Are you sure you want to delete ${vendorName}?`)) {
-      deleteVendor(id);
-      toast.success(`Vendor ${vendorName} deleted`);
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) {
+      deleteVendor(deleteTarget.id);
+      toast.success(`Vendor ${deleteTarget.name} deleted`);
+      setDeleteTarget(null);
     }
   };
 
@@ -113,7 +117,7 @@ export function Vendors() {
   );
 
   const handleExportCSV = () => {
-    downloadCSV('vendors_directory', vendors);
+    downloadCSV('vendors_directory', vendors as unknown as Record<string, unknown>[]);
     toast.success('Vendor directory exported to CSV');
   };
 
@@ -123,27 +127,27 @@ export function Vendors() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Vendors</h1>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL VENDORS</p>
           <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">{vendors.length}</p>
           <p className="mt-1 text-[11px] text-slate-400">Visible in your current access scope</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ACTIVE</p>
-          <p className="mt-1 text-2xl font-extrabold text-emerald-500">{activeCount}</p>
+          <p className="mt-1 text-2xl font-extrabold text-amber-500">{activeCount}</p>
           <p className="mt-1 text-[11px] text-slate-400">Available for transactions</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CITIES</p>
           <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">{uniqueCities || 1}</p>
           <p className="mt-1 text-[11px] text-slate-400">Geographic coverage</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SALESPEOPLE</p>
           <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">1</p>
           <p className="mt-1 text-[11px] text-slate-400">Attributed directory records</p>
@@ -175,14 +179,14 @@ export function Vendors() {
             </button>
             <button
               onClick={openCreate}
-              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+              className="flex items-center gap-1.5 btn-primary"
             >
               <Plus className="h-4 w-4" /> Add vendor
             </button>
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
               <tr>
@@ -220,7 +224,7 @@ export function Vendors() {
                     <td className="px-4 py-3">
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                          v.is_active ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                          v.is_active ? 'bg-amber-500/15 text-amber-500 dark:text-amber-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                         }`}
                       >
                         {v.is_active ? 'Active' : 'Deactivated'}
@@ -235,7 +239,7 @@ export function Vendors() {
                             className={`flex items-center gap-1 text-xs font-bold transition px-2 py-1 rounded-lg border ${
                               v.is_active
                                 ? 'border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400'
-                                : 'border-emerald-200 bg-emerald-50/50 text-emerald-600 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                : 'border-amber-500/30 bg-amber-500/10/50 text-amber-500 hover:bg-amber-500/20 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400'
                             }`}
                           >
                             <Power className="h-3.5 w-3.5" />
@@ -248,7 +252,7 @@ export function Vendors() {
                             <Edit className="h-3.5 w-3.5" /> Edit
                           </button>
                           <button
-                            onClick={() => handleDelete(v.id, v.name)}
+                            onClick={() => setDeleteTarget({ id: v.id, name: v.name })}
                             className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-400"
                           >
                             <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -269,7 +273,7 @@ export function Vendors() {
       {/* FORM MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="my-8 w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="my-8 w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SHARED DIRECTORY</p>
@@ -401,7 +405,7 @@ export function Vendors() {
               </button>
               <button
                 onClick={handleSave}
-                className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                className="btn-primary"
               >
                 {editingId ? 'Update vendor' : 'Save vendor'}
               </button>
@@ -409,6 +413,15 @@ export function Vendors() {
           </div>
         </div>
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <DeleteConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        itemName={deleteTarget?.name}
+        itemType="vendor"
+      />
     </div>
   );
 }

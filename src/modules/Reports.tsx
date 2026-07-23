@@ -151,7 +151,7 @@ export function Reports() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">AMKAS INTERNATIONAL</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">AMKAS INTERNATIONAL</p>
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Reports & Analytics</h1>
         </div>
 
@@ -183,7 +183,7 @@ export function Reports() {
               onClick={() => setActiveTab(t.key)}
               className={`px-4 py-2 text-xs font-semibold whitespace-nowrap transition rounded-xl flex items-center gap-2 ${
                 activeTab === t.key
-                  ? 'bg-white text-emerald-600 font-bold shadow-sm dark:bg-slate-700 dark:text-emerald-400'
+                  ? 'bg-white text-amber-500 font-bold shadow-sm dark:bg-slate-700 dark:text-amber-400'
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
             >
@@ -195,16 +195,16 @@ export function Reports() {
 
       {/* TAB 1: TRIAL BALANCE */}
       {activeTab === 'trial_balance' && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
           <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex justify-between items-center">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-0.5">FINANCIAL REPORT</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-0.5">FINANCIAL REPORT</p>
               <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Trial Balance Statement</h2>
             </div>
             <span className="text-xs text-slate-400 font-mono">As of {new Date().toLocaleDateString('en-GB')}</span>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-[#1c2541] overflow-hidden">
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
                 <tr>
@@ -221,7 +221,7 @@ export function Reports() {
                   const bal = acc.current_balance || 0;
                   return (
                     <tr key={acc.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                      <td className="px-4 py-3.5 font-mono font-bold text-emerald-600 dark:text-emerald-400">{acc.code}</td>
+                      <td className="px-4 py-3.5 font-mono font-bold text-amber-500 dark:text-amber-400">{acc.code}</td>
                       <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-100">{acc.name}</td>
                       <td className="px-4 py-3.5">
                         <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-[10px] font-bold text-slate-600 dark:text-slate-400">
@@ -243,10 +243,10 @@ export function Reports() {
                   <td colSpan={3} className="px-4 py-3.5 font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider">
                     Totals
                   </td>
-                  <td className="px-4 py-3.5 text-right font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
+                  <td className="px-4 py-3.5 text-right font-mono font-extrabold text-amber-500 dark:text-amber-400">
                     Rs. {chartOfAccounts.filter((c) => c.account_type === 'Asset' || c.account_type === 'Expense').reduce((s, c) => s + (c.current_balance || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="px-4 py-3.5 text-right font-mono font-extrabold text-blue-600 dark:text-blue-400">
+                  <td className="px-4 py-3.5 text-right font-mono font-extrabold text-purple-400 dark:text-purple-300">
                     Rs. {chartOfAccounts.filter((c) => c.account_type === 'Liability' || c.account_type === 'Equity' || c.account_type === 'Revenue' || c.account_type === 'Income').reduce((s, c) => s + (c.current_balance || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
@@ -258,10 +258,10 @@ export function Reports() {
 
       {/* TAB 2: PROFIT & LOSS STATEMENT */}
       {activeTab === 'pnl' && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-6">
           <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex justify-between items-center">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-0.5">FINANCIAL STATEMENT</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-0.5">FINANCIAL STATEMENT</p>
               <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Profit & Loss Statement</h2>
             </div>
             <span className="text-xs text-slate-400 font-mono">Period to Date</span>
@@ -270,9 +270,9 @@ export function Reports() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Revenue Column */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-emerald-500">Revenue & Income</h3>
-                <span className="text-xs font-mono font-bold text-emerald-600">
+              <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-amber-500">Revenue & Income</h3>
+                <span className="text-xs font-mono font-bold text-amber-500">
                   Rs. {financialData.grossRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -320,7 +320,7 @@ export function Reports() {
           {/* Net Summary Footer Card */}
           <div className={`rounded-2xl p-5 border flex items-center justify-between ${
             financialData.netProfit >= 0
-              ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-900/60 dark:text-emerald-100'
+              ? 'bg-amber-500/10/80 border-amber-500/30 text-emerald-900 dark:bg-amber-500/10 dark:border-emerald-900/60 dark:text-emerald-100'
               : 'bg-rose-50/80 border-rose-200 text-rose-900 dark:bg-rose-950/40 dark:border-rose-900/60 dark:text-rose-100'
           }`}>
             <div>
@@ -338,10 +338,10 @@ export function Reports() {
 
       {/* TAB 3: BALANCE SHEET */}
       {activeTab === 'balance_sheet' && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-6">
           <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex justify-between items-center">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-0.5">FINANCIAL STATEMENT</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-0.5">FINANCIAL STATEMENT</p>
               <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Balance Sheet</h2>
             </div>
             <span className="text-xs text-slate-400 font-mono">As of {new Date().toLocaleDateString('en-GB')}</span>
@@ -350,9 +350,9 @@ export function Reports() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Assets */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-blue-500/20 pb-2">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-blue-500">Assets</h3>
-                <span className="text-xs font-mono font-bold text-blue-600">
+              <div className="flex items-center justify-between border-b border-purple-500/20 pb-2">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-purple-400">Assets</h3>
+                <span className="text-xs font-mono font-bold text-purple-400">
                   Rs. {financialData.totalAssets.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -397,7 +397,7 @@ export function Reports() {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-slate-100/90 dark:bg-slate-800/80 p-4 text-center text-xs font-bold text-emerald-600 dark:text-emerald-400">
+          <div className="rounded-2xl bg-slate-100/90 dark:bg-slate-800/80 p-4 text-center text-xs font-bold text-amber-500 dark:text-amber-400">
             ✓ Double-entry accounting engine balanced — Assets equal Liabilities & Equity
           </div>
         </div>
@@ -407,19 +407,19 @@ export function Reports() {
       {activeTab === 'sales_summary' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-emerald-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL SALES BILLED</p>
               <h3 className="mt-1 text-xl font-extrabold font-mono text-slate-900 dark:text-slate-100">
                 Rs. {financialData.totalSalesBilled.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </h3>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-blue-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PAYMENTS COLLECTED</p>
               <h3 className="mt-1 text-xl font-extrabold font-mono text-slate-900 dark:text-slate-100">
                 Rs. {financialData.totalSalesCollected.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </h3>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-amber-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">NET OUTSTANDING</p>
               <h3 className="mt-1 text-xl font-extrabold font-mono text-slate-900 dark:text-slate-100">
                 Rs. {Math.max(0, financialData.totalSalesBilled - financialData.totalSalesCollected).toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -427,9 +427,9 @@ export function Reports() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
             <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Customer Performance Summary</h2>
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-[#1c2541] overflow-hidden">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
                   <tr>
@@ -451,7 +451,7 @@ export function Reports() {
                     return (
                       <tr key={c.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
                         <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-slate-100">{c.name}</td>
-                        <td className="px-4 py-3.5 text-center font-mono font-bold text-emerald-600">{cInvoices.length}</td>
+                        <td className="px-4 py-3.5 text-center font-mono font-bold text-amber-500">{cInvoices.length}</td>
                         <td className="px-4 py-3.5 text-right font-mono text-slate-800 dark:text-slate-200">
                           Rs. {billed.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </td>
@@ -475,19 +475,19 @@ export function Reports() {
       {activeTab === 'purchases_summary' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-rose-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-rose-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL PURCHASES BILLED</p>
               <h3 className="mt-1 text-xl font-extrabold font-mono text-slate-900 dark:text-slate-100">
                 Rs. {financialData.totalPurchasesBilled.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </h3>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-blue-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PAYMENTS PAID</p>
               <h3 className="mt-1 text-xl font-extrabold font-mono text-slate-900 dark:text-slate-100">
                 Rs. {financialData.totalPurchasesPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </h3>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-amber-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">DIRECT EXPENSES</p>
               <h3 className="mt-1 text-xl font-extrabold font-mono text-slate-900 dark:text-slate-100">
                 Rs. {financialData.directExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -495,9 +495,9 @@ export function Reports() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
             <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Vendor Performance Summary</h2>
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-[#1c2541] overflow-hidden">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
                   <tr>
@@ -519,7 +519,7 @@ export function Reports() {
                     return (
                       <tr key={v.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
                         <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-slate-100">{v.name}</td>
-                        <td className="px-4 py-3.5 text-center font-mono font-bold text-blue-600">{vBills.length}</td>
+                        <td className="px-4 py-3.5 text-center font-mono font-bold text-purple-400">{vBills.length}</td>
                         <td className="px-4 py-3.5 text-right font-mono text-slate-800 dark:text-slate-200">
                           Rs. {billed.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </td>

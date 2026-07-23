@@ -87,7 +87,7 @@ export function ReceivePayment() {
 
       <form onSubmit={handlePostReceipt} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Card (Left - 2 Columns) */}
-        <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+        <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
           <div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Receive Payment</h2>
             <p className="text-xs font-medium text-slate-500 mt-1">
@@ -102,7 +102,7 @@ export function ReceivePayment() {
               <select
                 value={receivedFrom}
                 onChange={(e) => setReceivedFrom(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               >
                 <option value="">Select customer, vendor or account</option>
                 <optgroup label="Customers">
@@ -133,7 +133,7 @@ export function ReceivePayment() {
                 type="date"
                 value={receiptDate}
                 onChange={(e) => setReceiptDate(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               />
             </div>
           </div>
@@ -143,20 +143,19 @@ export function ReceivePayment() {
             <div>
               <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Deposit to</label>
               <select
-                value={depositTo}
+                value={depositTo || bankAccounts[0]?.account_name || ''}
                 onChange={(e) => setDepositTo(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="input"
               >
-                <option value="Cash in Hand">Cash in Hand</option>
-                <option value="HBL Main Account">HBL Main Account</option>
-                <option value="Meezan Operations Account">Meezan Operations Account</option>
-                <option value="Bank Transfer">Bank Transfer</option>
-                <option value="Petty Cash">Petty Cash</option>
-                {bankAccounts.map((b) => (
-                  <option key={b.id} value={b.account_name}>
-                    {b.account_name} ({b.bank_name})
-                  </option>
-                ))}
+                {bankAccounts.length === 0 ? (
+                  <option value="">No bank accounts added in system</option>
+                ) : (
+                  bankAccounts.map((b) => (
+                    <option key={b.id} value={b.account_name}>
+                      {b.account_name} ({b.bank_name})
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
@@ -167,7 +166,7 @@ export function ReceivePayment() {
                 placeholder="Amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               />
             </div>
           </div>
@@ -179,7 +178,7 @@ export function ReceivePayment() {
               <select
                 value={accountCategory}
                 onChange={(e) => setAccountCategory(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               >
                 <option value="Auto select based on selected party">Auto select based on selected party</option>
                 <option value="Accounts Receivable">Accounts Receivable</option>
@@ -195,7 +194,7 @@ export function ReceivePayment() {
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               >
                 <option value="PKR">PKR</option>
                 <option value="USD">USD</option>
@@ -215,7 +214,7 @@ export function ReceivePayment() {
                 type="number"
                 value={exchangeRate}
                 onChange={(e) => setExchangeRate(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               />
             </div>
 
@@ -226,7 +225,7 @@ export function ReceivePayment() {
                 placeholder="Reference number"
                 value={refNo}
                 onChange={(e) => setRefNo(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               />
             </div>
           </div>
@@ -239,18 +238,18 @@ export function ReceivePayment() {
               placeholder="Payment notes or remarks"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
             />
           </div>
         </div>
 
         {/* Right Card: Posting rules (1 Column) matching screenshot */}
-        <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-6">
+        <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-6">
           <div className="space-y-4">
             <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Posting rules</h3>
 
             {/* Light Emerald Notice Box matching screenshot */}
-            <div className="rounded-xl bg-emerald-50 p-4 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs leading-relaxed border border-emerald-100 dark:border-emerald-800/40">
+            <div className="rounded-xl bg-amber-500/10 p-4 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 text-xs leading-relaxed border border-amber-500/20 dark:border-amber-500/20">
               Customer receipts auto-allocate to outstanding invoices. Vendor/account receipts post directly through the journal with CR numbering.
             </div>
           </div>
@@ -265,13 +264,13 @@ export function ReceivePayment() {
                 setRefNo('');
                 setNotes('');
               }}
-              className="rounded-xl border border-slate-300 px-5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
+              className="btn btn-secondary py-2.5 text-xs"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-[#00a884] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#008f70] transition"
+              className="btn-primary py-2.5 text-xs"
             >
               Post receipt
             </button>

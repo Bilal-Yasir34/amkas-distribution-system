@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Wrench, Download, Trash2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Wrench, Download, Trash2, ShieldCheck, Database, HardDrive, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useToast } from '@/lib/toast';
 import { useDataStore } from '@/lib/dataStore';
 
@@ -43,105 +43,158 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
   };
 
   return (
-    <div className="space-y-5">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
-        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">System Maintenance</h1>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">DEPLOYMENT</p>
-          <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">v1.1</p>
-          <p className="mt-1 text-[11px] text-slate-400">Production candidate</p>
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4 dark:border-amber-500/20">
+        <div>
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-amber-500">SYSTEM GOVERNANCE & UTILITIES</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-heading flex items-center gap-2.5 mt-0.5">
+            <Wrench className="h-6 w-6 text-amber-500" />
+            System Maintenance
+          </h1>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">DATABASE</p>
-          <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">PostgreSQL</p>
-          <p className="mt-1 text-[11px] text-slate-400">Supabase transactional storage</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">BACKUP SCOPE</p>
-          <p className="mt-1 text-2xl font-extrabold text-emerald-500">Full</p>
-          <p className="mt-1 text-[11px] text-slate-400">Schema and all organizations</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">RESET SCOPE</p>
-          <p className="mt-1 text-2xl font-extrabold text-amber-500">Organization</p>
-          <p className="mt-1 text-[11px] text-slate-400">Preserves access and setup</p>
+        <div className="flex items-center gap-2">
+          <span className="badge badge-approved flex items-center gap-1.5 px-3.5 py-1.5 text-xs">
+            <ShieldCheck className="h-4 w-4 text-amber-400" /> System Healthy & Secure
+          </span>
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      {/* KPI Overview Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="card p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">DEPLOYMENT VERSION</p>
+            <div className="rounded-xl bg-amber-500/15 p-2 text-amber-500">
+              <HardDrive className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-heading">v1.1</p>
+          <p className="mt-1 text-xs font-semibold text-amber-500 dark:text-amber-400">Production Candidate Build</p>
+        </div>
+
+        <div className="card p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">DATABASE ENGINE</p>
+            <div className="rounded-xl bg-amber-500/15 p-2 text-amber-500">
+              <Database className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-heading">PostgreSQL</p>
+          <p className="mt-1 text-xs font-semibold text-amber-500 dark:text-amber-400">Supabase Transactional Storage</p>
+        </div>
+
+        <div className="card p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">BACKUP SCOPE</p>
+            <div className="rounded-xl bg-amber-500/15 p-2 text-amber-500">
+              <Download className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="mt-2 text-2xl font-extrabold text-amber-500 dark:text-amber-400 font-heading">FULL SQL</p>
+          <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">Schema & All Organizations</p>
+        </div>
+
+        <div className="card p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">RESET SCOPE</p>
+            <div className="rounded-xl bg-rose-500/15 p-2 text-rose-500">
+              <RefreshCw className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="mt-2 text-2xl font-extrabold text-amber-500 dark:text-amber-400 font-heading">ORGANIZATION</p>
+          <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">Preserves Users & Setup</p>
+        </div>
+      </div>
+
+      {/* Main Operations Grid */}
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Disaster Recovery SQL Backup */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+        <div className="card p-6 space-y-5">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">DISASTER RECOVERY</p>
-            <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Download database backup</h3>
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-500">DISASTER RECOVERY</p>
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 font-heading mt-0.5">
+              Download Database Backup
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+              Generate an instant, unencrypted SQL snapshot of all database structures and transactional tables.
+            </p>
           </div>
 
-          <div className="flex flex-col items-center justify-center p-8 text-center border border-dashed border-slate-700 rounded-xl bg-slate-900/40">
-            <Download className="h-10 w-10 text-emerald-500 mb-3" />
-            <h4 className="text-sm font-bold text-slate-200">One-click SQL backup</h4>
-            <p className="mt-1 text-xs text-slate-400 max-w-xs">
-              Downloads table structures and records for safekeeping before updates, migrations or major data changes.
+          <div className="flex flex-col items-center justify-center p-8 text-center border-2 border-dashed border-amber-500/40 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 backdrop-blur-md">
+            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 shadow-lg shadow-amber-500/30 mb-4">
+              <Download className="h-8 w-8" />
+            </div>
+            <h4 className="text-base font-extrabold text-slate-900 dark:text-slate-100 font-heading">One-Click SQL Dump</h4>
+            <p className="mt-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 max-w-sm leading-relaxed">
+              Safely export table schemas, ledgers, products, invoices, and vouchers before major updates or migrations.
             </p>
             <button
               onClick={handleDownloadBackup}
-              className="mt-5 flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+              className="mt-6 btn-primary px-6 py-3 text-xs"
             >
-              <Download className="h-4 w-4" /> Download full SQL backup
+              <Download className="h-4 w-4" /> Download Full SQL Backup
             </button>
           </div>
         </div>
 
         {/* Fresh Client Handover Reset */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+        <div className="card p-6 space-y-5">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">FRESH CLIENT HANDOVER</p>
-            <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Reset business records</h3>
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-rose-500">FRESH CLIENT HANDOVER</p>
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 font-heading mt-0.5">
+              Reset Business Records
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+              Purge dummy testing transactions while retaining organization settings, master accounts, and employee setup.
+            </p>
           </div>
 
-          <div className="rounded-lg bg-slate-900/60 p-4 border border-slate-800 text-xs text-slate-300 space-y-3">
-            <p>
-              Clears sales, purchases, receipts, payments, journals, bank imports, stock, customers, vendors and products for the active organization.
-            </p>
-            <div className="rounded bg-emerald-500/10 p-2.5 text-[11px] text-emerald-400">
-              <strong>Preserved:</strong> organization profile, branches, departments, employees, roles, permissions, financial years, chart of accounts, bank accounts, warehouses and company logo.
+          <div className="rounded-2xl bg-slate-100 dark:bg-slate-800/80 p-5 border border-slate-200 dark:border-amber-500/20 text-xs space-y-3.5 backdrop-blur-md">
+            <div className="flex items-start gap-2.5 text-slate-800 dark:text-slate-200 leading-relaxed font-semibold">
+              <AlertTriangle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
+              <p>
+                Clears all sales, purchases, receipts, payments, journals, bank imports, stock movements, customers, vendors, and product catalogs for the active organization.
+              </p>
+            </div>
+            <div className="rounded-xl bg-amber-500/15 p-3 text-xs text-amber-700 dark:text-amber-300 border border-amber-500/30">
+              <strong className="font-extrabold text-amber-800 dark:text-amber-200">Preserved Configuration:</strong> Organization profile, branches, departments, employee credentials, role permissions, financial years, chart of accounts, bank accounts, warehouses, and company logo.
             </div>
           </div>
 
           {!resetConfirmOpen ? (
             <button
               onClick={() => setResetConfirmOpen(true)}
-              className="w-full rounded-lg bg-rose-600/90 py-2.5 text-xs font-semibold text-white hover:bg-rose-700"
+              className="btn btn-danger w-full justify-center py-3 text-xs"
             >
-              Clear business data
+              <Trash2 className="h-4 w-4" /> Clear Business Data
             </button>
           ) : (
-            <div className="space-y-3 border-t border-slate-800 pt-3">
-              <p className="text-xs font-semibold text-rose-400">
-                Type <span className="font-mono underline">RESET AMKAS</span> to confirm:
-              </p>
+            <div className="space-y-4 border-t border-slate-200 dark:border-amber-500/20 pt-4">
+              <div className="rounded-xl bg-rose-500/10 p-3 border border-rose-500/30">
+                <p className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                  Type <span className="font-mono font-extrabold underline">RESET AMKAS</span> below to confirm data wipe:
+                </p>
+              </div>
               <input
                 type="text"
                 value={resetInput}
                 onChange={(e) => setResetInput(e.target.value)}
                 placeholder="RESET AMKAS"
-                className="w-full rounded-lg border border-rose-500/50 bg-slate-900 p-2 text-xs font-mono text-white outline-none"
+                className="input font-mono font-bold text-sm tracking-wider uppercase"
               />
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   onClick={() => setResetConfirmOpen(false)}
-                  className="flex-1 rounded-lg border border-slate-700 py-1.5 text-xs text-slate-300"
+                  className="btn btn-secondary flex-1 py-2.5 text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleClearBusinessData}
-                  className="flex-1 rounded-lg bg-rose-600 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
+                  className="btn btn-danger flex-1 py-2.5 text-xs"
                 >
-                  Confirm Reset
+                  Confirm Data Wipe
                 </button>
               </div>
             </div>
@@ -151,3 +204,4 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
     </div>
   );
 }
+

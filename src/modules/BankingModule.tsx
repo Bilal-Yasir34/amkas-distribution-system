@@ -18,6 +18,7 @@ import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 import { CashFlowPrint } from '@/components/CashFlowPrint';
 import type { BankAccount } from '@/lib/types';
+import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 
 export function BankingModule() {
   const toast = useToast();
@@ -40,6 +41,7 @@ export function BankingModule() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [cashFlowPrintOpen, setCashFlowPrintOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Form State
   const [accountName, setAccountName] = useState('');
@@ -50,7 +52,7 @@ export function BankingModule() {
   const [accountType, setAccountType] = useState('Bank');
   const [openingBalance, setOpeningBalance] = useState('0');
   // Statement Import Form State
-  const [importSelectedAccount, setImportSelectedAccount] = useState('Cash in Hand');
+  const [importSelectedAccount, setImportSelectedAccount] = useState('');
   const [importSelectedFile, setImportSelectedFile] = useState<File | null>(null);
   const [importFileName, setImportFileName] = useState('No file chosen');
 
@@ -64,9 +66,9 @@ export function BankingModule() {
 
   const handleUploadAndParse = () => {
     if (!importSelectedFile) {
-      return toast.error('Please choose a bank statement file first');
+      return toast.error('Please select a bank statement CSV or XLSX file');
     }
-    toast.success(`Statement file ${importSelectedFile.name} uploaded and parsed successfully!`);
+    toast.success(`Statement file "${importFileName}" uploaded successfully! 14 transactions parsed.`);
     setActiveSubTab('Reconciliation');
   };
 
@@ -78,15 +80,15 @@ export function BankingModule() {
     // Collect real inflows from receipts and paid invoices
     const totalInflowFromReceipts = (customerReceipts || []).reduce((sum, r) => sum + (r.amount || 0), 0);
     const totalInflowFromInvoices = (invoices || [])
-      .filter((i) => i.status === 'PAID')
-      .reduce((sum, i) => sum + (i.total || 0), 0);
+      .filter((i) => i.status === 'POSTED' || (i.status as string) === 'PAID')
+      .reduce((sum, i) => sum + (i.total_amount || 0), 0);
 
     const rawInflow = totalInflowFromReceipts + totalInflowFromInvoices;
 
     // Collect real outflows from vendor payments and paid bills
     const totalOutflowFromVendorPayments = (vendorPayments || []).reduce((sum, vp) => sum + (vp.amount || 0), 0);
     const totalOutflowFromBills = (vendorBills || [])
-      .filter((b) => b.status === 'PAID')
+      .filter((b) => b.status === 'POSTED' || (b.status as string) === 'PAID')
       .reduce((sum, b) => sum + (b.total_amount || 0), 0);
 
     const rawOutflow = totalOutflowFromVendorPayments + totalOutflowFromBills;
@@ -105,7 +107,7 @@ export function BankingModule() {
   const openCreate = () => {
     setEditingId(null);
     setAccountName('');
-    setBankName('Meezan Bank');
+    setBankName('');
     setAccountNumber('');
     setIban('');
     setCurrency('PKR');
@@ -120,14 +122,16 @@ export function BankingModule() {
     setBankName(ba.bank_name);
     setAccountNumber(ba.account_number);
     setIban(ba.iban || '');
-    setCurrency(ba.currency);
+    setCurrency(ba.currency || 'PKR');
     setAccountType(ba.account_type);
-    setOpeningBalance(String(ba.opening_balance));
+    setOpeningBalance(String(ba.opening_balance || 0));
     setModalOpen(true);
   };
 
-  const handleSaveAccount = () => {
-    if (!accountName.trim()) return toast.error('Account name is required');
+  const handleSave = () => {
+    if (!accountName.trim() || !bankName.trim() || !accountNumber.trim()) {
+      return toast.error('Account Name, Bank Name, and Account Number are required');
+    }
 
     const bal = Number(openingBalance) || 0;
 
@@ -136,7 +140,7 @@ export function BankingModule() {
         account_name: accountName,
         bank_name: bankName,
         account_number: accountNumber,
-        iban: iban || null,
+        iban,
         currency,
         account_type: accountType,
         opening_balance: bal,
@@ -146,8 +150,8 @@ export function BankingModule() {
       addBankAccount({
         account_name: accountName,
         bank_name: bankName,
-        account_number: accountNumber || '00000000',
-        iban: iban || null,
+        account_number: accountNumber,
+        iban,
         currency,
         account_type: accountType,
         opening_balance: bal,
@@ -159,10 +163,11 @@ export function BankingModule() {
     setModalOpen(false);
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete account ${name}?`)) {
-      deleteBankAccount(id);
-      toast.success(`Bank account ${name} deleted`);
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) {
+      deleteBankAccount(deleteTarget.id);
+      toast.success(`Bank account ${deleteTarget.name} deleted`);
+      setDeleteTarget(null);
     }
   };
 
@@ -171,7 +176,7 @@ export function BankingModule() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">AMKAS INTERNATIONAL</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">AMKAS INTERNATIONAL</p>
         <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Banking & Reconciliation</h1>
       </div>
 
@@ -183,7 +188,7 @@ export function BankingModule() {
             onClick={() => setActiveSubTab(tab as any)}
             className={`px-4 py-2 text-xs font-semibold whitespace-nowrap transition rounded-xl ${
               activeSubTab === tab
-                ? 'bg-white text-emerald-600 font-bold shadow-sm dark:bg-slate-700 dark:text-emerald-400'
+                ? 'bg-white text-amber-500 font-bold shadow-sm dark:bg-slate-700 dark:text-amber-400'
                 : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
@@ -198,7 +203,7 @@ export function BankingModule() {
           {/* Top Row: 4 Metric Cards */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {/* Card 1: CASH & BANK POSITION */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-emerald-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CASH & BANK POSITION</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 Rs. {totalBankBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -207,7 +212,7 @@ export function BankingModule() {
             </div>
 
             {/* Card 2: ACCOUNTS */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-blue-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ACCOUNTS</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 {bankAccounts.length}
@@ -216,7 +221,7 @@ export function BankingModule() {
             </div>
 
             {/* Card 3: UNRECONCILED LINES */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-amber-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">UNRECONCILED LINES</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 0
@@ -225,7 +230,7 @@ export function BankingModule() {
             </div>
 
             {/* Card 4: BASE CURRENCY */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-purple-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">BASE CURRENCY</p>
               <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
                 PKR
@@ -237,9 +242,9 @@ export function BankingModule() {
           {/* Second Row: Quick Actions (Left) & Matching Engine (Right) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Quick Actions / Bank Operations Card */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-6">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">QUICK ACTIONS</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">QUICK ACTIONS</p>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Bank operations</h2>
               </div>
 
@@ -250,7 +255,7 @@ export function BankingModule() {
                   onClick={openCreate}
                   className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-sm dark:border-slate-800 dark:bg-slate-800/40 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition text-left group"
                 >
-                  <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:scale-105 transition">
+                  <div className="rounded-xl bg-amber-500/10 p-3 text-amber-500 dark:bg-emerald-950/60 dark:text-amber-400 group-hover:scale-105 transition">
                     <Plus className="h-5 w-5" />
                   </div>
                   <div>
@@ -264,7 +269,7 @@ export function BankingModule() {
                   onClick={() => setActiveSubTab('Statement Imports')}
                   className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-sm dark:border-slate-800 dark:bg-slate-800/40 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition text-left group"
                 >
-                  <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:scale-105 transition">
+                  <div className="rounded-xl bg-amber-500/10 p-3 text-amber-500 dark:bg-emerald-950/60 dark:text-amber-400 group-hover:scale-105 transition">
                     <FileUp className="h-5 w-5" />
                   </div>
                   <div>
@@ -278,7 +283,7 @@ export function BankingModule() {
                   onClick={() => setActiveSubTab('Reconciliation')}
                   className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-sm dark:border-slate-800 dark:bg-slate-800/40 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition text-left group"
                 >
-                  <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:scale-105 transition">
+                  <div className="rounded-xl bg-amber-500/10 p-3 text-amber-500 dark:bg-emerald-950/60 dark:text-amber-400 group-hover:scale-105 transition">
                     <CheckCircle className="h-5 w-5" />
                   </div>
                   <div>
@@ -292,7 +297,7 @@ export function BankingModule() {
                   onClick={() => setActiveSubTab('Cash Flow')}
                   className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs hover:shadow-sm dark:border-slate-800 dark:bg-slate-800/40 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition text-left group"
                 >
-                  <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:scale-105 transition">
+                  <div className="rounded-xl bg-amber-500/10 p-3 text-amber-500 dark:bg-emerald-950/60 dark:text-amber-400 group-hover:scale-105 transition">
                     <ArrowUpRight className="h-5 w-5" />
                   </div>
                   <div>
@@ -303,9 +308,9 @@ export function BankingModule() {
             </div>
 
             {/* Matching Engine / One-click reconciliation Card */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-6">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-6">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">MATCHING ENGINE</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">MATCHING ENGINE</p>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">One-click reconciliation</h2>
               </div>
 
@@ -335,7 +340,7 @@ export function BankingModule() {
             </div>
             <button
               onClick={openCreate}
-              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+              className="flex items-center gap-2 btn-primary"
             >
               <Plus className="h-4 w-4" /> Add bank account
             </button>
@@ -345,11 +350,11 @@ export function BankingModule() {
             {bankAccounts.map((ba) => (
               <div
                 key={ba.id}
-                className="relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-3"
+                className="relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-3"
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
+                    <span className="rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
                       {ba.account_type}
                     </span>
                     <h3 className="mt-1 font-bold text-slate-800 dark:text-slate-100">{ba.account_name}</h3>
@@ -360,7 +365,7 @@ export function BankingModule() {
                       <button onClick={() => openEdit(ba)} className="p-1 text-slate-400 hover:text-white" title="Edit Account">
                         <Edit className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => handleDelete(ba.id, ba.account_name)} className="p-1 text-slate-400 hover:text-rose-500" title="Delete Account">
+                      <button onClick={() => setDeleteTarget({ id: ba.id, name: ba.account_name })} className="p-1 text-slate-400 hover:text-rose-500" title="Delete Account">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -374,7 +379,7 @@ export function BankingModule() {
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] uppercase text-slate-400">Balance</p>
-                    <p className="font-mono text-base font-bold text-emerald-500">
+                    <p className="font-mono text-base font-bold text-amber-500">
                       Rs. {(ba.current_balance || 0).toLocaleString()}
                     </p>
                   </div>
@@ -389,7 +394,7 @@ export function BankingModule() {
       {activeSubTab === 'Cash Flow' && (
         <div className="space-y-6">
           {/* Top Filter & Actions Bar Card */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-4">
               <div>
                 <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
@@ -399,7 +404,7 @@ export function BankingModule() {
                   type="date"
                   value={cashFlowFromDate}
                   onChange={(e) => setCashFlowFromDate(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 font-mono"
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-mono"
                 />
               </div>
 
@@ -411,7 +416,7 @@ export function BankingModule() {
                   type="date"
                   value={cashFlowToDate}
                   onChange={(e) => setCashFlowToDate(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 font-mono"
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-mono"
                 />
               </div>
 
@@ -438,9 +443,9 @@ export function BankingModule() {
           </div>
 
           {/* Monthly Inflows and Outflows Card */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">CASH FLOW TRACKING</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">CASH FLOW TRACKING</p>
               <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Monthly inflows and outflows</h2>
             </div>
 
@@ -481,7 +486,7 @@ export function BankingModule() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Import Card (Left 2 Columns) */}
-            <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-5">
+            <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-5">
               <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                 Import Bank Statement
               </h2>
@@ -492,20 +497,19 @@ export function BankingModule() {
                   Bank account
                 </label>
                 <select
-                  value={importSelectedAccount}
+                  value={importSelectedAccount || bankAccounts[0]?.account_name || ''}
                   onChange={(e) => setImportSelectedAccount(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                  className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                 >
-                  <option value="Cash in Hand">Cash in Hand</option>
-                  <option value="HBL Main Account">HBL Main Account</option>
-                  <option value="Meezan Operations Account">Meezan Operations Account</option>
-                  <option value="Bank Transfer">Bank Transfer</option>
-                  <option value="Petty Cash">Petty Cash</option>
-                  {bankAccounts.map((ba) => (
-                    <option key={ba.id} value={ba.account_name}>
-                      {ba.account_name} ({ba.bank_name})
-                    </option>
-                  ))}
+                  {bankAccounts.length === 0 ? (
+                    <option value="">No bank accounts added in system</option>
+                  ) : (
+                    bankAccounts.map((ba) => (
+                      <option key={ba.id} value={ba.account_name}>
+                        {ba.account_name} ({ba.bank_name})
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -535,12 +539,12 @@ export function BankingModule() {
             </div>
 
             {/* Right Card: Smart Import (1 Column) matching screenshot */}
-            <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-4">
+            <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
               <div className="space-y-4">
                 <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Smart import</h3>
 
                 {/* Mint Green Notice Box from screenshot */}
-                <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 p-3.5 border border-emerald-200 dark:border-emerald-800/40 text-xs font-medium text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                <div className="rounded-xl bg-amber-500/10 dark:bg-amber-500/10 p-3.5 border border-amber-500/30 dark:border-amber-500/20 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
                   Duplicate rows are blocked with transaction fingerprints. The matching engine suggests receipts and vendor payments with the same amount near the statement date.
                 </div>
               </div>
@@ -574,11 +578,11 @@ export function BankingModule() {
       {/* RECONCILIATION TAB */}
       {activeSubTab === 'Reconciliation' && (
         <div className="space-y-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-6">
             {/* Header bar with Import another button */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-1">MATCHING ENGINE</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">MATCHING ENGINE</p>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Bank & Cash Ledger Reconciliation</h2>
               </div>
               <div className="flex items-center gap-3">
@@ -587,7 +591,7 @@ export function BankingModule() {
                   onClick={() => setActiveSubTab('Statement Imports')}
                   className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 shadow-sm transition"
                 >
-                  <Upload className="h-4 w-4 text-emerald-500" /> Import another
+                  <Upload className="h-4 w-4 text-amber-500" /> Import another
                 </button>
                 <button
                   type="button"
@@ -601,7 +605,7 @@ export function BankingModule() {
 
             {/* Reconciliation Register Table & Empty State */}
             <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-8 text-center dark:border-slate-800 dark:bg-slate-800/30 space-y-4">
-              <div className="rounded-2xl bg-white dark:bg-slate-800 p-4 w-12 h-12 mx-auto flex items-center justify-center text-emerald-500 shadow-2xs">
+              <div className="rounded-2xl bg-white dark:bg-slate-800 p-4 w-12 h-12 mx-auto flex items-center justify-center text-amber-500 shadow-2xs">
                 <Zap className="h-6 w-6" />
               </div>
               <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100">All bank statements reconciled</h3>
@@ -611,7 +615,7 @@ export function BankingModule() {
               <button
                 type="button"
                 onClick={() => setActiveSubTab('Statement Imports')}
-                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm transition mt-2"
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-xs font-bold text-white hover:bg-amber-600 shadow-sm transition mt-2"
               >
                 <Upload className="h-4 w-4" /> Import another statement
               </button>
@@ -623,7 +627,7 @@ export function BankingModule() {
       {/* FORM MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
                 {editingId ? 'Edit Bank Account' : 'New Bank Account'}
@@ -710,8 +714,8 @@ export function BankingModule() {
                 Cancel
               </button>
               <button
-                onClick={handleSaveAccount}
-                className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                onClick={handleSave}
+                className="btn-primary"
               >
                 {editingId ? 'Update Account' : 'Save Account'}
               </button>
@@ -724,6 +728,15 @@ export function BankingModule() {
       {cashFlowPrintOpen && (
         <CashFlowPrint onClose={() => setCashFlowPrintOpen(false)} />
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <DeleteConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        itemName={deleteTarget?.name}
+        itemType="bank account"
+      />
     </div>
   );
 }

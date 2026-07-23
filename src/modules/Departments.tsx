@@ -2,14 +2,18 @@ import { useState } from 'react';
 import { Plus, Layers, X, Edit, Trash2, Power } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
+import { useAuth } from '@/lib/auth';
 import type { Department } from '@/lib/types';
+import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 
 export function Departments() {
   const toast = useToast();
-  const { departments, addDepartment, updateDepartment, deleteDepartment } = useDataStore();
+  const { isAdmin } = useAuth();
+  const { departments, branches, addDepartment, updateDepartment, deleteDepartment } = useDataStore();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -20,7 +24,7 @@ export function Departments() {
     setEditingId(null);
     setName('');
     setCode('');
-    setBranch('Head Office');
+    setBranch(branches[0]?.name || 'Head Office');
     setIsActive(true);
     setModalOpen(true);
   };
@@ -28,9 +32,9 @@ export function Departments() {
   const openEdit = (d: Department) => {
     setEditingId(d.id);
     setName(d.name);
-    setCode(d.code);
-    setBranch(d.branch_id || 'Head Office');
-    setIsActive(d.is_active);
+    setCode(d.code || '');
+    setBranch(branches[0]?.name || 'Head Office');
+    setIsActive(d.is_active !== false);
     setModalOpen(true);
   };
 
@@ -40,13 +44,14 @@ export function Departments() {
     if (editingId) {
       updateDepartment(editingId, {
         name,
-        code: code || 'DEP',
+        code,
+        branch_id: branches[0]?.id || 'b1',
         is_active: isActive,
       });
       toast.success(`Department ${name} updated`);
     } else {
       addDepartment({
-        branch_id: 'b1',
+        branch_id: branches[0]?.id || 'b1',
         name,
         code: code || `DEP-0${departments.length + 1}`,
         is_active: isActive,
@@ -56,10 +61,11 @@ export function Departments() {
     setModalOpen(false);
   };
 
-  const handleDelete = (id: string, dName: string) => {
-    if (confirm(`Are you sure you want to delete department ${dName}?`)) {
-      deleteDepartment(id);
-      toast.success(`Department ${dName} deleted`);
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) {
+      deleteDepartment(deleteTarget.id);
+      toast.success(`Department ${deleteTarget.name} deleted`);
+      setDeleteTarget(null);
     }
   };
 
@@ -72,7 +78,7 @@ export function Departments() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Departments</h1>
       </div>
 
@@ -84,13 +90,13 @@ export function Departments() {
           </div>
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+            className="flex items-center gap-2 btn-primary"
           >
             <Plus className="h-4 w-4" /> Add department
           </button>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
               <tr>
@@ -117,7 +123,7 @@ export function Departments() {
                     <td className="px-4 py-3">
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                          d.is_active ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                          d.is_active ? 'bg-amber-500/15 text-amber-500 dark:text-amber-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                         }`}
                       >
                         {d.is_active ? 'Active' : 'Deactivated'}
@@ -131,7 +137,7 @@ export function Departments() {
                           className={`flex items-center gap-1 text-xs font-bold transition px-2 py-1 rounded-lg border ${
                             d.is_active
                               ? 'border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400'
-                              : 'border-emerald-200 bg-emerald-50/50 text-emerald-600 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400'
+                              : 'border-amber-500/30 bg-amber-500/10/50 text-amber-500 hover:bg-amber-500/20 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400'
                           }`}
                         >
                           <Power className="h-3.5 w-3.5" />
@@ -144,7 +150,7 @@ export function Departments() {
                           <Edit className="h-3.5 w-3.5" /> Edit
                         </button>
                         <button
-                          onClick={() => handleDelete(d.id, d.name)}
+                          onClick={() => setDeleteTarget({ id: d.id, name: d.name })}
                           className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-400"
                         >
                           <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -162,7 +168,7 @@ export function Departments() {
       {/* FORM MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">WORKFORCE STRUCTURE</p>
@@ -212,7 +218,7 @@ export function Departments() {
                   type="checkbox"
                   checked={isActive}
                   onChange={(e) => setIsActive(e.target.checked)}
-                  className="h-4 w-4 rounded accent-emerald-500"
+                  className="h-4 w-4 rounded accent-amber-500"
                 />
                 <span className="text-xs text-slate-700 dark:text-slate-300">Active Department</span>
               </label>
@@ -227,7 +233,7 @@ export function Departments() {
               </button>
               <button
                 onClick={handleSave}
-                className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                className="btn-primary"
               >
                 {editingId ? 'Update department' : 'Save department'}
               </button>
@@ -235,6 +241,15 @@ export function Departments() {
           </div>
         </div>
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <DeleteConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        itemName={deleteTarget?.name}
+        itemType="department"
+      />
     </div>
   );
 }

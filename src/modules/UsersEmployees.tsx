@@ -4,6 +4,7 @@ import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { ROLES } from '@/lib/rbac';
 import { useAuth } from '@/lib/auth';
+import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 import type { UserEmployee } from '@/lib/types';
 
 export function UsersEmployees() {
@@ -13,6 +14,7 @@ export function UsersEmployees() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Form State
   const [employeeCode, setEmployeeCode] = useState('');
@@ -117,10 +119,11 @@ export function UsersEmployees() {
     setModalOpen(false);
   };
 
-  const handleDelete = (id: string, uName: string) => {
-    if (confirm(`Are you sure you want to delete user ${uName}?`)) {
-      deleteUser(id);
-      toast.success(`User ${uName} deleted`);
+  const handleDeleteConfirm = () => {
+    if (deleteTarget) {
+      deleteUser(deleteTarget.id);
+      toast.success(`User ${deleteTarget.name} deleted`);
+      setDeleteTarget(null);
     }
   };
 
@@ -138,24 +141,24 @@ export function UsersEmployees() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Users & Employees</h1>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL USERS</p>
           <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">{users.length}</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ACTIVE</p>
-          <p className="mt-1 text-2xl font-extrabold text-emerald-500">
+          <p className="mt-1 text-2xl font-extrabold text-amber-500">
             {users.filter((u) => u.is_active).length}
           </p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">MONTHLY PAYROLL</p>
-          <p className="mt-1 text-2xl font-extrabold text-emerald-500">
+          <p className="mt-1 text-2xl font-extrabold text-amber-500">
             Rs. {totalPayroll.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </p>
         </div>
@@ -176,14 +179,14 @@ export function UsersEmployees() {
             </button>
             <button
               onClick={openCreate}
-              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+              className="flex items-center gap-2 btn-primary"
             >
               <Plus className="h-4 w-4" /> Add user
             </button>
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+        <div className="print-area overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
               <tr>
@@ -206,7 +209,7 @@ export function UsersEmployees() {
                       <span className="block text-[10px] text-slate-400">{u.email}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="rounded bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold text-blue-500">
+                      <span className="rounded bg-purple-500/10 px-2 py-0.5 text-[10px] font-semibold text-purple-400">
                         {u.role}
                       </span>
                     </td>
@@ -217,7 +220,7 @@ export function UsersEmployees() {
                       <button
                         onClick={() => toggleStatus(u)}
                         className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
-                          u.is_active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-200 text-slate-500'
+                          u.is_active ? 'bg-amber-500/15 text-amber-500' : 'bg-slate-200 text-slate-500'
                         }`}
                       >
                         {u.is_active ? 'Active' : 'Inactive'}
@@ -233,7 +236,7 @@ export function UsersEmployees() {
                             <Edit className="h-3.5 w-3.5" /> Edit
                           </button>
                           <button
-                            onClick={() => handleDelete(u.id, u.full_name)}
+                            onClick={() => setDeleteTarget({ id: u.id, name: u.full_name })}
                             className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-400"
                           >
                             <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -254,7 +257,7 @@ export function UsersEmployees() {
       {/* FORM MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="my-8 w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="my-8 w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">IDENTITY, PAYROLL & ACCESS</p>
@@ -367,7 +370,7 @@ export function UsersEmployees() {
 
                 <div className="flex justify-between items-center pt-2 font-mono text-xs">
                   <span className="text-slate-400">CALCULATED MONTHLY SALARY</span>
-                  <span className="font-bold text-emerald-400">Rs. {calculatedSalary.toFixed(2)}</span>
+                  <span className="font-bold text-amber-400">Rs. {calculatedSalary.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -438,7 +441,7 @@ export function UsersEmployees() {
               </button>
               <button
                 onClick={handleSave}
-                className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                className="btn-primary"
               >
                 {editingId ? 'Update user access' : 'Save user access'}
               </button>
@@ -446,6 +449,15 @@ export function UsersEmployees() {
           </div>
         </div>
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <DeleteConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        itemName={deleteTarget?.name}
+        itemType="user account"
+      />
     </div>
   );
 }

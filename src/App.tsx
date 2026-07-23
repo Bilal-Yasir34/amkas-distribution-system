@@ -92,21 +92,13 @@ function Router() {
   return <Component />;
 }
 
+import { StylishLoadingScreen } from '@/components/SkeletonLoader';
+
 function AppContent() {
   const { session, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0b132b]">
-        <div className="text-center">
-          <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl bg-emerald-600">
-            <Building2 className="h-6 w-6 text-white" />
-          </div>
-          <Loader2 className="mx-auto h-5 w-5 animate-spin text-slate-500" />
-          <p className="mt-2 text-xs text-slate-500">Loading AMKAS ERP…</p>
-        </div>
-      </div>
-    );
+    return <StylishLoadingScreen message="Initializing AMKAS Enterprise Portal..." />;
   }
 
   if (!session) return <Login />;

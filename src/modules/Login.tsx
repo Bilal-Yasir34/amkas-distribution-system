@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building2, Lock, Mail, Loader2, Eye, EyeOff, ShieldCheck, Sparkles, UserCheck } from 'lucide-react';
+import { Building2, Lock, Mail, Loader2, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
 export function Login() {
@@ -18,11 +18,6 @@ export function Login() {
     setLoading(false);
     if (errMsg) setError(errMsg);
   }
-
-  const fillQuickUser = (uEmail: string, uPwd: string) => {
-    setEmail(uEmail);
-    setPassword(uPwd);
-  };
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-[#0d0c11] px-4 font-sans overflow-hidden">
@@ -108,42 +103,12 @@ export function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 py-3 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/25 transition hover:from-amber-400 hover:to-amber-500 active:scale-[0.98] disabled:opacity-60"
+              className="btn-primary w-full py-3.5 text-xs font-extrabold justify-center"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {loading ? 'Authenticating…' : 'Sign In to Dashboard'}
             </button>
           </form>
-
-          {/* Quick Credential Preset Selector */}
-          <div className="pt-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2.5">Quick Demo Fill</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => fillQuickUser('admin@amkas.pk', 'admin123')}
-                className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/40 p-2.5 text-left text-xs transition hover:border-amber-500/40 hover:bg-slate-800/60 group"
-              >
-                <ShieldCheck className="h-4 w-4 text-amber-500 shrink-0" />
-                <div>
-                  <p className="font-bold text-slate-200 group-hover:text-amber-400 transition">Super Admin</p>
-                  <p className="text-[10px] text-slate-500">Full control</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => fillQuickUser('sales@amkas.pk', '123456')}
-                className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/40 p-2.5 text-left text-xs transition hover:border-amber-500/40 hover:bg-slate-800/60 group"
-              >
-                <UserCheck className="h-4 w-4 text-purple-400 shrink-0" />
-                <div>
-                  <p className="font-bold text-slate-200 group-hover:text-purple-300 transition">Sales Manager</p>
-                  <p className="text-[10px] text-slate-500">Sales portal</p>
-                </div>
-              </button>
-            </div>
-          </div>
         </div>
 
         <div className="text-center text-[11px] text-slate-500">

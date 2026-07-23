@@ -53,7 +53,7 @@ export function AuditLogs() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Audit & Login Logs</h1>
       </div>
 
@@ -64,7 +64,7 @@ export function AuditLogs() {
             onClick={() => setActiveTab(tab as any)}
             className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition border-b-2 ${
               activeTab === tab
-                ? 'border-emerald-500 text-emerald-500 bg-emerald-500/5'
+                ? 'border-amber-500 text-amber-500 bg-amber-500/5'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -88,7 +88,7 @@ export function AuditLogs() {
             </button>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="print-area overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                 <tr>
@@ -113,7 +113,7 @@ export function AuditLogs() {
                       <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">{log.user}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{log.module}</td>
                       <td className="px-4 py-3">
-                        <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
+                        <span className="rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
                           {log.action}
                         </span>
                       </td>
@@ -144,7 +144,7 @@ export function AuditLogs() {
             </button>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                 <tr>
@@ -170,7 +170,7 @@ export function AuditLogs() {
                         <span
                           className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
                             log.status === 'Success'
-                              ? 'bg-emerald-500/10 text-emerald-500'
+                              ? 'bg-amber-500/15 text-amber-500'
                               : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
                           }`}
                         >

@@ -73,7 +73,7 @@ export function GlobalSearchModal({ isOpen, onClose }: Props) {
 
           {filteredInvoices.length > 0 && (
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-400 mb-2">Invoices</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-400 mb-2">Invoices</p>
               <div className="space-y-1">
                 {filteredInvoices.slice(0, 4).map((inv) => (
                   <button
@@ -85,7 +85,7 @@ export function GlobalSearchModal({ isOpen, onClose }: Props) {
                     className="flex w-full items-center justify-between rounded-lg p-2 text-left text-xs text-slate-200 hover:bg-slate-800"
                   >
                     <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-emerald-400" />
+                      <FileText className="h-4 w-4 text-amber-400" />
                       <span>{inv.invoice_no}</span>
                     </div>
                     <span className="font-mono text-slate-400">Rs. {inv.total_amount?.toLocaleString()}</span>

@@ -960,7 +960,7 @@ export function SalesModule() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Sales Management</h1>
       </div>
 
@@ -981,7 +981,7 @@ export function SalesModule() {
             onClick={() => setActiveSubTab(tab as any)}
             className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition border-b-2 ${
               activeSubTab === tab
-                ? 'border-emerald-500 text-emerald-500 bg-emerald-500/5'
+                ? 'border-amber-500 text-amber-500 bg-amber-500/5'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -994,21 +994,21 @@ export function SalesModule() {
       {activeSubTab === 'Overview' && (
         <div className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL INVOICED</p>
               <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">
                 Rs. {totalInvoicedSum.toLocaleString()}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">QUOTATIONS</p>
               <p className="mt-1 text-2xl font-extrabold text-amber-500">{quotations.length}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SALES ORDERS</p>
-              <p className="mt-1 text-2xl font-extrabold text-blue-500">{salesOrders.length}</p>
+              <p className="mt-1 text-2xl font-extrabold text-purple-400">{salesOrders.length}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CREDIT NOTES</p>
               <p className="mt-1 text-2xl font-extrabold text-rose-500">{creditNotes.length}</p>
             </div>
@@ -1028,13 +1028,13 @@ export function SalesModule() {
                 </div>
                 <button
                   onClick={openCreateInvoiceForm}
-                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
+                  className="flex items-center gap-2 btn-primary shadow-sm"
                 >
                   <Plus className="h-4 w-4" /> New invoice
                 </button>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                     <tr>
@@ -1058,21 +1058,21 @@ export function SalesModule() {
                         const cust = customers.find((c) => c.id === inv.customer_id);
                         return (
                           <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{inv.invoice_no}</td>
+                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{inv.invoice_no}</td>
                             <td className="px-4 py-3 text-slate-400">{inv.invoice_date}</td>
                             <td className="px-4 py-3 font-medium text-slate-200">{cust?.name || 'Customer'}</td>
                             <td className="px-4 py-3 font-mono font-semibold text-slate-100">
                               {inv.currency || 'Rs.'} {inv.total_amount?.toLocaleString()}
                             </td>
                             <td className="px-4 py-3">
-                              <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${inv.status === 'POSTED' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                              <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${inv.status === 'POSTED' ? 'bg-amber-500/15 text-amber-500' : 'bg-amber-500/10 text-amber-500'}`}>
                                 {inv.status}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-right">
                               <div className="flex items-center justify-end gap-2">
                                 {isAdmin && (
-                                  <button onClick={() => openEditInvoiceForm(inv)} className="p-1 text-slate-400 hover:text-emerald-400" title="Edit Invoice">
+                                  <button onClick={() => openEditInvoiceForm(inv)} className="p-1 text-slate-400 hover:text-amber-400" title="Edit Invoice">
                                     <Edit className="h-3.5 w-3.5" />
                                   </button>
                                 )}
@@ -1100,7 +1100,7 @@ export function SalesModule() {
               <div className="flex justify-between items-center">
                 <button
                   onClick={() => setInvoiceViewMode('list')}
-                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
                 >
                   ← Back to Invoice Register
                 </button>
@@ -1109,7 +1109,7 @@ export function SalesModule() {
               {/* TOP SECTION: Main Card (Left) & Workflow Card (Right) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                     {editingInvoiceId ? 'Edit Sales Invoice' : 'New Sales Invoice'}
                   </h2>
@@ -1121,7 +1121,7 @@ export function SalesModule() {
                       <select
                         value={invCustomerId}
                         onChange={(e) => setInvCustomerId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="">Select customer</option>
                         {customers.map((c) => (
@@ -1138,7 +1138,7 @@ export function SalesModule() {
                         type="date"
                         value={invDocDate}
                         onChange={(e) => setInvDocDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -1148,7 +1148,7 @@ export function SalesModule() {
                         type="date"
                         value={invDueDate}
                         onChange={(e) => setInvDueDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -1160,7 +1160,7 @@ export function SalesModule() {
                       <select
                         value={invSalesperson}
                         onChange={(e) => setInvSalesperson(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="Unassigned">Unassigned</option>
                         <option value="admin">Admin</option>
@@ -1173,7 +1173,7 @@ export function SalesModule() {
                       <select
                         value={invCurrency}
                         onChange={(e) => setInvCurrency(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="PKR">PKR</option>
                         <option value="USD">USD</option>
@@ -1191,7 +1191,7 @@ export function SalesModule() {
                         step="0.01"
                         value={invExchangeRate}
                         onChange={(e) => setInvExchangeRate(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -1202,7 +1202,7 @@ export function SalesModule() {
                     <select
                       value={invWarehouseId}
                       onChange={(e) => setInvWarehouseId(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     >
                       {warehouses.map((w) => (
                         <option key={w.id} value={w.id}>
@@ -1221,7 +1221,7 @@ export function SalesModule() {
                         value={invGatePassNo}
                         onChange={(e) => setInvGatePassNo(e.target.value)}
                         placeholder="Manual gate pass no."
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -1230,7 +1230,7 @@ export function SalesModule() {
                       <select
                         value={invAccountCategory}
                         onChange={(e) => setInvAccountCategory(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="All account categories">All account categories</option>
                         <option value="Revenue">Revenue</option>
@@ -1244,7 +1244,7 @@ export function SalesModule() {
                       <select
                         value={invAccountHead}
                         onChange={(e) => setInvAccountHead(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="Default Sales Revenue">Default Sales Revenue</option>
                         <option value="Sales Revenue">Sales Revenue</option>
@@ -1258,12 +1258,12 @@ export function SalesModule() {
                 </div>
 
                 {/* Workflow Card (Right - 1 Column) */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-6">
+                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-6">
                   <div className="space-y-4">
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Workflow</h3>
 
                     {/* Mint Green Notice Box */}
-                    <div className="rounded-xl bg-emerald-50 p-4 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs leading-relaxed border border-emerald-100 dark:border-emerald-800/40">
+                    <div className="rounded-xl bg-amber-500/10 p-4 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 text-xs leading-relaxed border border-amber-500/20 dark:border-amber-500/20">
                       Posting this document updates customer balances, the general ledger and inventory immediately.
                     </div>
 
@@ -1275,7 +1275,7 @@ export function SalesModule() {
                         step="0.1"
                         value={invCommissionRate}
                         onChange={(e) => setInvCommissionRate(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -1310,7 +1310,7 @@ export function SalesModule() {
                     <button
                       type="button"
                       onClick={() => handleSaveSalesInvoiceRecord('POSTED')}
-                      className="rounded-xl bg-[#00a884] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#008f70] transition"
+                      className="btn-primary"
                     >
                       Save & Post
                     </button>
@@ -1319,10 +1319,10 @@ export function SalesModule() {
               </div>
 
               {/* MIDDLE SECTION: Line Items Card (Full Width) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+              <div className="card p-6 space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">LINE ITEMS</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 font-heading">LINE ITEMS</p>
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Products and services</h3>
                   </div>
                   <button
@@ -1466,10 +1466,10 @@ export function SalesModule() {
                         </p>
                       </div>
 
-                      {/* Dark Navy Container for GRAND TOTAL matching Screenshot 2 */}
-                      <div className="p-3.5 bg-[#0b1329] text-white">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">GRAND TOTAL</p>
-                        <p className="mt-1 text-base font-extrabold font-mono text-white">
+                      {/* Grand Total Box */}
+                      <div className="grand-total-box">
+                        <p className="grand-total-label">GRAND TOTAL</p>
+                        <p className="grand-total-value">
                           Rs. {t.grandTotal.toFixed(2)}
                         </p>
                       </div>
@@ -1479,7 +1479,7 @@ export function SalesModule() {
               </div>
 
               {/* BOTTOM SECTION: Notes & Terms & Conditions Card */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div>
                     <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Notes</label>
@@ -1487,7 +1487,7 @@ export function SalesModule() {
                       rows={4}
                       value={invNotes}
                       onChange={(e) => setInvNotes(e.target.value)}
-                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     />
                   </div>
 
@@ -1497,7 +1497,7 @@ export function SalesModule() {
                       rows={4}
                       value={invTermsConditions}
                       onChange={(e) => setInvTermsConditions(e.target.value)}
-                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
@@ -1517,13 +1517,13 @@ export function SalesModule() {
             </div>
             <button
               onClick={openCreateQuotation}
-              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
+              className="flex items-center gap-2 btn-primary shadow-sm"
             >
               <Plus className="h-4 w-4" /> New quotation
             </button>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                 <tr>
@@ -1549,7 +1549,7 @@ export function SalesModule() {
                     const curr = q.currency || 'PKR';
                     return (
                       <tr key={q.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                        <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{q.quotation_no}</td>
+                        <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{q.quotation_no}</td>
                         <td className="px-4 py-3 text-slate-400">{q.document_date || q.quotation_date}</td>
                         <td className="px-4 py-3 font-medium text-slate-200">{cust?.name || 'Customer'}</td>
                         <td className="px-4 py-3 text-slate-400">{q.salesperson || 'admin'}</td>
@@ -1559,9 +1559,9 @@ export function SalesModule() {
                         <td className="px-4 py-3">
                           <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
                             (q.status as string) === 'Accepted' || q.status === 'CONFIRMED' || q.status === 'APPROVED'
-                              ? 'bg-emerald-500/10 text-emerald-500'
+                              ? 'bg-amber-500/15 text-amber-500'
                               : (q.status as string) === 'Sent'
-                              ? 'bg-blue-500/10 text-blue-400'
+                              ? 'bg-purple-500/10 text-purple-300'
                               : 'bg-amber-500/10 text-amber-500'
                           }`}>
                             {q.status}
@@ -1571,7 +1571,7 @@ export function SalesModule() {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => openEditQuotation(q)}
-                              className="p-1 text-slate-400 hover:text-emerald-400 transition"
+                              className="p-1 text-slate-400 hover:text-amber-400 transition"
                               title="Edit Quotation"
                             >
                               <Edit className="h-3.5 w-3.5" />
@@ -1607,13 +1607,13 @@ export function SalesModule() {
                                   toast.success(`Quotation converted → Sales Order ${orderNo}`);
                                   setActiveSubTab('Sales Orders');
                                 }}
-                                className="flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold text-blue-400 hover:bg-blue-500/20"
+                                className="flex items-center gap-1 rounded-md bg-purple-500/10 px-2 py-0.5 text-[10px] font-semibold text-purple-300 hover:bg-purple-500/20"
                               >
                                 <ArrowRight className="h-3 w-3" /> To Order
                               </button>
                             )}
                             {q.converted_to_order && (
-                              <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">Converted</span>
+                              <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">Converted</span>
                             )}
                             <button onClick={() => { deleteQuotation(q.id); toast.success('Quotation deleted'); }} className="text-xs text-rose-500 hover:underline">
                               Delete
@@ -1640,13 +1640,13 @@ export function SalesModule() {
             </div>
             <button
               onClick={openCreateSalesOrder}
-              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
+              className="flex items-center gap-2 btn-primary shadow-sm"
             >
               <Plus className="h-4 w-4" /> New sales order
             </button>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                 <tr>
@@ -1672,7 +1672,7 @@ export function SalesModule() {
                     const curr = so.currency || 'PKR';
                     return (
                       <tr key={so.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                        <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{so.order_no}</td>
+                        <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{so.order_no}</td>
                         <td className="px-4 py-3 text-slate-400">{so.document_date || so.order_date}</td>
                         <td className="px-4 py-3 font-medium text-slate-200">{cust?.name || 'Customer'}</td>
                         <td className="px-4 py-3 text-slate-400">{so.salesperson || 'admin'}</td>
@@ -1682,8 +1682,8 @@ export function SalesModule() {
                         <td className="px-4 py-3">
                           <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
                             (so.status as string) === 'Completed' || so.status === 'CONFIRMED' || so.status === 'COMPLETED'
-                              ? 'bg-emerald-500/10 text-emerald-500'
-                              : 'bg-blue-500/10 text-blue-400'
+                              ? 'bg-amber-500/15 text-amber-500'
+                              : 'bg-purple-500/10 text-purple-300'
                           }`}>
                             {so.status}
                           </span>
@@ -1692,7 +1692,7 @@ export function SalesModule() {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => openEditSalesOrder(so)}
-                              className="p-1 text-slate-400 hover:text-emerald-400 transition"
+                              className="p-1 text-slate-400 hover:text-amber-400 transition"
                               title="Edit Sales Order"
                             >
                               <Edit className="h-3.5 w-3.5" />
@@ -1728,7 +1728,7 @@ export function SalesModule() {
                                   toast.success(`Sales Order converted → Invoice ${invNo}`);
                                   setActiveSubTab('Invoices');
                                 }}
-                                className="flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500 hover:bg-emerald-500/20"
+                                className="flex items-center gap-1 rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500 hover:bg-amber-500/20"
                               >
                                 <ArrowRight className="h-3 w-3" /> To Invoice
                               </button>
@@ -1763,13 +1763,13 @@ export function SalesModule() {
                 </div>
                 <button
                   onClick={openCreateCreditNoteForm}
-                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
+                  className="flex items-center gap-2 btn-primary shadow-sm"
                 >
                   <Plus className="h-4 w-4" /> New credit note
                 </button>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                     <tr>
@@ -1793,14 +1793,14 @@ export function SalesModule() {
                         const cust = customers.find((c) => c.id === cn.customer_id);
                         return (
                           <tr key={cn.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{cn.credit_note_no}</td>
+                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{cn.credit_note_no}</td>
                             <td className="px-4 py-3 text-slate-400">{cn.document_date || cn.note_date}</td>
                             <td className="px-4 py-3 font-medium text-slate-200">{cust?.name || 'Customer'}</td>
                             <td className="px-4 py-3 font-mono font-semibold text-slate-100">
                               {cn.currency || 'Rs.'} {cn.total_amount?.toLocaleString()}
                             </td>
                             <td className="px-4 py-3">
-                              <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${cn.status === 'POSTED' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                              <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${cn.status === 'POSTED' ? 'bg-amber-500/15 text-amber-500' : 'bg-amber-500/10 text-amber-500'}`}>
                                 {cn.status}
                               </span>
                             </td>
@@ -1808,7 +1808,7 @@ export function SalesModule() {
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => openEditCreditNoteForm(cn)}
-                                  className="p-1 text-slate-400 hover:text-emerald-400 transition"
+                                  className="p-1 text-slate-400 hover:text-amber-400 transition"
                                   title="Edit Credit Note"
                                 >
                                   <Edit className="h-3.5 w-3.5" />
@@ -1838,7 +1838,7 @@ export function SalesModule() {
               <div className="flex justify-between items-center">
                 <button
                   onClick={() => setCreditNoteViewMode('list')}
-                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
                 >
                   ← Back to Credit Notes Register
                 </button>
@@ -1847,7 +1847,7 @@ export function SalesModule() {
               {/* TOP SECTION: Main Card (Left) & Workflow Card (Right) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                     {editingCreditNoteId ? 'Edit Credit Note' : 'New Credit Note'}
                   </h2>
@@ -1859,7 +1859,7 @@ export function SalesModule() {
                       <select
                         value={cnCustomerId}
                         onChange={(e) => setCnCustomerId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="">Select customer</option>
                         {customers.map((c) => (
@@ -1876,7 +1876,7 @@ export function SalesModule() {
                         type="date"
                         value={cnDocDate}
                         onChange={(e) => setCnDocDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -1886,7 +1886,7 @@ export function SalesModule() {
                         type="date"
                         value={cnDueDate}
                         onChange={(e) => setCnDueDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -1898,7 +1898,7 @@ export function SalesModule() {
                       <select
                         value={cnSalesperson}
                         onChange={(e) => setCnSalesperson(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="Unassigned">Unassigned</option>
                         <option value="admin">Admin</option>
@@ -1911,7 +1911,7 @@ export function SalesModule() {
                       <select
                         value={cnCurrency}
                         onChange={(e) => setCnCurrency(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="PKR">PKR</option>
                         <option value="USD">USD</option>
@@ -1929,7 +1929,7 @@ export function SalesModule() {
                         step="0.01"
                         value={cnExchangeRate}
                         onChange={(e) => setCnExchangeRate(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -1940,7 +1940,7 @@ export function SalesModule() {
                     <select
                       value={cnWarehouseId}
                       onChange={(e) => setCnWarehouseId(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     >
                       {warehouses.map((w) => (
                         <option key={w.id} value={w.id}>
@@ -1952,12 +1952,12 @@ export function SalesModule() {
                 </div>
 
                 {/* Workflow Card (Right - 1 Column) */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-6">
+                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-6">
                   <div className="space-y-4">
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Workflow</h3>
 
                     {/* Mint Green Notice Box */}
-                    <div className="rounded-xl bg-emerald-50 p-4 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs leading-relaxed border border-emerald-100 dark:border-emerald-800/40">
+                    <div className="rounded-xl bg-amber-500/10 p-4 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 text-xs leading-relaxed border border-amber-500/20 dark:border-amber-500/20">
                       Posting this document updates customer balances, the general ledger and inventory immediately.
                     </div>
 
@@ -1992,7 +1992,7 @@ export function SalesModule() {
                     <button
                       type="button"
                       onClick={() => handleSaveCreditNoteRecord('POSTED')}
-                      className="rounded-xl bg-[#00a884] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#008f70] transition"
+                      className="btn-primary"
                     >
                       Save & Post
                     </button>
@@ -2001,10 +2001,10 @@ export function SalesModule() {
               </div>
 
               {/* MIDDLE SECTION: Line Items Card (Full Width) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+              <div className="card p-6 space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">LINE ITEMS</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 font-heading">LINE ITEMS</p>
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Products and services</h3>
                   </div>
                   <button
@@ -2148,10 +2148,10 @@ export function SalesModule() {
                         </p>
                       </div>
 
-                      {/* Dark Navy Container for GRAND TOTAL matching Screenshot 2 */}
-                      <div className="p-3.5 bg-[#0b1329] text-white">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">GRAND TOTAL</p>
-                        <p className="mt-1 text-base font-extrabold font-mono text-white">
+                      {/* Grand Total Box */}
+                      <div className="grand-total-box">
+                        <p className="grand-total-label">GRAND TOTAL</p>
+                        <p className="grand-total-value">
                           Rs. {t.grandTotal.toFixed(2)}
                         </p>
                       </div>
@@ -2161,7 +2161,7 @@ export function SalesModule() {
               </div>
 
               {/* BOTTOM SECTION: Notes & Terms & Conditions Card */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div>
                     <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Notes</label>
@@ -2169,7 +2169,7 @@ export function SalesModule() {
                       rows={4}
                       value={cnNotes}
                       onChange={(e) => setCnNotes(e.target.value)}
-                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     />
                   </div>
 
@@ -2179,7 +2179,7 @@ export function SalesModule() {
                       rows={4}
                       value={cnTermsConditions}
                       onChange={(e) => setCnTermsConditions(e.target.value)}
-                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
@@ -2201,13 +2201,13 @@ export function SalesModule() {
                 </div>
                 <button
                   onClick={openCreateReceiptForm}
-                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm"
+                  className="flex items-center gap-2 btn-primary shadow-sm"
                 >
                   <Plus className="h-4 w-4" /> New receipt
                 </button>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                     <tr>
@@ -2231,18 +2231,18 @@ export function SalesModule() {
                         const cust = customers.find((c) => c.id === r.customer_id);
                         return (
                           <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{r.receipt_no}</td>
+                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{r.receipt_no}</td>
                             <td className="px-4 py-3 text-slate-400">{r.receipt_date}</td>
                             <td className="px-4 py-3 font-medium text-slate-200">{cust?.name || 'Customer'}</td>
                             <td className="px-4 py-3 text-slate-300">{r.deposit_to || r.payment_method}</td>
-                            <td className="px-4 py-3 font-mono font-semibold text-emerald-400">
+                            <td className="px-4 py-3 font-mono font-semibold text-amber-400">
                               {r.currency || 'Rs.'} {r.amount?.toLocaleString()}
                             </td>
                             <td className="px-4 py-3 text-right">
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => openEditReceiptForm(r)}
-                                  className="p-1 text-slate-400 hover:text-emerald-400 transition"
+                                  className="p-1 text-slate-400 hover:text-amber-400 transition"
                                   title="Edit Receipt"
                                 >
                                   <Edit className="h-3.5 w-3.5" />
@@ -2272,7 +2272,7 @@ export function SalesModule() {
               <div className="flex justify-between items-center">
                 <button
                   onClick={() => setReceiptViewMode('list')}
-                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
                 >
                   ← Back to Receipts Register
                 </button>
@@ -2283,7 +2283,7 @@ export function SalesModule() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
                   <div>
                     <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                       {editingReceiptId ? 'Edit Payment Receipt' : 'Receive Payment'}
@@ -2300,7 +2300,7 @@ export function SalesModule() {
                       <select
                         value={receiptCustomerId}
                         onChange={(e) => setReceiptCustomerId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="">Select customer, vendor or account</option>
                         <optgroup label="Customers">
@@ -2331,7 +2331,7 @@ export function SalesModule() {
                         type="date"
                         value={receiptDate}
                         onChange={(e) => setReceiptDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -2341,20 +2341,19 @@ export function SalesModule() {
                     <div>
                       <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Deposit to</label>
                       <select
-                        value={receiptDepositTo}
+                        value={receiptDepositTo || bankAccounts[0]?.account_name || ''}
                         onChange={(e) => setReceiptDepositTo(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="input"
                       >
-                        <option value="Cash in Hand">Cash in Hand</option>
-                        <option value="HBL Main Account">HBL Main Account</option>
-                        <option value="Meezan Operations Account">Meezan Operations Account</option>
-                        <option value="Bank Transfer">Bank Transfer</option>
-                        <option value="Petty Cash">Petty Cash</option>
-                        {bankAccounts.map((b) => (
-                          <option key={b.id} value={b.account_name}>
-                            {b.account_name} ({b.bank_name})
-                          </option>
-                        ))}
+                        {bankAccounts.length === 0 ? (
+                          <option value="">No bank accounts added in system</option>
+                        ) : (
+                          bankAccounts.map((b) => (
+                            <option key={b.id} value={b.account_name}>
+                              {b.account_name} ({b.bank_name})
+                            </option>
+                          ))
+                        )}
                       </select>
                     </div>
 
@@ -2365,7 +2364,7 @@ export function SalesModule() {
                         placeholder="Amount"
                         value={receiptAmount}
                         onChange={(e) => setReceiptAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -2377,7 +2376,7 @@ export function SalesModule() {
                       <select
                         value={receiptAccountCategory}
                         onChange={(e) => setReceiptAccountCategory(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="Auto select based on selected party">Auto select based on selected party</option>
                         <option value="Accounts Receivable">Accounts Receivable</option>
@@ -2393,7 +2392,7 @@ export function SalesModule() {
                       <select
                         value={receiptCurrency}
                         onChange={(e) => setReceiptCurrency(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="PKR">PKR</option>
                         <option value="USD">USD</option>
@@ -2413,7 +2412,7 @@ export function SalesModule() {
                         type="number"
                         value={receiptExchangeRate}
                         onChange={(e) => setReceiptExchangeRate(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
 
@@ -2424,7 +2423,7 @@ export function SalesModule() {
                         placeholder="Reference number"
                         value={receiptRefNo}
                         onChange={(e) => setReceiptRefNo(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -2437,18 +2436,18 @@ export function SalesModule() {
                       placeholder="Payment notes or remarks"
                       value={receiptNotes}
                       onChange={(e) => setReceiptNotes(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
 
                 {/* Right Card: Posting rules (1 Column) matching screenshot */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] flex flex-col justify-between space-y-6">
+                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-6">
                   <div className="space-y-4">
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Posting rules</h3>
 
                     {/* Light Emerald Notice Box matching screenshot */}
-                    <div className="rounded-xl bg-emerald-50 p-4 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-xs leading-relaxed border border-emerald-100 dark:border-emerald-800/40">
+                    <div className="rounded-xl bg-amber-500/10 p-4 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 text-xs leading-relaxed border border-amber-500/20 dark:border-amber-500/20">
                       Customer receipts auto-allocate to outstanding invoices. Vendor/account receipts post directly through the journal with CR numbering.
                     </div>
                   </div>
@@ -2465,7 +2464,7 @@ export function SalesModule() {
                     <button
                       type="button"
                       onClick={handlePostReceipt}
-                      className="rounded-xl bg-[#00a884] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#008f70] transition"
+                      className="btn-primary"
                     >
                       Post receipt
                     </button>
@@ -2490,7 +2489,7 @@ export function SalesModule() {
                 setActiveSubTab('Quotations');
                 openCreateQuotation();
               }}
-              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-emerald-500 transition"
+              className="flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-amber-500/100 transition"
             >
               <Plus className="h-4 w-4" /> New quotation
             </button>
@@ -2499,7 +2498,7 @@ export function SalesModule() {
           {/* Pipeline Stage Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Stage 1: Quotations */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-3">
               <div className="flex justify-between items-center border-b border-slate-100 pb-2 dark:border-slate-800">
                 <span className="text-xs font-bold uppercase tracking-wider text-amber-500">1. QUOTATIONS</span>
                 <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-500">
@@ -2513,7 +2512,7 @@ export function SalesModule() {
                 ) : (
                   quotations.slice(0, 4).map((q) => (
                     <div key={q.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/40">
-                      <p className="text-xs font-bold text-emerald-500">{q.quotation_no}</p>
+                      <p className="text-xs font-bold text-amber-500">{q.quotation_no}</p>
                       <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{q.salesperson || 'Salesperson'}</p>
                       <p className="mt-1 text-xs font-mono font-semibold text-slate-900 dark:text-slate-100">
                         Rs. {(q.total_amount || 0).toLocaleString()}
@@ -2525,7 +2524,7 @@ export function SalesModule() {
             </div>
 
             {/* Stage 2: Sales Orders */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-3">
               <div className="flex justify-between items-center border-b border-slate-100 pb-2 dark:border-slate-800">
                 <span className="text-xs font-bold uppercase tracking-wider text-sky-500">2. SALES ORDERS</span>
                 <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-[10px] font-bold text-sky-500">
@@ -2551,7 +2550,7 @@ export function SalesModule() {
             </div>
 
             {/* Stage 3: Invoices */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-3">
               <div className="flex justify-between items-center border-b border-slate-100 pb-2 dark:border-slate-800">
                 <span className="text-xs font-bold uppercase tracking-wider text-purple-500">3. INVOICES</span>
                 <span className="rounded-full bg-purple-500/10 px-2 py-0.5 text-[10px] font-bold text-purple-500">
@@ -2577,10 +2576,10 @@ export function SalesModule() {
             </div>
 
             {/* Stage 4: Closed / Receipts */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-3">
               <div className="flex justify-between items-center border-b border-slate-100 pb-2 dark:border-slate-800">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-500">4. RECEIPTS</span>
-                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-500">4. RECEIPTS</span>
+                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-500">
                   {customerReceipts.length}
                 </span>
               </div>
@@ -2591,7 +2590,7 @@ export function SalesModule() {
                 ) : (
                   customerReceipts.slice(0, 4).map((cr) => (
                     <div key={cr.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/40">
-                      <p className="text-xs font-bold text-emerald-500">{cr.receipt_no}</p>
+                      <p className="text-xs font-bold text-amber-500">{cr.receipt_no}</p>
                       <p className="mt-1 text-xs font-mono font-semibold text-slate-900 dark:text-slate-100">
                         Rs. {(cr.amount || 0).toLocaleString()}
                       </p>
@@ -2608,7 +2607,7 @@ export function SalesModule() {
       {activeSubTab === 'Commissions' && (
         <div className="space-y-6">
           {/* Top Filter Bar matching Screenshot */}
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <div className="flex flex-wrap items-center gap-4">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">From</label>
@@ -2616,7 +2615,7 @@ export function SalesModule() {
                   type="date"
                   value={commFromDate}
                   onChange={(e) => setCommFromDate(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -2626,7 +2625,7 @@ export function SalesModule() {
                   type="date"
                   value={commToDate}
                   onChange={(e) => setCommToDate(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -2634,7 +2633,7 @@ export function SalesModule() {
                 <button
                   type="button"
                   onClick={() => toast.success('Commission filters applied')}
-                  className="rounded-xl bg-[#00a884] px-6 py-2 text-xs font-bold text-white shadow-md hover:bg-[#008f70] transition"
+                  className="btn-primary"
                 >
                   Apply
                 </button>
@@ -2662,7 +2661,7 @@ export function SalesModule() {
           {/* 4 Metric Cards Row matching Screenshot */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {/* Card 1: ACCRUED */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-emerald-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">ACCRUED</p>
               <p className="mt-2 text-xl font-bold font-mono text-slate-900 dark:text-slate-100">
                 Rs. {commissions.filter(c => c.status === 'ACCRUED').reduce((a, b) => a + (b.commission_amount || 0), 0).toFixed(2)}
@@ -2670,7 +2669,7 @@ export function SalesModule() {
             </div>
 
             {/* Card 2: APPROVED */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-blue-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">APPROVED</p>
               <p className="mt-2 text-xl font-bold font-mono text-slate-900 dark:text-slate-100">
                 Rs. {commissions.filter(c => c.status === 'APPROVED').reduce((a, b) => a + (b.commission_amount || 0), 0).toFixed(2)}
@@ -2678,7 +2677,7 @@ export function SalesModule() {
             </div>
 
             {/* Card 3: PAID */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-amber-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">PAID</p>
               <p className="mt-2 text-xl font-bold font-mono text-slate-900 dark:text-slate-100">
                 Rs. {commissions.filter(c => c.status === 'PAID').reduce((a, b) => a + (b.commission_amount || 0), 0).toFixed(2)}
@@ -2686,7 +2685,7 @@ export function SalesModule() {
             </div>
 
             {/* Card 4: SALESPEOPLE */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] border-l-4 border-l-purple-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">SALESPEOPLE</p>
               <p className="mt-2 text-xl font-bold font-mono text-slate-900 dark:text-slate-100">
                 {new Set([...commissions.map(c => c.salesperson), ...invoices.map(i => i.salesperson).filter(Boolean)]).size}
@@ -2695,9 +2694,9 @@ export function SalesModule() {
           </div>
 
           {/* Main Card: Commission Register */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">SALES PERFORMANCE</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">SALES PERFORMANCE</p>
               <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Commission register</h2>
             </div>
 
@@ -2730,17 +2729,17 @@ export function SalesModule() {
                     commissions.map((c) => (
                       <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                         <td className="px-4 py-3 text-slate-400">{c.created_at?.slice(0, 10) || todayISO()}</td>
-                        <td className="px-4 py-3 font-semibold text-emerald-500 font-mono">{c.invoice_no}</td>
+                        <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{c.invoice_no}</td>
                         <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-200">{c.customer_name}</td>
                         <td className="px-4 py-3 text-slate-800 dark:text-slate-200">{c.salesperson}</td>
                         <td className="px-4 py-3 font-mono text-slate-500">{c.rate_pct}%</td>
-                        <td className="px-4 py-3 font-mono font-bold text-emerald-500">
+                        <td className="px-4 py-3 font-mono font-bold text-amber-500">
                           Rs. {c.commission_amount?.toLocaleString()}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                            c.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-500' :
-                            c.status === 'APPROVED' ? 'bg-blue-500/10 text-blue-500' : 'bg-amber-500/10 text-amber-500'
+                            c.status === 'PAID' ? 'bg-amber-500/15 text-amber-500' :
+                            c.status === 'APPROVED' ? 'bg-purple-500/10 text-purple-400' : 'bg-amber-500/10 text-amber-500'
                           }`}>
                             {c.status}
                           </span>
@@ -2758,7 +2757,7 @@ export function SalesModule() {
       {/* GENERIC SALES MODAL */}
       {genericModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
                 New {activeSubTab.slice(0, -1)}
@@ -2801,7 +2800,7 @@ export function SalesModule() {
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button onClick={() => setGenericModalOpen(false)} className="rounded-lg border border-slate-300 px-3.5 py-1.5 text-xs text-slate-400">Cancel</button>
-              <button onClick={handleSaveGenericRecord} className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">Save Record</button>
+              <button onClick={handleSaveGenericRecord} className="btn-primary">Save Record</button>
             </div>
           </div>
         </div>
@@ -2817,7 +2816,7 @@ export function SalesModule() {
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/15 text-amber-500">
                   <FileText className="h-5 w-5" />
                 </div>
                 <div>
@@ -2844,7 +2843,7 @@ export function SalesModule() {
                   
                   {/* Header Fields Grid */}
                   <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800/60 dark:bg-slate-900/30">
-                    <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1.5">
+                    <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
                       <FileText className="h-3.5 w-3.5" /> Header Details
                     </h4>
                     <div className="grid gap-4 sm:grid-cols-3">
@@ -2855,7 +2854,7 @@ export function SalesModule() {
                         <select
                           value={salesDocCustomerId}
                           onChange={(e) => setSalesDocCustomerId(e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                         >
                           <option value="">-- Select Customer --</option>
                           {customers.map((c) => (
@@ -2873,7 +2872,7 @@ export function SalesModule() {
                           type="date"
                           value={salesDocDate}
                           onChange={(e) => setSalesDocDate(e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                         />
                       </div>
 
@@ -2886,7 +2885,7 @@ export function SalesModule() {
                           type="date"
                           value={salesDocValidUntil}
                           onChange={(e) => setSalesDocValidUntil(e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                         />
                       </div>
 
@@ -2898,7 +2897,7 @@ export function SalesModule() {
                           value={salesDocSalesperson}
                           onChange={(e) => setSalesDocSalesperson(e.target.value)}
                           placeholder="Salesperson name..."
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                         />
                       </div>
 
@@ -2908,7 +2907,7 @@ export function SalesModule() {
                         <select
                           value={salesDocCurrency}
                           onChange={(e) => setSalesDocCurrency(e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                         >
                           <option value="PKR">PKR - Pakistani Rupee</option>
                           <option value="USD">USD - US Dollar</option>
@@ -2927,7 +2926,7 @@ export function SalesModule() {
                           step="0.01"
                           value={salesDocExchangeRate}
                           onChange={(e) => setSalesDocExchangeRate(Number(e.target.value))}
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                         />
                       </div>
                     </div>
@@ -2936,13 +2935,13 @@ export function SalesModule() {
                   {/* Line Items Section */}
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1.5">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
                         <Plus className="h-3.5 w-3.5" /> Line Items
                       </h4>
                       <button
                         type="button"
                         onClick={addSalesDocLine}
-                        className="flex items-center gap-1 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-500 hover:bg-emerald-500/20 transition"
+                        className="flex items-center gap-1 rounded-lg bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-500 hover:bg-amber-500/20 transition"
                       >
                         <Plus className="h-3.5 w-3.5" /> + Add Line Item
                       </button>
@@ -3080,7 +3079,7 @@ export function SalesModule() {
                             </div>
                             <div className="flex justify-between border-t border-slate-200 pt-2 font-bold text-slate-800 dark:border-slate-700 dark:text-slate-100 text-sm">
                               <span>Grand Total:</span>
-                              <span className="font-mono text-emerald-500">{salesDocCurrency} {t.grandTotal.toFixed(2)}</span>
+                              <span className="font-mono text-amber-500">{salesDocCurrency} {t.grandTotal.toFixed(2)}</span>
                             </div>
                           </div>
                         </div>
@@ -3093,7 +3092,7 @@ export function SalesModule() {
                 <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-slate-200 lg:pl-6 dark:border-slate-800 flex flex-col justify-between space-y-6">
                   
                   <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/30 space-y-4">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-500 flex items-center gap-1.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
                       <Layers className="h-3.5 w-3.5" /> Workflow & Organization
                     </h4>
 
@@ -3103,7 +3102,7 @@ export function SalesModule() {
                       <select
                         value={salesDocStatus}
                         onChange={(e) => setSalesDocStatus(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         {salesDocType === 'Quotation' ? (
                           <>
@@ -3183,7 +3182,7 @@ export function SalesModule() {
                     <button
                       type="button"
                       onClick={handleSaveSalesDoc}
-                      className="w-full flex justify-center items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition"
+                      className="w-full flex justify-center items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition"
                     >
                       <CheckCircle className="h-4 w-4" /> Save & Continue
                     </button>

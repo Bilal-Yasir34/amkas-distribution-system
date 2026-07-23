@@ -16,6 +16,7 @@ import { supabase, TABLES } from '@/lib/supabase';
 import { computeLineTotal, downloadCSV, formatCurrency, formatDate, getCustomerName, getWarehouseName, nextDocNumber, todayISO } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { InvoicePrint } from '@/components/InvoicePrint';
+import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 import type { SalesInvoice, SalesInvoiceItem } from '@/lib/types';
 
 interface DraftLine {
@@ -193,6 +194,8 @@ export function SalesInvoices() {
     }
   }
 
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
   async function handlePost(invoice: SalesInvoice) {
     try {
       await postMut.mutateAsync(invoice.id);
@@ -202,11 +205,12 @@ export function SalesInvoices() {
     }
   }
 
-  async function handleDelete(invoice: SalesInvoice) {
-    if (!confirm(`Delete ${invoice.invoice_no}? This cannot be undone.`)) return;
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
     try {
-      await delMut.mutateAsync(invoice.id);
-      toast.success(`${invoice.invoice_no} deleted`);
+      await delMut.mutateAsync(deleteTarget.id);
+      toast.success(`${deleteTarget.name} deleted`);
+      setDeleteTarget(null);
     } catch (e) {
       toast.error((e as Error).message || 'Delete failed');
     }
@@ -240,7 +244,7 @@ export function SalesInvoices() {
                   key={s}
                   onClick={() => setStatusFilter(s)}
                   className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-                    statusFilter === s ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                    statusFilter === s ? 'bg-amber-500 text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                   }`}
                 >
                   {s}
@@ -283,8 +287,8 @@ export function SalesInvoices() {
                       <button onClick={() => setPrintInvoice(i)} className="btn-ghost !p-1.5" title="Print"><Printer className="h-4 w-4" /></button>
                       {i.status === 'UNPOSTED' && (
                         <>
-                          <button onClick={() => handlePost(i)} className="btn-ghost !p-1.5 text-emerald-500" title="Post"><Send className="h-4 w-4" /></button>
-                          <button onClick={() => handleDelete(i)} className="btn-ghost !p-1.5 text-rose-500" title="Delete"><Trash2 className="h-4 w-4" /></button>
+                          <button onClick={() => handlePost(i)} className="btn-ghost !p-1.5 text-amber-500" title="Post"><Send className="h-4 w-4" /></button>
+                          <button onClick={() => setDeleteTarget({ id: i.id, name: i.invoice_no })} className="btn-ghost !p-1.5 text-rose-500" title="Delete"><Trash2 className="h-4 w-4" /></button>
                         </>
                       )}
                     </div>
@@ -414,6 +418,15 @@ export function SalesInvoices() {
       </Modal>
 
       {printInvoice && <InvoicePrint invoice={printInvoice} onClose={() => setPrintInvoice(null)} />}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <DeleteConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        itemName={deleteTarget?.name}
+        itemType="sales invoice"
+      />
     </div>
   );
 }

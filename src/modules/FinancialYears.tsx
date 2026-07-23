@@ -37,7 +37,7 @@ export function FinancialYears() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Financial Years</h1>
       </div>
 
@@ -49,7 +49,7 @@ export function FinancialYears() {
           </div>
           <button
             onClick={() => setModalOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+            className="flex items-center gap-2 btn-primary"
           >
             <Plus className="h-4 w-4" /> Create financial year
           </button>
@@ -59,13 +59,13 @@ export function FinancialYears() {
           {financialYears.map((fy) => (
             <div
               key={fy.id}
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-3"
+              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-3"
             >
               <div className="flex justify-between items-start">
                 <div>
                   <span
                     className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
-                      fy.is_current ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                      fy.is_current ? 'bg-amber-500/15 text-amber-500' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
                     }`}
                   >
                     {fy.status}
@@ -75,7 +75,7 @@ export function FinancialYears() {
                 {!fy.is_current && (
                   <button
                     onClick={() => handleSetCurrent(fy.id, fy.name)}
-                    className="text-xs font-semibold text-emerald-500 hover:underline"
+                    className="text-xs font-semibold text-amber-500 hover:underline"
                   >
                     Set Active
                   </button>
@@ -93,7 +93,7 @@ export function FinancialYears() {
       {/* FORM MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#1e293b]">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Create Financial Year</h3>
               <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-white">
@@ -139,7 +139,7 @@ export function FinancialYears() {
               <button onClick={() => setModalOpen(false)} className="rounded-lg border border-slate-300 px-3.5 py-1.5 text-xs text-slate-400">
                 Cancel
               </button>
-              <button onClick={handleSave} className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">
+              <button onClick={handleSave} className="btn-primary">
                 Save Financial Year
               </button>
             </div>

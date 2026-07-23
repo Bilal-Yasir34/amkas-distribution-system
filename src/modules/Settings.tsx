@@ -105,7 +105,7 @@ export function Settings() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Organization Settings</h1>
       </div>
 
@@ -117,7 +117,7 @@ export function Settings() {
             onClick={() => setActiveTab(tab as any)}
             className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition border-b-2 ${
               activeTab === tab
-                ? 'border-emerald-500 text-emerald-500 bg-emerald-500/5'
+                ? 'border-amber-500 text-amber-500 bg-amber-500/5'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -129,7 +129,7 @@ export function Settings() {
       {/* ORGANIZATION PROFILE */}
       {activeTab === 'Organization Profile' && (
         <div className="mx-auto max-w-4xl space-y-6">
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-5">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-5">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ORGANIZATION IDENTITY</p>
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
@@ -143,7 +143,7 @@ export function Settings() {
                 {companyLogo ? (
                   <img src={companyLogo} alt="Company Logo" className="h-full w-full object-cover" />
                 ) : (
-                  <div className="grid h-full w-full place-items-center bg-emerald-600 text-2xl font-extrabold text-white">
+                  <div className="grid h-full w-full place-items-center bg-amber-500 text-2xl font-extrabold text-white">
                     A
                   </div>
                 )}
@@ -162,7 +162,7 @@ export function Settings() {
                     onClick={() => fileInputRef.current?.click()}
                     className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                   >
-                    <Upload className="h-4 w-4 text-emerald-500" /> Choose logo
+                    <Upload className="h-4 w-4 text-amber-500" /> Choose logo
                   </button>
                   {companyLogo && (
                     <button
@@ -330,7 +330,7 @@ export function Settings() {
             <div className="flex justify-end pt-3">
               <button
                 onClick={handleSaveProfile}
-                className="rounded-lg bg-emerald-600 px-5 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                className="btn-primary"
               >
                 Save organization settings
               </button>
@@ -350,7 +350,7 @@ export function Settings() {
             <span className="text-xs text-slate-400">Independent counters per organization</span>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                 <tr>
@@ -390,7 +390,7 @@ export function Settings() {
                         className="w-16 rounded border border-slate-300 bg-white p-1 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none font-mono"
                       />
                     </td>
-                    <td className="px-4 py-3 font-mono font-semibold text-emerald-500">
+                    <td className="px-4 py-3 font-mono font-semibold text-amber-500">
                       {generatePreview(seq)}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -412,7 +412,7 @@ export function Settings() {
       {/* CURRENCIES & RATES */}
       {activeTab === 'Currencies & Rates' && (
         <div className="grid gap-5 lg:grid-cols-3">
-          <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541]">
+          <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3 dark:border-slate-700">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">MULTI-CURRENCY</p>
@@ -426,7 +426,7 @@ export function Settings() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Add exchange rate</h3>
 
             <div className="space-y-3">
@@ -466,13 +466,13 @@ export function Settings() {
                 />
               </div>
 
-              <div className="rounded-lg bg-emerald-500/10 p-3 text-[11px] text-emerald-400">
+              <div className="rounded-lg bg-amber-500/15 p-3 text-[11px] text-amber-400">
                 Example: If 1 USD equals 280 PKR, enter 280 when PKR is the base currency.
               </div>
 
               <button
                 onClick={() => toast.success('Exchange rate added')}
-                className="w-full rounded-lg bg-emerald-600 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                className="w-full rounded-lg bg-amber-500 py-2 text-xs font-semibold text-white hover:bg-amber-600"
               >
                 Save rate
               </button>
@@ -484,7 +484,7 @@ export function Settings() {
       {/* SECURITY & DELIVERY */}
       {activeTab === 'Security & Delivery' && (
         <div className="grid gap-5 lg:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SECURITY CONTROLS</p>
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Access protection</h3>
             <div className="space-y-2 text-xs text-slate-400">
@@ -498,12 +498,12 @@ export function Settings() {
               </div>
               <div className="flex justify-between border-b pb-2 dark:border-slate-800">
                 <span>Login tracking</span>
-                <span className="font-semibold text-emerald-400">Successful, failed and logout events</span>
+                <span className="font-semibold text-amber-400">Successful, failed and logout events</span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#1c2541] space-y-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CRON AUTOMATION</p>
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Email & scheduled reports</h3>
             <div className="rounded-lg bg-slate-900/60 p-3 text-xs text-slate-300 space-y-2 font-mono">
