@@ -26,6 +26,8 @@ import {
   History,
   Wrench,
   ChevronDown,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useDataStore } from '@/lib/dataStore';
@@ -75,6 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { activeModule, setActiveModule, selectedOrg, setSelectedOrg, selectedBranch, setSelectedBranch } = useAppStore();
   const [userMenu, setUserMenu] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const role = profile?.role ?? 'super_admin';
   const { rolePermissions } = useDataStore();
@@ -141,6 +144,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [moduleLoading, setModuleLoading] = useState(false);
 
   const handleNavModuleClick = (m: ModuleKey) => {
+    setMobileMenuOpen(false);
     if (m === activeModule) return;
     setModuleLoading(true);
     setActiveModule(m);
@@ -149,8 +153,98 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#0f172a]">
-      {/* Glassmorphic Sidebar */}
-      <aside className="no-print flex w-60 shrink-0 flex-col bg-white/90 dark:bg-slate-900/90 text-slate-300 border-r border-slate-200/80 dark:border-amber-500/20 backdrop-blur-2xl shadow-2xl z-20">
+      {/* Mobile Drawer Overlay Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm md:hidden transition-opacity"
+        />
+      )}
+
+      {/* Mobile Slide-Over Sidebar Drawer */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-amber-500/20 text-slate-300 shadow-2xl backdrop-blur-2xl transition-transform duration-300 md:hidden ${
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex h-16 items-center justify-between border-b border-slate-200/80 dark:border-amber-500/20 px-5">
+          <div className="flex items-center gap-2.5">
+            {companyLogo ? (
+              <img src={companyLogo} alt="Logo" className="h-8 w-8 rounded-xl object-cover ring-2 ring-amber-500/30" />
+            ) : (
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 font-extrabold text-slate-950 shadow-lg shadow-amber-500/30 ring-1 ring-white/30">
+                A
+              </div>
+            )}
+            <div className="leading-tight">
+              <p className="text-sm font-extrabold tracking-tight text-slate-900 dark:text-white font-heading">AMKAS ERP</p>
+              <p className="text-[9px] uppercase tracking-widest text-amber-500 dark:text-amber-400 font-bold">ENTERPRISE SUITE</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="grid h-8 w-8 place-items-center rounded-xl text-slate-400 hover:text-slate-100 transition"
+          >
+            <X className="h-5 w-5 text-amber-500" />
+          </button>
+        </div>
+
+        {/* Mobile Workspace Card */}
+        <div className="mx-3 mt-3.5 rounded-2xl bg-amber-500/10 p-3 border border-amber-500/20 shadow-sm backdrop-blur-md">
+          <p className="text-[9px] uppercase font-extrabold text-amber-500 tracking-wider">ACTIVE WORKSPACE</p>
+          <p className="mt-0.5 text-xs font-bold text-slate-900 dark:text-amber-300 truncate">{selectedOrg}</p>
+        </div>
+
+        {/* Mobile Nav Links */}
+        <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+          {groups.map((group) => {
+            if (group.keys.length === 0) return null;
+            return (
+              <div key={group.title}>
+                <p className="px-3 pb-1.5 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 tracking-wider uppercase">
+                  {group.title}
+                </p>
+                <div className="space-y-1">
+                  {group.keys.map((m) => {
+                    const Icon = moduleIcons[m];
+                    const active = activeModule === m;
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => handleNavModuleClick(m)}
+                        className={`flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition-all duration-200 ${
+                          active
+                            ? 'bg-gradient-to-r from-amber-500/25 to-amber-500/10 text-amber-500 dark:text-amber-400 border-l-4 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.25)]'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-amber-500/10 hover:text-amber-500 dark:hover:text-amber-300'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{MODULE_LABELS[m]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </nav>
+
+        {/* Mobile User Footer */}
+        <div className="border-t border-slate-200/80 dark:border-amber-500/20 p-3.5">
+          <div className="flex items-center gap-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800/80 p-2.5 border border-slate-200 dark:border-slate-700/60 shadow-sm">
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 font-extrabold text-slate-950 text-xs shadow-sm">
+              A
+            </div>
+            <div className="flex-1 truncate">
+              <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{profile?.full_name || 'admin'}</p>
+              <p className="text-[10px] text-amber-500 dark:text-amber-400 font-bold truncate">{roleLabel}</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Desktop Glassmorphic Sidebar */}
+      <aside className="no-print hidden md:flex w-60 shrink-0 flex-col bg-white/90 dark:bg-slate-900/90 text-slate-300 border-r border-slate-200/80 dark:border-amber-500/20 backdrop-blur-2xl shadow-2xl z-20">
         <div className="flex h-16 items-center gap-2.5 border-b border-slate-200/80 dark:border-amber-500/20 px-5">
           {companyLogo ? (
             <img src={companyLogo} alt="Logo" className="h-8 w-8 rounded-xl object-cover ring-2 ring-amber-500/30" />
@@ -220,11 +314,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Container */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden w-full min-w-0">
         {/* Top Glassmorphic Header */}
-        <header className="no-print flex h-16 items-center justify-between border-b border-slate-200/90 bg-white/80 px-6 dark:border-amber-500/20 dark:bg-slate-900/80 backdrop-blur-2xl shadow-sm z-10">
-          {/* Left Pickers */}
-          <div className="flex items-center gap-3">
+        <header className="no-print flex h-16 items-center justify-between border-b border-slate-200/90 bg-white/80 px-3 sm:px-6 dark:border-amber-500/20 dark:bg-slate-900/80 backdrop-blur-2xl shadow-sm z-10 gap-2">
+          {/* Hamburger + Pickers */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              className="md:hidden grid h-9 w-9 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-700 hover:border-amber-500/40 dark:border-amber-500/30 dark:bg-slate-800 dark:text-amber-400 transition shrink-0"
+              aria-label="Open navigation menu"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5 text-amber-500" /> : <Menu className="h-5 w-5 text-amber-500" />}
+            </button>
             <div className="flex items-center gap-1.5 text-xs">
               <select
                 value={selectedOrg}
@@ -258,14 +359,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex w-72 items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/80 px-3.5 py-1.5 text-xs text-slate-400 hover:border-amber-500/50 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] dark:border-amber-500/30 dark:bg-slate-800/80 dark:text-slate-400 transition-all duration-200"
+              className="group flex w-60 lg:w-72 items-center justify-between rounded-2xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-2 text-xs font-medium text-slate-500 shadow-sm backdrop-blur-md hover:border-amber-500/50 hover:bg-white hover:shadow-[0_0_20px_rgba(245,158,11,0.18)] dark:border-amber-500/30 dark:bg-slate-900/60 dark:text-slate-400 dark:hover:border-amber-400/60 dark:hover:bg-slate-800/80 transition-all duration-200"
             >
-              <span className="flex items-center gap-2">
-                <Search className="h-3.5 w-3.5 text-amber-500" />
-                <span>Search transactions, accounts, people...</span>
+              <span className="flex items-center gap-2.5">
+                <Search className="h-4 w-4 text-amber-500 transition-transform group-hover:scale-110" />
+                <span className="truncate">Quick search system...</span>
               </span>
-              <kbd className="rounded-lg bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-600 dark:bg-slate-700 dark:text-slate-300 font-mono">
-                Ctrl K
+              <kbd className="rounded-xl border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold font-mono text-slate-500 dark:border-slate-700/80 dark:bg-slate-800 dark:text-amber-400 shadow-inner">
+                ⌘K
               </kbd>
             </button>
 

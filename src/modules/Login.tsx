@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building2, Lock, Mail, Loader2, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Building2, Lock, Mail, Loader2, Eye, EyeOff, Sparkles, ShieldAlert, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
 export function Login() {
@@ -9,6 +9,11 @@ export function Login() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorModal, setErrorModal] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: '',
+    message: '',
+  });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -16,7 +21,14 @@ export function Login() {
     setLoading(true);
     const { error: errMsg } = await signIn(email.trim(), password);
     setLoading(false);
-    if (errMsg) setError(errMsg);
+    if (errMsg) {
+      setError(errMsg);
+      setErrorModal({
+        isOpen: true,
+        title: errMsg.toLowerCase().includes('password') ? 'Incorrect Password' : 'Authentication Error',
+        message: errMsg,
+      });
+    }
   }
 
   return (
@@ -115,6 +127,44 @@ export function Login() {
           AMKAS International Distribution System • Secure SSL Encrypted
         </div>
       </div>
+
+      {/* Incorrect Password / Authentication Error Modal */}
+      {errorModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-rose-500/30 bg-[#171522]/95 p-6 shadow-[0_0_50px_rgba(244,63,94,0.25)] backdrop-blur-2xl ring-1 ring-white/10 text-center space-y-5">
+            {/* Background ambient red glow */}
+            <div className="pointer-events-none absolute -top-20 -left-20 h-40 w-40 rounded-full bg-rose-500/20 blur-3xl" />
+            <button
+              onClick={() => setErrorModal({ isOpen: false, title: '', message: '' })}
+              className="absolute right-4 top-4 rounded-xl p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            {/* Warning Icon Badge */}
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500/20 to-rose-600/10 border border-rose-500/40 text-rose-400 shadow-lg shadow-rose-500/20">
+              <ShieldAlert className="h-8 w-8 animate-bounce" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-extrabold text-white font-heading tracking-tight">{errorModal.title}</h3>
+              <p className="text-xs font-medium text-slate-300 leading-relaxed max-w-xs mx-auto">
+                {errorModal.message}
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => setErrorModal({ isOpen: false, title: '', message: '' })}
+                className="w-full rounded-2xl bg-gradient-to-r from-rose-600 via-rose-500 to-rose-600 py-3.5 text-xs font-extrabold text-white shadow-lg shadow-rose-500/30 hover:from-rose-500 hover:to-rose-400 active:scale-[0.98] transition-all"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

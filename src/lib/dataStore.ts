@@ -331,12 +331,13 @@ export const useDataStore = create<DataStoreState>()(
       users: [
         {
           id: 'u1',
-          full_name: 'admin',
+          full_name: 'Super Admin',
           email: 'admin@amkas.pk',
           phone: '+92 300 0000000',
           employee_code: 'EMP-001',
           designation: 'System Administrator',
           role: 'Super Admin',
+          password: 'Amkas@123',
           branch_id: 'b1',
           department_id: 'd1',
           base_salary: 0,
@@ -410,7 +411,7 @@ export const useDataStore = create<DataStoreState>()(
           // If customer name changes, cascade to audit log description
           auditLogs: patch.name
             ? [
-                { id: crypto.randomUUID(), description: `Customer updated: ${patch.name}`, action: 'Update', module: 'Customers', performed_by: 'admin', timestamp: new Date().toISOString() },
+                { id: crypto.randomUUID(), username: 'admin', module: 'Customers', action: 'Update', description: `Customer updated: ${patch.name}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() },
                 ...s.auditLogs,
               ]
             : s.auditLogs,
@@ -427,7 +428,7 @@ export const useDataStore = create<DataStoreState>()(
             creditNotes: (s.creditNotes || []).map((cn) => cn.customer_id === id ? { ...cn, customer_id: null } : cn),
             customerReceipts: (s.customerReceipts || []).map((r) => r.customer_id === id ? { ...r, customer_id: null } : r),
             // Log deletion
-            auditLogs: [{ id: crypto.randomUUID(), description: `Customer deleted: ${cust?.name || id}`, action: 'Delete', module: 'Customers', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+            auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Customers', action: 'Delete', description: `Customer deleted: ${cust?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
 
@@ -437,7 +438,7 @@ export const useDataStore = create<DataStoreState>()(
         set((s) => ({
           vendors: s.vendors.map((v) => (v.id === id ? { ...v, ...patch } : v)),
           auditLogs: patch.name
-            ? [{ id: crypto.randomUUID(), description: `Vendor updated: ${patch.name}`, action: 'Update', module: 'Vendors', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs]
+            ? [{ id: crypto.randomUUID(), username: 'admin', module: 'Vendors', action: 'Update', description: `Vendor updated: ${patch.name}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs]
             : s.auditLogs,
         })),
       deleteVendor: (id) =>
@@ -451,8 +452,7 @@ export const useDataStore = create<DataStoreState>()(
             vendorBills: s.vendorBills.map((vb) => vb.vendor_id === id ? { ...vb, vendor_id: null } : vb),
             debitNotes: s.debitNotes.map((dn) => dn.vendor_id === id ? { ...dn, vendor_id: null } : dn),
             vendorPayments: s.vendorPayments.map((vp) => vp.vendor_id === id ? { ...vp, vendor_id: null } : vp),
-            purchaseRequests: s.purchaseRequests.map((pr) => pr.vendor_id === id ? { ...pr, vendor_id: null } : pr),
-            auditLogs: [{ id: crypto.randomUUID(), description: `Vendor deleted: ${vend?.name || id}`, action: 'Delete', module: 'Vendors', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+            auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Vendors', action: 'Delete', description: `Vendor deleted: ${vend?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
 
@@ -466,7 +466,7 @@ export const useDataStore = create<DataStoreState>()(
             ? s.invoices.map((inv) => ({
                 ...inv,
                 items: inv.items?.map((item) =>
-                  item.product_id === id ? { ...item, description: patch.name } : item
+                  item.product_id === id ? { ...item, description: patch.name || item.description } : item
                 ),
               }))
             : s.invoices,
@@ -498,7 +498,7 @@ export const useDataStore = create<DataStoreState>()(
             // Remove from batches and serials
             batches: s.batches.filter((b) => b.product_id !== id),
             serials: s.serials.filter((sr) => sr.product_id !== id),
-            auditLogs: [{ id: crypto.randomUUID(), description: `Product deleted: ${prod?.name || id}`, action: 'Delete', module: 'Products', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+            auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Products', action: 'Delete', description: `Product deleted: ${prod?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
 
@@ -524,7 +524,7 @@ export const useDataStore = create<DataStoreState>()(
             products: s.products.map((p) =>
               p.category === cat?.name ? { ...p, category: null } : p
             ),
-            auditLogs: [{ id: crypto.randomUUID(), description: `Category deleted: ${cat?.name || id}`, action: 'Delete', module: 'Categories', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+            auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Categories', action: 'Delete', description: `Category deleted: ${cat?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
 
@@ -545,7 +545,7 @@ export const useDataStore = create<DataStoreState>()(
               : st
             ),
             stockAdjustments: s.stockAdjustments.map((sa) => sa.warehouse_id === id ? { ...sa, warehouse_id: null } : sa),
-            auditLogs: [{ id: crypto.randomUUID(), description: `Warehouse deleted: ${wh?.name || id}`, action: 'Delete', module: 'Warehouses', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+            auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Warehouses', action: 'Delete', description: `Warehouse deleted: ${wh?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
 
@@ -747,7 +747,7 @@ export const useDataStore = create<DataStoreState>()(
         set((s) => ({
           organizations: s.organizations.map((o) => (o.id === id ? { ...o, ...patch } : o)),
           // If org is deactivated, deactivate all its branches
-          branches: patch.is_active === false
+          branches: patch.status === 'Inactive'
             ? s.branches.map((b) => b.org_id === id ? { ...b, is_active: false } : b)
             : s.branches,
         })),
@@ -760,7 +760,7 @@ export const useDataStore = create<DataStoreState>()(
             branches: s.branches.map((b) => b.org_id === id ? { ...b, org_id: null } : b),
             quotations: s.quotations.map((q) => q.org_id === id ? { ...q, org_id: null } : q),
             salesOrders: s.salesOrders.map((so) => so.org_id === id ? { ...so, org_id: null } : so),
-            auditLogs: [{ id: crypto.randomUUID(), description: `Organization deleted: ${org?.name || id}`, action: 'Delete', module: 'Organizations', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+            auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Organizations', action: 'Delete', description: `Organization deleted: ${org?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
 
@@ -787,7 +787,7 @@ export const useDataStore = create<DataStoreState>()(
             users: s.users.map((u) => u.branch_id === id ? { ...u, branch_id: null } : u),
             quotations: s.quotations.map((q) => q.branch_id === id ? { ...q, branch_id: null } : q),
             salesOrders: s.salesOrders.map((so) => so.branch_id === id ? { ...so, branch_id: null } : so),
-            auditLogs: [{ id: crypto.randomUUID(), description: `Branch deleted: ${br?.name || id}`, action: 'Delete', module: 'Branches', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+            auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Branches', action: 'Delete', description: `Branch deleted: ${br?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
 
@@ -800,7 +800,7 @@ export const useDataStore = create<DataStoreState>()(
             departments: s.departments.filter((d) => d.id !== id),
             // Null out department_id in users
             users: s.users.map((u) => u.department_id === id ? { ...u, department_id: null } : u),
-            auditLogs: [{ id: crypto.randomUUID(), description: `Department deleted: ${dept?.name || id}`, action: 'Delete', module: 'Departments', performed_by: 'admin', timestamp: new Date().toISOString() }, ...s.auditLogs],
+            auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Departments', action: 'Delete', description: `Department deleted: ${dept?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
 
