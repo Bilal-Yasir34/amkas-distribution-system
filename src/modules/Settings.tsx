@@ -629,7 +629,7 @@ export function Settings() {
                   type="password"
                   value={settingsPassword}
                   onChange={(e) => setSettingsPassword(e.target.value)}
-                  placeholder="Enter AmkasMaintenanceOff!"
+                  placeholder="Enter password"
                   className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
                   autoFocus
                 />

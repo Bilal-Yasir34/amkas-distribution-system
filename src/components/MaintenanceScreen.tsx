@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Wrench, ShieldAlert, KeyRound, LogOut, Moon, Sun, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { Wrench, ShieldAlert, KeyRound, LogOut, Moon, Sun, CheckCircle2, AlertCircle, Sparkles, Lock } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useTheme } from '@/lib/useTheme';
 import { useAuth } from '@/lib/auth';
@@ -8,27 +8,41 @@ import { useToast } from '@/lib/toast';
 export function MaintenanceScreen() {
   const { theme, toggleTheme } = useTheme();
   const { companyLogo, orgSettings, disableMaintenanceMode } = useDataStore();
-  const { profile, signOut } = useAuth();
+  const { profile, signIn, signOut } = useAuth();
   const toast = useToast();
 
   const [password, setPassword] = useState('');
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleTurnOffMaintenance = (e: React.FormEvent) => {
+  const handleTurnOffMaintenance = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSubmitting(true);
 
-    const res = disableMaintenanceMode(password);
-    if (!res.success) {
-      setError(res.error || 'Incorrect password');
-      toast.error(res.error || 'Incorrect password');
-      return;
+    try {
+      const res = disableMaintenanceMode(password.trim());
+      if (!res.success) {
+        setError(res.error || 'Incorrect password');
+        toast.error(res.error || 'Incorrect password');
+        setSubmitting(false);
+        return;
+      }
+
+      // Automatically sign in as admin if not already logged in as super admin
+      if (!profile || profile.role !== 'super_admin') {
+        await signIn('admin@amkas.pk', 'Amkas@123');
+      }
+
+      toast.success('Maintenance mode turned off. System unlocked.');
+      setShowAdminModal(false);
+      setPassword('');
+    } catch {
+      setError('An error occurred during admin authentication.');
+    } finally {
+      setSubmitting(false);
     }
-
-    toast.success('Maintenance mode disabled successfully!');
-    setShowAdminModal(false);
-    setPassword('');
   };
 
   const orgName = orgSettings.name || 'AMKAS INTERNATIONAL';
@@ -132,30 +146,36 @@ export function MaintenanceScreen() {
           >
             Check Again / Refresh Page
           </button>
-
-          <button
-            onClick={() => setShowAdminModal(true)}
-            className="w-full sm:w-auto px-6 py-3 rounded-xl border border-amber-500/30 bg-slate-900 text-amber-400 font-bold text-xs hover:bg-amber-500/10 hover:border-amber-500/50 transition-all flex items-center justify-center gap-2"
-          >
-            <KeyRound className="h-4 w-4" /> Turn Off Maintenance (Admin)
-          </button>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 py-4 px-6 border-t border-slate-800/60 bg-slate-950/80 backdrop-blur-md text-center text-xs text-slate-400">
+      {/* Footer with Small Admin Login link */}
+      <footer className="relative z-10 py-5 px-6 border-t border-slate-800/60 bg-slate-950/80 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
         <p>© {new Date().getFullYear()} {orgName}. All rights reserved. AMKAS Distribution & Financial Portal.</p>
+        
+        {/* Small Admin Login Link */}
+        <button
+          onClick={() => {
+            setShowAdminModal(true);
+            setError(null);
+            setPassword('');
+          }}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400 transition-colors underline underline-offset-4 opacity-80 hover:opacity-100"
+        >
+          <Lock className="h-3.5 w-3.5" />
+          Admin Login
+        </button>
       </footer>
 
-      {/* Admin Turn Off Password Modal */}
+      {/* Admin Login & Turn Off Password Modal */}
       {showAdminModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
           <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 text-left">
             <div className="flex items-start justify-between border-b border-slate-800 pb-4">
               <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400">ADMIN VERIFICATION</p>
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400">ADMINISTRATOR PORTAL</p>
                 <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2 mt-0.5">
-                  <KeyRound className="h-5 w-5 text-amber-400" /> Turn Off Maintenance
+                  <KeyRound className="h-5 w-5 text-amber-400" /> Admin Login & Deactivation
                 </h3>
               </div>
               <button
@@ -171,17 +191,17 @@ export function MaintenanceScreen() {
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
-              Enter the master deactivation password to restore normal system access for all users immediately.
+              Enter the admin password to log in and turn off maintenance mode for all users.
             </p>
 
             <form onSubmit={handleTurnOffMaintenance} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1.5">Deactivation Password</label>
+                <label className="text-xs font-semibold text-slate-300 block mb-1.5">Password</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter AmkasMaintenanceOff!"
+                  placeholder="Enter password"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:border-amber-500 focus:outline-none font-mono"
                   autoFocus
                 />
@@ -208,9 +228,10 @@ export function MaintenanceScreen() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-amber-500 text-slate-950 text-xs font-extrabold hover:bg-amber-400 transition shadow-lg shadow-amber-500/20"
+                  disabled={submitting}
+                  className="flex-1 py-2.5 rounded-xl bg-amber-500 text-slate-950 text-xs font-extrabold hover:bg-amber-400 transition shadow-lg shadow-amber-500/20 disabled:opacity-50"
                 >
-                  Turn Off Maintenance Mode
+                  {submitting ? 'Authenticating...' : 'Admin Login & Turn Off'}
                 </button>
               </div>
             </form>

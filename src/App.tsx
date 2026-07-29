@@ -103,11 +103,15 @@ function AppContent() {
     return <StylishLoadingScreen message="Initializing AMKAS Enterprise Portal..." />;
   }
 
-  if (!session) return <Login />;
-
-  if (isMaintenanceMode && !isAdmin && profile?.role !== 'super_admin') {
-    return <MaintenanceScreen />;
+  // When Maintenance Mode is active, block all unauthenticated visitors and non-admin users
+  if (isMaintenanceMode) {
+    const isSuperAdmin = session && (isAdmin || profile?.role === 'super_admin');
+    if (!isSuperAdmin) {
+      return <MaintenanceScreen />;
+    }
   }
+
+  if (!session) return <Login />;
 
   return (
     <AppShell>

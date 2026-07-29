@@ -222,7 +222,7 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
                   type="password"
                   value={turnOffPassword}
                   onChange={(e) => setTurnOffPassword(e.target.value)}
-                  placeholder="Enter AmkasMaintenanceOff!"
+                  placeholder="Enter password"
                   className="input font-mono text-xs"
                   autoFocus
                 />
