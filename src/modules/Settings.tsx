@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Building2, FileText, DollarSign, Shield, Save, Plus, Upload, X, Check } from 'lucide-react';
+import { Building2, FileText, DollarSign, Shield, Save, Plus, Upload, X, Check, Wrench, KeyRound, Power, AlertCircle } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 
@@ -31,7 +31,11 @@ const INITIAL_DOC_SEQS: DocSeq[] = [
 
 export function Settings() {
   const toast = useToast();
-  const { companyLogo, setCompanyLogo, orgSettings, updateOrgSettings } = useDataStore();
+  const { companyLogo, setCompanyLogo, orgSettings, updateOrgSettings, isMaintenanceMode, enableMaintenanceMode, disableMaintenanceMode } = useDataStore();
+
+  const [showSettingsPasswordModal, setShowSettingsPasswordModal] = useState(false);
+  const [settingsPassword, setSettingsPassword] = useState('');
+  const [settingsError, setSettingsError] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<
     'Organization Profile' | 'Document Numbering' | 'Currencies & Rates' | 'Security & Delivery'
@@ -483,33 +487,181 @@ export function Settings() {
 
       {/* SECURITY & DELIVERY */}
       {activeTab === 'Security & Delivery' && (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SECURITY CONTROLS</p>
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Access protection</h3>
-            <div className="space-y-2 text-xs text-slate-400">
-              <div className="flex justify-between border-b pb-2 dark:border-slate-800">
-                <span>Dynamic roles</span>
-                <span className="font-semibold text-slate-200">View • Create • Edit • Delete • Approve • Export</span>
+        <div className="space-y-5">
+          {/* Maintenance Mode Settings Card */}
+          <div className={`rounded-xl border p-5 shadow-sm space-y-4 transition-all ${
+            isMaintenanceMode
+              ? 'border-amber-500 bg-amber-500/10 dark:bg-amber-500/15'
+              : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/70'
+          }`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className={`p-2.5 rounded-xl ${
+                  isMaintenanceMode ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                }`}>
+                  <Wrench className={`h-5 w-5 ${isMaintenanceMode ? 'animate-bounce' : ''}`} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">SYSTEM ACCESS CONTROL</p>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
+                      isMaintenanceMode ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-400'
+                    }`}>
+                      {isMaintenanceMode ? 'ACTIVE' : 'INACTIVE'}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+                    System Maintenance Mode
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
+                    Restrict non-admin access while performing updates. Turning off requires password: <span className="font-mono font-bold text-amber-500">AmkasMaintenanceOff!</span>
+                  </p>
+                </div>
               </div>
-              <div className="flex justify-between border-b pb-2 dark:border-slate-800">
-                <span>Scope restrictions</span>
-                <span className="font-semibold text-slate-200">Organization • Branch • Department</span>
-              </div>
-              <div className="flex justify-between border-b pb-2 dark:border-slate-800">
-                <span>Login tracking</span>
-                <span className="font-semibold text-amber-400">Successful, failed and logout events</span>
+
+              <div>
+                {isMaintenanceMode ? (
+                  <button
+                    onClick={() => {
+                      setShowSettingsPasswordModal(true);
+                      setSettingsError(null);
+                      setSettingsPassword('');
+                    }}
+                    className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-slate-900 px-4 py-2 text-xs font-bold text-amber-400 hover:bg-slate-800 transition shadow-sm"
+                  >
+                    <KeyRound className="h-4 w-4" /> Turn Off Maintenance Mode
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      enableMaintenanceMode();
+                      toast.success('Maintenance mode ENABLED. Non-admin access restricted.');
+                    }}
+                    className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400 transition shadow-sm"
+                  >
+                    <Power className="h-4 w-4" /> Enable Maintenance Mode
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CRON AUTOMATION</p>
-            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Email & scheduled reports</h3>
-            <div className="rounded-lg bg-slate-900/60 p-3 text-xs text-slate-300 space-y-2 font-mono">
-              <p>1. Configure cron key in config.php</p>
-              <p>2. Set hourly cron job for report queue delivery</p>
+          <div className="grid gap-5 lg:grid-cols-2">
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SECURITY CONTROLS</p>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Access protection</h3>
+              <div className="space-y-2 text-xs text-slate-400">
+                <div className="flex justify-between border-b pb-2 dark:border-slate-800">
+                  <span>Dynamic roles</span>
+                  <span className="font-semibold text-slate-200">View • Create • Edit • Delete • Approve • Export</span>
+                </div>
+                <div className="flex justify-between border-b pb-2 dark:border-slate-800">
+                  <span>Scope restrictions</span>
+                  <span className="font-semibold text-slate-200">Organization • Branch • Department</span>
+                </div>
+                <div className="flex justify-between border-b pb-2 dark:border-slate-800">
+                  <span>Login tracking</span>
+                  <span className="font-semibold text-amber-400">Successful, failed and logout events</span>
+                </div>
+              </div>
             </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CRON AUTOMATION</p>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Email & scheduled reports</h3>
+              <div className="rounded-lg bg-slate-900/60 p-3 text-xs text-slate-300 space-y-2 font-mono">
+                <p>1. Configure cron key in config.php</p>
+                <p>2. Set hourly cron job for report queue delivery</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Turn Off Password Modal */}
+      {showSettingsPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 space-y-5">
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-amber-500">ADMIN VERIFICATION</p>
+                <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2 mt-0.5">
+                  <KeyRound className="h-5 w-5 text-amber-500" /> Turn Off Maintenance Mode
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowSettingsPasswordModal(false);
+                  setSettingsError(null);
+                  setSettingsPassword('');
+                }}
+                className="text-slate-400 hover:text-slate-200 font-bold text-lg"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Enter the master password to restore normal system access for all non-admin users.
+            </p>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setSettingsError(null);
+                const res = disableMaintenanceMode(settingsPassword);
+                if (!res.success) {
+                  setSettingsError(res.error || 'Incorrect password');
+                  toast.error(res.error || 'Incorrect password');
+                  return;
+                }
+                toast.success('Maintenance mode DISABLED successfully.');
+                setShowSettingsPasswordModal(false);
+                setSettingsPassword('');
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Deactivation Password
+                </label>
+                <input
+                  type="password"
+                  value={settingsPassword}
+                  onChange={(e) => setSettingsPassword(e.target.value)}
+                  placeholder="Enter AmkasMaintenanceOff!"
+                  className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                  autoFocus
+                />
+              </div>
+
+              {settingsError && (
+                <div className="rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-xs font-semibold text-rose-500 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{settingsError}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSettingsPasswordModal(false);
+                    setSettingsError(null);
+                    setSettingsPassword('');
+                  }}
+                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400 flex-1 transition shadow-md"
+                >
+                  Turn Off Mode
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

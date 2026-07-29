@@ -140,7 +140,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
   ];
 
-  const { companyLogo, organizations, branches } = useDataStore();
+  const { companyLogo, organizations, branches, isMaintenanceMode } = useDataStore();
   const [moduleLoading, setModuleLoading] = useState(false);
 
   const handleNavModuleClick = (m: ModuleKey) => {
@@ -416,6 +416,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </header>
+
+        {isMaintenanceMode && (
+          <div className="no-print bg-amber-500 text-slate-950 px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-extrabold shadow-lg z-20 border-b border-amber-600">
+            <div className="flex items-center gap-2">
+              <Wrench className="h-4 w-4 shrink-0 animate-bounce" />
+              <span>MAINTENANCE MODE IS ACTIVE — Non-admin portal access is restricted.</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleNavModuleClick('maintenance')}
+                className="px-3 py-1 bg-slate-950 text-amber-400 rounded-lg hover:bg-slate-900 text-[11px] font-extrabold transition shadow-sm"
+              >
+                Manage Maintenance
+              </button>
+              <button
+                onClick={() => handleNavModuleClick('settings')}
+                className="px-3 py-1 bg-slate-950/20 text-slate-950 hover:bg-slate-950/30 rounded-lg text-[11px] font-extrabold transition"
+              >
+                Settings
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Content View */}
         <main className="flex-1 overflow-y-auto p-6">

@@ -93,15 +93,21 @@ function Router() {
 }
 
 import { StylishLoadingScreen } from '@/components/SkeletonLoader';
+import { MaintenanceScreen } from '@/components/MaintenanceScreen';
 
 function AppContent() {
-  const { session, loading } = useAuth();
+  const { session, loading, profile, isAdmin } = useAuth();
+  const { isMaintenanceMode } = useDataStore();
 
   if (loading) {
     return <StylishLoadingScreen message="Initializing AMKAS Enterprise Portal..." />;
   }
 
   if (!session) return <Login />;
+
+  if (isMaintenanceMode && !isAdmin && profile?.role !== 'super_admin') {
+    return <MaintenanceScreen />;
+  }
 
   return (
     <AppShell>

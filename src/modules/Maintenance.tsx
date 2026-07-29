@@ -1,13 +1,37 @@
 import { useState } from 'react';
-import { Wrench, Download, Trash2, ShieldCheck, Database, HardDrive, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Wrench, Download, Trash2, ShieldCheck, Database, HardDrive, AlertTriangle, RefreshCw, KeyRound, ShieldAlert, Power, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/lib/toast';
 import { useDataStore } from '@/lib/dataStore';
 
 export function Maintenance() {
   const toast = useToast();
-  const { resetBusinessData } = useDataStore();
+  const { resetBusinessData, isMaintenanceMode, enableMaintenanceMode, disableMaintenanceMode } = useDataStore();
   const [resetInput, setResetInput] = useState('');
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+
+  // Maintenance mode turn-off modal state
+  const [showTurnOffModal, setShowTurnOffModal] = useState(false);
+  const [turnOffPassword, setTurnOffPassword] = useState('');
+  const [turnOffError, setTurnOffError] = useState<string | null>(null);
+
+  const handleEnableMode = () => {
+    enableMaintenanceMode();
+    toast.success('Maintenance mode ENABLED. Non-admin user access is now restricted.');
+  };
+
+  const handleDisableModeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setTurnOffError(null);
+    const res = disableMaintenanceMode(turnOffPassword);
+    if (!res.success) {
+      setTurnOffError(res.error || 'Incorrect password.');
+      toast.error(res.error || 'Incorrect password.');
+      return;
+    }
+    toast.success('Maintenance mode DISABLED successfully.');
+    setShowTurnOffModal(false);
+    setTurnOffPassword('');
+  };
 
   const handleDownloadBackup = () => {
     const backupSQL = `-- AMKAS International ERP Full SQL Backup Dump
@@ -106,6 +130,134 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
           <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">Preserves Users & Setup</p>
         </div>
       </div>
+
+      {/* Maintenance Mode System Control Card */}
+      <div className={`card p-6 border-2 transition-all ${
+        isMaintenanceMode
+          ? 'border-amber-500 bg-amber-500/10 dark:bg-amber-500/15 shadow-xl shadow-amber-500/10'
+          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80'
+      }`}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className={`p-3.5 rounded-2xl ${
+              isMaintenanceMode ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+            }`}>
+              <Wrench className={`h-7 w-7 ${isMaintenanceMode ? 'animate-bounce' : ''}`} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-500">SYSTEM ACCESS CONTROL</span>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                  isMaintenanceMode ? 'bg-amber-500/20 text-amber-500 border border-amber-500/40 animate-pulse' : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
+                }`}>
+                  {isMaintenanceMode ? 'MAINTENANCE MODE ACTIVE' : 'LIVE & ACCESSIBLE'}
+                </span>
+              </div>
+              <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 font-heading mt-1">
+                System Maintenance Mode
+              </h2>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 max-w-xl leading-relaxed">
+                Enable maintenance mode to restrict non-admin access while conducting system upgrades. Turning off maintenance mode requires the master password: <span className="font-mono font-bold text-amber-500">AmkasMaintenanceOff!</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0 self-end md:self-center">
+            {isMaintenanceMode ? (
+              <button
+                onClick={() => {
+                  setShowTurnOffModal(true);
+                  setTurnOffError(null);
+                  setTurnOffPassword('');
+                }}
+                className="btn border border-amber-500/40 bg-slate-900 text-amber-400 hover:bg-slate-800 px-5 py-2.5 text-xs font-extrabold shadow-md flex items-center gap-2"
+              >
+                <KeyRound className="h-4 w-4" /> Turn Off Maintenance Mode
+              </button>
+            ) : (
+              <button
+                onClick={handleEnableMode}
+                className="btn-primary px-5 py-2.5 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-amber-500/20"
+              >
+                <Power className="h-4 w-4" /> Enable Maintenance Mode
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Turn Off Password Modal */}
+      {showTurnOffModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md card p-6 shadow-2xl space-y-5">
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-amber-500">ADMIN VERIFICATION</p>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 font-heading flex items-center gap-2 mt-0.5">
+                  <KeyRound className="h-5 w-5 text-amber-500" /> Turn Off Maintenance Mode
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowTurnOffModal(false);
+                  setTurnOffError(null);
+                  setTurnOffPassword('');
+                }}
+                className="text-slate-400 hover:text-slate-200 font-bold text-lg"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Enter the maintenance deactivation password to restore normal system access for all users.
+            </p>
+
+            <form onSubmit={handleDisableModeSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Deactivation Password
+                </label>
+                <input
+                  type="password"
+                  value={turnOffPassword}
+                  onChange={(e) => setTurnOffPassword(e.target.value)}
+                  placeholder="Enter AmkasMaintenanceOff!"
+                  className="input font-mono text-xs"
+                  autoFocus
+                />
+              </div>
+
+              {turnOffError && (
+                <div className="rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-xs font-semibold text-rose-500 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{turnOffError}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTurnOffModal(false);
+                    setTurnOffError(null);
+                    setTurnOffPassword('');
+                  }}
+                  className="btn-secondary flex-1 py-2.5 text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary flex-1 py-2.5 text-xs"
+                >
+                  Turn Off Mode
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Main Operations Grid */}
       <div className="grid gap-6 lg:grid-cols-2">

@@ -114,9 +114,16 @@ interface DataStoreState {
   expenseRecords: ExpenseRecord[];
   incomeRecords: IncomeRecord[];
 
+  // Maintenance Mode State
+  isMaintenanceMode: boolean;
+
   // Logo / Branding State
   companyLogo: string | null;
   orgSettings: Partial<Organization>;
+
+  // Maintenance Mode Actions
+  enableMaintenanceMode: () => void;
+  disableMaintenanceMode: (password: string) => { success: boolean; error?: string };
 
   // Audit & Security Actions
   addAuditLog: (log: Omit<AuditLog, 'id'>) => void;
@@ -385,6 +392,48 @@ export const useDataStore = create<DataStoreState>()(
           created_at: '2026-06-26T10:00:00Z',
         },
       ],
+
+      isMaintenanceMode: false,
+
+      // Maintenance Mode Actions
+      enableMaintenanceMode: () =>
+        set((s) => ({
+          isMaintenanceMode: true,
+          auditLogs: [
+            {
+              id: crypto.randomUUID(),
+              username: 'System Admin',
+              module: 'Maintenance',
+              action: 'Enable Maintenance Mode',
+              description: 'System Maintenance Mode was ENABLED',
+              ip_address: '127.0.0.1',
+              timestamp: new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'medium' }),
+            },
+            ...s.auditLogs,
+          ],
+        })),
+
+      disableMaintenanceMode: (password: string) => {
+        if (password !== 'AmkasMaintenanceOff!') {
+          return { success: false, error: 'Incorrect password for turning off maintenance mode.' };
+        }
+        set((s) => ({
+          isMaintenanceMode: false,
+          auditLogs: [
+            {
+              id: crypto.randomUUID(),
+              username: 'System Admin',
+              module: 'Maintenance',
+              action: 'Disable Maintenance Mode',
+              description: 'System Maintenance Mode was DISABLED using admin verification password',
+              ip_address: '127.0.0.1',
+              timestamp: new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'medium' }),
+            },
+            ...s.auditLogs,
+          ],
+        }));
+        return { success: true };
+      },
 
       companyLogo: null,
       orgSettings: {
