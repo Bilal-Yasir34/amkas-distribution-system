@@ -93,7 +93,7 @@ export function Reports() {
         Type: c.account_type,
         Balance: c.current_balance || 0,
       }));
-      downloadCSV(data, `Trial_Balance_${todayISO()}.csv`);
+      downloadCSV(`Trial_Balance_${todayISO()}.csv`, data as unknown as Record<string, unknown>[]);
     } else if (activeTab === 'pnl') {
       const data = [
         { Section: 'Gross Sales Invoices', Amount: financialData.totalSalesBilled },
@@ -104,14 +104,14 @@ export function Reports() {
         { Section: 'Total Expenses', Amount: financialData.totalExpenses },
         { Section: 'Net Profit / (Loss)', Amount: financialData.netProfit },
       ];
-      downloadCSV(data, `Profit_And_Loss_${todayISO()}.csv`);
+      downloadCSV(`Profit_And_Loss_${todayISO()}.csv`, data as unknown as Record<string, unknown>[]);
     } else if (activeTab === 'balance_sheet') {
       const data = [
         { Category: 'Total Assets', Amount: financialData.totalAssets },
         { Category: 'Total Liabilities', Amount: financialData.totalLiabilities },
         { Category: 'Total Equity & Retained Earnings', Amount: financialData.totalEquity },
       ];
-      downloadCSV(data, `Balance_Sheet_${todayISO()}.csv`);
+      downloadCSV(`Balance_Sheet_${todayISO()}.csv`, data as unknown as Record<string, unknown>[]);
     } else if (activeTab === 'sales_summary') {
       const data = customers.map((c) => {
         const cInvoices = invoices.filter((i) => i.customer_id === c.id);
@@ -126,7 +126,7 @@ export function Reports() {
           Outstanding: Math.max(0, billed - received),
         };
       });
-      downloadCSV(data, `Sales_Summary_${todayISO()}.csv`);
+      downloadCSV(`Sales_Summary_${todayISO()}.csv`, data as unknown as Record<string, unknown>[]);
     } else if (activeTab === 'purchases_summary') {
       const data = vendors.map((v) => {
         const vBills = vendorBills.filter((b) => b.vendor_id === v.id);
@@ -141,7 +141,7 @@ export function Reports() {
           Outstanding: Math.max(0, billed - paid),
         };
       });
-      downloadCSV(data, `Purchases_Summary_${todayISO()}.csv`);
+      downloadCSV(`Purchases_Summary_${todayISO()}.csv`, data as unknown as Record<string, unknown>[]);
     }
     toast.success('Report exported to CSV successfully');
   };

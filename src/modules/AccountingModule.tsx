@@ -12,7 +12,10 @@ type SubTab =
   | 'Receivables'
   | 'Payables'
   | 'Expenses'
-  | 'Income';
+  | 'Income'
+  | 'Trial Balance'
+  | 'Profit & Loss'
+  | 'Balance Sheet';
 
 export function AccountingModule() {
   const toast = useToast();
@@ -330,7 +333,7 @@ export function AccountingModule() {
       Debit: l.debit,
       Credit: l.credit,
     }));
-    downloadCSV(dataToExport, `General_Ledger_${todayISO()}.csv`);
+    downloadCSV(`General_Ledger_${todayISO()}.csv`, dataToExport as unknown as Record<string, unknown>[]);
     toast.success('General ledger exported to CSV');
   };
 

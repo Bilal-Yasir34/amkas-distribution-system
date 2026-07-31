@@ -1,4 +1,4 @@
-export type InvoiceStatus = 'UNPOSTED' | 'POSTED';
+export type InvoiceStatus = 'UNPOSTED' | 'POSTED' | 'CANCELLED';
 export type DocStatus = 'DRAFT' | 'UNPOSTED' | 'POSTED' | 'PENDING' | 'CONFIRMED' | 'Confirmed' | 'APPROVED' | 'Accepted' | 'REJECTED' | 'COMPLETED' | 'Completed' | 'CANCELLED' | 'OPEN' | 'Open' | 'Sent' | 'Current';
 export type AccountType = 'Asset' | 'Liability' | 'Equity' | 'Revenue' | 'Expense' | 'Income';
 
@@ -123,6 +123,7 @@ export interface Product {
   track_batches: boolean;
   track_serials: boolean;
   is_active: boolean;
+  opening_balance?: number;
   opening_average_cost?: number;
   cost_price?: number;
   tax_pct?: number;
@@ -197,7 +198,9 @@ export interface SalesInvoice {
   id: string;
   invoice_no: string;
   customer_id: string | null;
+  customer_name?: string;
   warehouse_id: string | null;
+  branch_id?: string | null;
   invoice_date: string;
   due_date: string | null;
   salesperson: string | null;
@@ -219,6 +222,18 @@ export interface SalesInvoice {
   items?: SalesInvoiceItem[];
   created_by: string | null;
   created_at: string;
+}
+
+export interface AccountLedgerItem {
+  id: string;
+  account_id: string | null;
+  party_id?: string | null;
+  voucher_no: string | null;
+  voucher_type: string | null;
+  transaction_date: string;
+  description: string | null;
+  debit: number;
+  credit: number;
 }
 
 export interface SalesInvoiceItem {
@@ -437,6 +452,18 @@ export interface PurchaseInvoice {
   created_at: string;
 }
 
+export interface VendorBillItem {
+  id: string;
+  vendor_bill_id?: string;
+  product_id: string | null;
+  description?: string | null;
+  qty: number;
+  rate: number;
+  discount?: number;
+  tax_pct?: number;
+  line_total: number;
+}
+
 export interface VendorBill {
   id: string;
   bill_no: string;
@@ -460,6 +487,7 @@ export interface VendorBill {
   total_amount: number;
   paid_amount?: number;
   notes: string | null;
+  items?: VendorBillItem[];
   created_by?: string | null;
   created_at: string;
 }

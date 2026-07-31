@@ -1,4 +1,12 @@
+// @ts-ignore
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+
+declare const Deno: {
+  serve: (handler: (req: Request) => Promise<Response>) => void;
+  env: {
+    get: (key: string) => string | undefined;
+  };
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

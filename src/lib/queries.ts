@@ -1,6 +1,7 @@
 import { useDataStore } from './dataStore';
 import type {
   AccountLedgerEntry,
+  AccountLedgerItem,
   ApprovalQueueItem,
   Category,
   ChartOfAccount,
@@ -50,7 +51,9 @@ export function useSalesInvoices() {
 }
 
 export function useInvoiceItems(invoiceId: string | null) {
-  return { data: [], isLoading: false, error: null };
+  const invoices = useDataStore((s) => s.invoices);
+  const items = invoices.find((i) => i.id === invoiceId)?.items ?? [];
+  return { data: items as SalesInvoiceItem[], isLoading: false, error: null };
 }
 
 export function useStockLedger(productId?: string) {
@@ -72,7 +75,25 @@ export function useStockLedger(productId?: string) {
 }
 
 export function useAccountLedger(accountId?: string, partyId?: string) {
-  return { data: [], isLoading: false, error: null };
+  const journalEntries = useDataStore((s) => s.journalEntries);
+  const entries: AccountLedgerItem[] = journalEntries
+    .filter((j) => !accountId || j.lines?.some((l) => l.account_id === accountId))
+    .flatMap((j) =>
+      (j.lines || [])
+        .filter((l) => !accountId || l.account_id === accountId)
+        .map((l) => ({
+          id: `${j.id}-${l.id}`,
+          account_id: l.account_id,
+          party_id: null,
+          voucher_no: j.entry_no,
+          voucher_type: j.entry_type || 'Journal Entry',
+          transaction_date: j.entry_date,
+          description: l.description || j.narration,
+          debit: l.debit || 0,
+          credit: l.credit || 0,
+        }))
+    );
+  return { data: entries, isLoading: false, error: null };
 }
 
 export function useApprovals(status?: string) {

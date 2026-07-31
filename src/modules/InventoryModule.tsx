@@ -467,7 +467,7 @@ export function InventoryModule() {
   }, [allLedgerRecords, appliedProductFilter, appliedWarehouseFilter, appliedFromDate, appliedToDate]);
 
   const handleExportCSV = () => {
-    downloadCSV('inventory_stock_on_hand', products);
+    downloadCSV('inventory_stock_on_hand', products as unknown as Record<string, unknown>[]);
     toast.success('Stock data exported to CSV');
   };
 

@@ -45,7 +45,7 @@ export function GlobalSearchModal({ isOpen, onClose }: Props) {
   const q = query.toLowerCase().trim();
 
   const filteredInvoices = (category === 'all' || category === 'invoices') && q && allowed.includes('sales')
-    ? invoices.filter((i) => i.invoice_no.toLowerCase().includes(q) || (i.customer_name && i.customer_name.toLowerCase().includes(q)))
+    ? invoices.filter((i) => i.invoice_no.toLowerCase().includes(q) || ((i as any).customer_name && (i as any).customer_name.toLowerCase().includes(q)))
     : [];
 
   const filteredProducts = (category === 'all' || category === 'products') && q && allowed.includes('products')
@@ -206,7 +206,7 @@ export function GlobalSearchModal({ isOpen, onClose }: Props) {
                           {inv.invoice_no}
                         </p>
                         <p className="text-[11px] font-medium text-slate-400">
-                          Customer: <span className="text-slate-200">{inv.customer_name || 'N/A'}</span>
+                          Customer: <span className="text-slate-200">{(inv as any).customer_name || 'N/A'}</span>
                         </p>
                       </div>
                     </div>

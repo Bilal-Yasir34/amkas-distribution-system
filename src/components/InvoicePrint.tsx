@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Printer, X, FileText } from 'lucide-react';
 import { useCustomers, useInvoiceItems, useProducts, useWarehouses } from '@/lib/queries';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import type { SalesInvoice } from '@/lib/types';
+import type { SalesInvoice, SalesInvoiceItem } from '@/lib/types';
 import { Modal } from './Modal';
 
 interface Props {
@@ -14,7 +14,8 @@ export function InvoicePrint({ invoice, onClose }: Props) {
   const { data: customers = [] } = useCustomers();
   const { data: warehouses = [] } = useWarehouses();
   const { data: products = [] } = useProducts();
-  const { data: items = [] } = useInvoiceItems(invoice.id);
+  const { data: fetchedItems = [] } = useInvoiceItems(invoice.id);
+  const items: SalesInvoiceItem[] = (invoice.items && invoice.items.length > 0 ? invoice.items : fetchedItems) as SalesInvoiceItem[];
   const [mode, setMode] = useState<'invoice' | 'gatepass'>('invoice');
 
   const customer = customers.find((c) => c.id === invoice.customer_id);
