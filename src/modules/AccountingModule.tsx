@@ -389,7 +389,7 @@ export function AccountingModule() {
       </div>
 
       {/* Sub Tabs Pill Bar matching screenshot */}
-      <div className="rounded-2xl bg-slate-100/90 p-1.5 dark:bg-slate-800/90 flex items-center gap-1 overflow-x-auto">
+      <div className="rounded-2xl bg-slate-100/90 p-1.5 dark:bg-slate-800/90 flex items-center gap-1 overflow-x-auto no-scrollbar whitespace-nowrap">
         {SUBTABS.map((tab) => (
           <button
             key={tab}
@@ -409,7 +409,7 @@ export function AccountingModule() {
       {activeSubTab === 'Overview' && (
         <div className="space-y-6">
           {/* Top Row: 4 Metric Cards */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {/* Card 1: TOTAL ASSETS */}
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL ASSETS</p>

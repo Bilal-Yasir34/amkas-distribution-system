@@ -559,7 +559,7 @@ export function InventoryModule() {
       </div>
 
       {/* Sub Tabs Bar (Matching Screenshot Pill Bar Design) */}
-      <div className="rounded-2xl bg-slate-100/90 p-1.5 dark:bg-slate-800/90 flex items-center gap-1 overflow-x-auto">
+      <div className="rounded-2xl bg-slate-100/90 p-1.5 dark:bg-slate-800/90 flex items-center gap-1 overflow-x-auto no-scrollbar whitespace-nowrap">
         {[
           'Overview',
           'Stock in Hand',

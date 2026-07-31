@@ -114,7 +114,7 @@ export function Settings() {
       </div>
 
       {/* Sub Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-1 overflow-x-auto">
+      <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-1 overflow-x-auto no-scrollbar whitespace-nowrap">
         {['Organization Profile', 'Document Numbering', 'Currencies & Rates', 'Security & Delivery'].map((tab) => (
           <button
             key={tab}

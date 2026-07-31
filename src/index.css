@@ -34,6 +34,15 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { @apply bg-slate-300 dark:bg-slate-700/80 rounded-full; }
   ::-webkit-scrollbar-thumb:hover { @apply bg-amber-500/60; }
+
+  /* Hide scrollbars for mobile tab strips */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 /* Date picker calendar icon visibility fix: black in light theme, white in dark theme */

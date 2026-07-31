@@ -174,7 +174,7 @@ export function Reports() {
       </div>
 
       {/* Sub Tabs Pill Bar */}
-      <div className="rounded-2xl bg-slate-100/90 p-1.5 dark:bg-slate-800/90 flex items-center gap-1 overflow-x-auto">
+      <div className="rounded-2xl bg-slate-100/90 p-1.5 dark:bg-slate-800/90 flex items-center gap-1 overflow-x-auto no-scrollbar whitespace-nowrap">
         {TABS.map((t) => {
           const Icon = t.icon;
           return (

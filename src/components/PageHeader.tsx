@@ -17,12 +17,12 @@ export function PageHeader({ title, subtitle, actions, onSearch, searchValue, se
         <h1 className="text-lg font-semibold text-slate-800 dark:text-white">{title}</h1>
         {subtitle && <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
         {onSearch && (
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-initial w-full sm:w-auto">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
-              className="input pl-9 w-56"
+              className="input pl-9 w-full sm:w-56"
               placeholder={searchPlaceholder ?? 'Search…'}
               value={searchValue ?? ''}
               onChange={(e) => onSearch(e.target.value)}

@@ -241,7 +241,7 @@ export function Dashboard() {
       </div>
 
       {/* Secondary KPI Row */}
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
         <div
           className="cursor-pointer card p-3 hover:border-amber-500/60 shadow-sm hover:shadow-[0_0_20px_rgba(245,158,11,0.25)]"
           onClick={() => setActiveModule('sales')}

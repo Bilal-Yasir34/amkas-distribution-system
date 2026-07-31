@@ -131,7 +131,7 @@ export function Vendors() {
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Vendors</h1>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL VENDORS</p>
           <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">{vendors.length}</p>

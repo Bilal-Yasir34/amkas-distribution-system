@@ -326,11 +326,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               {mobileMenuOpen ? <X className="h-5 w-5 text-amber-500" /> : <Menu className="h-5 w-5 text-amber-500" />}
             </button>
-            <div className="flex items-center gap-1.5 text-xs">
+            <div className="flex items-center gap-1 sm:gap-2 text-xs min-w-0">
               <select
                 value={selectedOrg}
                 onChange={(e) => setSelectedOrg(e.target.value)}
-                className="rounded-2xl border border-slate-300/80 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-800 dark:border-amber-500/30 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 dark:focus:shadow-[0_0_15px_rgba(245,158,11,0.25)] transition"
+                className="max-w-[100px] sm:max-w-[160px] md:max-w-none truncate rounded-2xl border border-slate-300/80 bg-white px-2.5 sm:px-3.5 py-1.5 text-xs font-bold text-slate-800 dark:border-amber-500/30 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 dark:focus:shadow-[0_0_15px_rgba(245,158,11,0.25)] transition"
               >
                 {organizations.length > 0 ? (
                   organizations.map((o) => (
@@ -341,11 +341,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               </select>
             </div>
-            <div className="flex items-center gap-1.5 text-xs">
+            <div className="flex items-center gap-1 sm:gap-2 text-xs min-w-0">
               <select
                 value={selectedBranch}
                 onChange={(e) => setSelectedBranch(e.target.value)}
-                className="rounded-2xl border border-slate-300/80 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-800 dark:border-amber-500/30 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 dark:focus:shadow-[0_0_15px_rgba(245,158,11,0.25)] transition"
+                className="max-w-[90px] sm:max-w-[140px] md:max-w-none truncate rounded-2xl border border-slate-300/80 bg-white px-2.5 sm:px-3.5 py-1.5 text-xs font-bold text-slate-800 dark:border-amber-500/30 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 dark:focus:shadow-[0_0_15px_rgba(245,158,11,0.25)] transition"
               >
                 <option value="All Branches">All Branches</option>
                 {branches.filter((b) => b.is_active !== false).map((b) => (
@@ -356,10 +356,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Search bar & right actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => setSearchOpen(true)}
-              className="group flex w-60 lg:w-72 items-center justify-between rounded-2xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-2 text-xs font-medium text-slate-500 shadow-sm backdrop-blur-md hover:border-amber-500/50 hover:bg-white hover:shadow-[0_0_20px_rgba(245,158,11,0.18)] dark:border-amber-500/30 dark:bg-slate-900/60 dark:text-slate-400 dark:hover:border-amber-400/60 dark:hover:bg-slate-800/80 transition-all duration-200"
+              className="sm:hidden grid h-9 w-9 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-700 hover:border-amber-500/40 dark:border-amber-500/30 dark:bg-slate-800 dark:text-amber-400 transition shrink-0"
+              aria-label="Search"
+            >
+              <Search className="h-4 w-4 text-amber-500" />
+            </button>
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="hidden sm:flex group w-48 md:w-60 lg:w-72 items-center justify-between rounded-2xl border border-slate-200/90 bg-slate-50/90 px-3.5 py-2 text-xs font-medium text-slate-500 shadow-sm backdrop-blur-md hover:border-amber-500/50 hover:bg-white hover:shadow-[0_0_20px_rgba(245,158,11,0.18)] dark:border-amber-500/30 dark:bg-slate-900/60 dark:text-slate-400 dark:hover:border-amber-400/60 dark:hover:bg-slate-800/80 transition-all duration-200"
             >
               <span className="flex items-center gap-2.5">
                 <Search className="h-4 w-4 text-amber-500 transition-transform group-hover:scale-110" />
@@ -374,16 +381,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="relative">
               <button
                 onClick={() => setUserMenu((v) => !v)}
-                className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs transition hover:border-amber-500/40 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] dark:border-amber-500/30 dark:bg-slate-800"
+                className="flex items-center gap-1.5 sm:gap-2 rounded-2xl border border-slate-200 bg-white px-2.5 sm:px-3 py-1.5 text-xs transition hover:border-amber-500/40 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] dark:border-amber-500/30 dark:bg-slate-800"
               >
-                <div className="grid h-6 w-6 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 text-xs font-extrabold text-slate-950 shadow-sm">
+                <div className="grid h-6 w-6 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 text-xs font-extrabold text-slate-950 shadow-sm shrink-0">
                   A
                 </div>
-                <div className="text-left leading-tight">
+                <div className="text-left leading-tight hidden sm:block">
                   <p className="font-extrabold text-slate-800 dark:text-slate-100">{profile?.full_name || 'admin'}</p>
                   <p className="text-[9px] text-amber-500 dark:text-amber-400 font-bold">{roleLabel}</p>
                 </div>
-                <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />
               </button>
 
               {userMenu && (
@@ -409,7 +416,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="grid h-9 w-9 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-600 hover:border-amber-500/40 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] dark:border-amber-500/30 dark:bg-slate-800 dark:text-amber-400 transition"
+              className="grid h-9 w-9 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-600 hover:border-amber-500/40 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] dark:border-amber-500/30 dark:bg-slate-800 dark:text-amber-400 transition shrink-0"
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4 text-slate-700" />}
@@ -441,7 +448,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Content View */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-3.5 sm:p-6">
           {moduleLoading ? (
             activeModule === 'dashboard' ? <DashboardSkeleton /> : <ModuleSkeleton />
           ) : allowed && allowed.length > 0 && !allowed.includes(activeModule as ModuleKey) ? (

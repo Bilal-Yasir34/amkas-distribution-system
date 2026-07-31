@@ -1318,7 +1318,7 @@ export function PurchaseModule() {
       </div>
 
       {/* Sub Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-1 overflow-x-auto">
+      <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-1 overflow-x-auto no-scrollbar whitespace-nowrap">
         {['Overview', 'Requests', 'Purchase Orders', 'Purchase Invoices', 'Vendor Bills', 'Debit Notes', 'Payments'].map(
           (tab) => (
             <button
@@ -1339,7 +1339,7 @@ export function PurchaseModule() {
       {/* OVERVIEW */}
       {activeSubTab === 'Overview' && (
         <div className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-4">
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL PROCURED</p>
               <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">
