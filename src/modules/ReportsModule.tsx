@@ -25,12 +25,12 @@ const REPORT_LIST: ReportTile[] = [
   { code: 'BS', name: 'Balance Sheet', description: 'Assets, liabilities and equity snapshot', category: 'FINANCIAL' },
   { code: 'CF', name: 'Cash Flow Statement', description: 'Cash and bank inflows and outflows', category: 'FINANCIAL' },
   { code: 'S', name: 'Sales Report', description: 'All posted invoices with totals and collections', category: 'OPERATIONAL' },
-  { code: 'P', name: 'Purchase Report', description: 'Vendor bills, payments and outstanding amounts', category: 'OPERATIONAL' },
+  { code: 'P', name: 'Purchase Report', description: 'Supplier bills, payments and outstanding amounts', category: 'OPERATIONAL' },
   { code: 'IV', name: 'Inventory Valuation', description: 'Product-wise stock value at average cost', category: 'OPERATIONAL' },
   { code: 'AR', name: 'Customer Aging', description: 'Receivables grouped by 0-30, 31-60, 61-90, 90+ days', category: 'OPERATIONAL' },
-  { code: 'AP', name: 'Vendor Aging', description: 'Payables grouped by 0-30, 31-60, 61-90, 90+ days', category: 'OPERATIONAL' },
+  { code: 'AP', name: 'Supplier Aging', description: 'Payables grouped by 0-30, 31-60, 61-90, 90+ days', category: 'OPERATIONAL' },
   { code: 'C', name: 'Customer Report', description: 'Sales, receipts and outstanding balances per customer', category: 'OPERATIONAL' },
-  { code: 'V', name: 'Vendor Report', description: 'Purchases, payments and outstanding per vendor', category: 'OPERATIONAL' },
+  { code: 'V', name: 'Supplier Report', description: 'Purchases, payments and outstanding per supplier', category: 'OPERATIONAL' },
   { code: 'T', name: 'Tax Report', description: 'Output tax, input tax and net tax position', category: 'OPERATIONAL' },
   { code: 'B', name: 'Bank Report', description: 'Cash and bank ledger balances', category: 'OPERATIONAL' },
   { code: 'SP', name: 'Salesperson Report', description: 'Sales and commission by salesperson', category: 'OPERATIONAL' },
@@ -284,11 +284,11 @@ export function ReportsModule() {
               </div>
               <table className="w-full text-xs text-left">
                 <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
-                  <tr><th className="px-4 py-3">Bill No</th><th className="px-4 py-3">Vendor</th><th className="px-4 py-3">Date</th><th className="px-4 py-3 text-right">Total</th><th className="px-4 py-3 text-right">Paid</th><th className="px-4 py-3 text-right">Balance</th></tr>
+                  <tr><th className="px-4 py-3">Bill No</th><th className="px-4 py-3">Supplier</th><th className="px-4 py-3">Date</th><th className="px-4 py-3 text-right">Total</th><th className="px-4 py-3 text-right">Paid</th><th className="px-4 py-3 text-right">Balance</th></tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {purchaseRows.length === 0 ? (
-                    <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No posted vendor bills yet.</td></tr>
+                    <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No posted supplier bills yet.</td></tr>
                   ) : purchaseRows.map((r, i) => (
                     <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                       <td className="px-4 py-2.5 font-mono font-semibold text-rose-400">{r.bill_no}</td>

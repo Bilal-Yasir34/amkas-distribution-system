@@ -184,68 +184,71 @@ export function Branches() {
 
       {/* FORM MODAL */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ORGANIZATION STRUCTURE</p>
-                <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">ORGANIZATION STRUCTURE</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                   {editingId ? 'Edit branch' : 'New branch'}
                 </h3>
               </div>
-              <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-white">
-                <X className="h-5 w-5" />
+              <button
+                onClick={() => setModalOpen(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="space-y-3">
               <div>
-                <label className="text-[11px] font-semibold text-slate-400">Branch name</label>
+                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Branch name</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                  className="input text-xs mt-1"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-slate-400">Branch code</label>
+                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Branch code</label>
                 <input
                   type="text"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                  className="input text-xs mt-1"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-slate-400">Address</label>
+                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Address</label>
                 <textarea
                   rows={2}
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                  className="input text-xs mt-1"
                 />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-400">Phone</label>
+                  <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Phone</label>
                   <input
                     type="text"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                    className="input text-xs mt-1"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-400">Email</label>
+                  <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                    className="input text-xs mt-1"
                   />
                 </div>
               </div>
@@ -255,22 +258,22 @@ export function Branches() {
                   type="checkbox"
                   checked={isActive}
                   onChange={(e) => setIsActive(e.target.checked)}
-                  className="h-4 w-4 rounded accent-amber-500"
+                  className="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
                 />
-                <span className="text-xs text-slate-700 dark:text-slate-300">Active Branch</span>
+                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Active Branch</span>
               </label>
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={() => setModalOpen(false)}
-                className="rounded-lg border border-slate-300 px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:text-slate-300"
+                className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="btn-primary"
+                className="btn-primary text-xs px-5"
               >
                 {editingId ? 'Update branch' : 'Save branch'}
               </button>

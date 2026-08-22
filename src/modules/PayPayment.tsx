@@ -20,7 +20,7 @@ export function PayPayment() {
 
   const handlePostPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!paidTo) return toast.error('Please select customer, vendor or account');
+    if (!paidTo) return toast.error('Please select customer, supplier or account');
     if (!amount || Number(amount) <= 0) return toast.error('Please enter a valid payment amount');
 
     const amtNum = Number(amount);
@@ -93,7 +93,7 @@ export function PayPayment() {
           <div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Pay Payment</h2>
             <p className="text-xs font-medium text-slate-500 mt-1">
-              Use one payment screen for vendors, customers or direct account heads.
+              Use one payment screen for suppliers, customers or direct account heads.
             </p>
           </div>
 
@@ -106,8 +106,8 @@ export function PayPayment() {
                 onChange={(e) => setPaidTo(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               >
-                <option value="">Select customer, vendor or account</option>
-                <optgroup label="Vendors">
+                <option value="">Select customer, supplier or account</option>
+                <optgroup label="Suppliers">
                   {vendors.filter((v) => v.is_active).map((v) => (
                     <option key={`v-${v.id}`} value={v.id}>
                       {v.name} ({v.code})
@@ -123,7 +123,7 @@ export function PayPayment() {
                 </optgroup>
                 <optgroup label="Direct Account Heads">
                   <option value="acc-ap">Accounts Payable</option>
-                  <option value="acc-advance">Vendor Advances</option>
+                  <option value="acc-advance">Supplier Advances</option>
                   <option value="acc-direct-exp">Direct Expenses</option>
                   <option value="acc-op-exp">Operating Expenses</option>
                 </optgroup>
@@ -253,7 +253,7 @@ export function PayPayment() {
 
             {/* Light Emerald Notice Box matching screenshot */}
             <div className="rounded-xl bg-amber-500/10 dark:bg-amber-500/10 p-3.5 border border-amber-500/30 dark:border-amber-500/20 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
-              Vendor payments auto-allocate to outstanding bills. Customer/account payments post directly through the journal with CP numbering.
+              Supplier payments auto-allocate to outstanding bills. Customer/account payments post directly through the journal with CP numbering.
             </div>
           </div>
 

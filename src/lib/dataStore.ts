@@ -4,6 +4,7 @@ import { ROLE_MODULES, type Role, type ModuleKey } from './rbac';
 import type {
   Customer,
   Vendor,
+  AccountTypeItem,
   Product,
   Category,
   Warehouse,
@@ -18,6 +19,8 @@ import type {
   PurchaseInvoice,
   VendorBill,
   DebitNote,
+  SalesReturn,
+  PurchaseReturn,
   VendorPayment,
   StockTransfer,
   StockAdjustment,
@@ -79,6 +82,7 @@ interface DataStoreState {
   // State Arrays
   customers: Customer[];
   vendors: Vendor[];
+  accountTypes: AccountTypeItem[];
   products: Product[];
   categories: Category[];
   warehouses: Warehouse[];
@@ -93,6 +97,8 @@ interface DataStoreState {
   purchaseInvoices: PurchaseInvoice[];
   vendorBills: VendorBill[];
   debitNotes: DebitNote[];
+  salesReturns: SalesReturn[];
+  purchaseReturns: PurchaseReturn[];
   vendorPayments: VendorPayment[];
   stockTransfers: StockTransfer[];
   stockAdjustments: StockAdjustment[];
@@ -138,6 +144,11 @@ interface DataStoreState {
   addCustomer: (c: Omit<Customer, 'id'>) => void;
   updateCustomer: (id: string, c: Partial<Customer>) => void;
   deleteCustomer: (id: string) => void;
+
+  // Account Type Actions
+  addAccountType: (at: Omit<AccountTypeItem, 'id'>) => void;
+  updateAccountType: (id: string, at: Partial<AccountTypeItem>) => void;
+  deleteAccountType: (id: string) => void;
 
   // Vendor Actions
   addVendor: (v: Omit<Vendor, 'id'>) => void;
@@ -204,6 +215,14 @@ interface DataStoreState {
   addDebitNote: (dn: Omit<DebitNote, 'id'>) => void;
   updateDebitNote: (id: string, dn: Partial<DebitNote>) => void;
   deleteDebitNote: (id: string) => void;
+
+  addSalesReturn: (sr: Omit<SalesReturn, 'id'>) => void;
+  updateSalesReturn: (id: string, patch: Partial<SalesReturn>) => void;
+  deleteSalesReturn: (id: string) => void;
+
+  addPurchaseReturn: (pr: Omit<PurchaseReturn, 'id'>) => void;
+  updatePurchaseReturn: (id: string, patch: Partial<PurchaseReturn>) => void;
+  deletePurchaseReturn: (id: string) => void;
 
   addVendorPayment: (vp: Omit<VendorPayment, 'id'>) => void;
   updateVendorPayment: (id: string, vp: Partial<VendorPayment>) => void;
@@ -276,6 +295,13 @@ export const useDataStore = create<DataStoreState>()(
     (set) => ({
       customers: initialCustomers,
       vendors: initialVendors,
+      accountTypes: [
+        { id: 'at-1', code: 'AT-001', name: 'Customer', description: 'Customer account for sales and receivables', is_active: true, created_at: new Date().toISOString() },
+        { id: 'at-2', code: 'AT-002', name: 'Supplier', description: 'Supplier / Vendor account for purchases and payables', is_active: true, created_at: new Date().toISOString() },
+        { id: 'at-3', code: 'AT-003', name: 'Salesperson', description: 'Sales agent account with commission tracking', is_active: true, created_at: new Date().toISOString() },
+        { id: 'at-4', code: 'AT-004', name: 'Vendor', description: 'Third-party vendor account', is_active: true, created_at: new Date().toISOString() },
+        { id: 'at-5', code: 'AT-005', name: 'Distributor', description: 'Distributor and channel partner account', is_active: true, created_at: new Date().toISOString() },
+      ],
       products: initialProducts,
       categories: initialCategories,
       warehouses: initialWarehouses,
@@ -290,6 +316,8 @@ export const useDataStore = create<DataStoreState>()(
       purchaseInvoices: [],
       vendorBills: [],
       debitNotes: [],
+      salesReturns: [],
+      purchaseReturns: [],
       vendorPayments: [],
       stockTransfers: [],
       stockAdjustments: [],
@@ -746,6 +774,14 @@ export const useDataStore = create<DataStoreState>()(
       addDebitNote: (dn) => set((s) => ({ debitNotes: [{ id: crypto.randomUUID(), ...dn }, ...s.debitNotes] })),
       updateDebitNote: (id, patch) => set((s) => ({ debitNotes: s.debitNotes.map((dn) => (dn.id === id ? { ...dn, ...patch } : dn)) })),
       deleteDebitNote: (id) => set((s) => ({ debitNotes: s.debitNotes.filter((dn) => dn.id !== id) })),
+
+      addSalesReturn: (sr) => set((s) => ({ salesReturns: [{ id: crypto.randomUUID(), ...sr }, ...s.salesReturns] })),
+      updateSalesReturn: (id, patch) => set((s) => ({ salesReturns: s.salesReturns.map((sr) => (sr.id === id ? { ...sr, ...patch } : sr)) })),
+      deleteSalesReturn: (id) => set((s) => ({ salesReturns: s.salesReturns.filter((sr) => sr.id !== id) })),
+
+      addPurchaseReturn: (pr) => set((s) => ({ purchaseReturns: [{ id: crypto.randomUUID(), ...pr }, ...s.purchaseReturns] })),
+      updatePurchaseReturn: (id, patch) => set((s) => ({ purchaseReturns: s.purchaseReturns.map((pr) => (pr.id === id ? { ...pr, ...patch } : pr)) })),
+      deletePurchaseReturn: (id) => set((s) => ({ purchaseReturns: s.purchaseReturns.filter((pr) => pr.id !== id) })),
 
       addVendorPayment: (vp) => set((s) => ({ vendorPayments: [{ id: crypto.randomUUID(), ...vp }, ...s.vendorPayments] })),
       updateVendorPayment: (id, patch) => set((s) => ({ vendorPayments: s.vendorPayments.map((vp) => (vp.id === id ? { ...vp, ...patch } : vp)) })),

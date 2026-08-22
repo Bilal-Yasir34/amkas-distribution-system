@@ -20,7 +20,7 @@ import {
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
-import { todayISO } from '@/lib/utils';
+import { todayISO, safeUUID, nextDocNumber } from '@/lib/utils';
 import { InvoicePrint } from '@/components/InvoicePrint';
 import type { SalesInvoice, Customer, Quotation, SalesOrder, QuotationItem, SalesOrderItem, CreditNote, CreditNoteItem, CustomerReceipt } from '@/lib/types';
 
@@ -65,9 +65,7 @@ export function SalesModule() {
   const [commFromDate, setCommFromDate] = useState('2026-07-01');
   const [commToDate, setCommToDate] = useState('2026-07-22');
 
-  const [activeSubTab, setActiveSubTab] = useState<
-    'Overview' | 'Quotations' | 'Sales Orders' | 'Invoices' | 'Credit Notes' | 'Receipts' | 'Pipeline' | 'Commissions'
-  >('Overview');
+  const [activeSubTab, setActiveSubTab] = useState<'Sales' | 'Quotations' | 'Sales Orders' | 'Credit Notes' | 'Receipts' | 'Commissions' | 'Pipeline' | 'Invoices'>('Sales');
 
   // Modals state
   const [newInvoiceOpen, setNewInvoiceOpen] = useState(false);
@@ -100,10 +98,21 @@ export function SalesModule() {
   >([{ id: '1', product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
 
   // Invoice Form State (matching screenshots)
-  const [invoiceViewMode, setInvoiceViewMode] = useState<'list' | 'form'>('form');
+  const [invoiceViewMode, setInvoiceViewMode] = useState<'list' | 'form'>('list');
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
 
+  const [invPartyType, setInvPartyType] = useState<'Customer' | 'Vendor'>('Customer');
   const [invCustomerId, setInvCustomerId] = useState('');
+
+  const handlePartyTypeChange = (type: 'Customer' | 'Vendor') => {
+    setInvPartyType(type);
+    if (type === 'Customer') {
+      setInvCustomerId(customers[0]?.id || '');
+    } else {
+      setInvCustomerId(vendors[0]?.id || '');
+    }
+  };
+
   const [invDocDate, setInvDocDate] = useState('2026-07-22');
   const [invDueDate, setInvDueDate] = useState('2026-07-29');
   const [invSalesperson, setInvSalesperson] = useState('Unassigned');
@@ -116,6 +125,7 @@ export function SalesModule() {
   const [invCommissionRate, setInvCommissionRate] = useState(0);
   const [invNotes, setInvNotes] = useState('');
   const [invTermsConditions, setInvTermsConditions] = useState('');
+  const [invReferenceNo, setInvReferenceNo] = useState('');
 
   const [invLineItems, setInvLineItems] = useState<
     { id: string; product_id: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
@@ -123,6 +133,7 @@ export function SalesModule() {
 
   const openCreateInvoiceForm = () => {
     setEditingInvoiceId(null);
+    setInvPartyType('Customer');
     setInvCustomerId(customers[0]?.id || '');
     setInvDocDate(todayISO());
     setInvDueDate(todayISO());
@@ -136,15 +147,20 @@ export function SalesModule() {
     setInvCommissionRate(0);
     setInvNotes('');
     setInvTermsConditions('');
+    const autoRef = nextDocNumber('SL', (invoices || []).map((i) => i.invoice_no), 2);
+    setInvReferenceNo(autoRef);
     setInvLineItems([
-      { id: crypto.randomUUID(), product_id: products[0]?.id || '', description: products[0]?.name || '', qty: 1, rate: products[0]?.sale_price || 0, discount: 0, tax_pct: products[0]?.tax_pct || 0 },
+      { id: safeUUID(), product_id: products[0]?.id || '', description: products[0]?.name || '', qty: 1, rate: products[0]?.sale_price || 0, discount: 0, tax_pct: products[0]?.tax_pct || 0 },
     ]);
     setInvoiceViewMode('form');
   };
 
   const openEditInvoiceForm = (inv: SalesInvoice) => {
     setEditingInvoiceId(inv.id);
-    setInvCustomerId(inv.customer_id || customers[0]?.id || '');
+    setInvReferenceNo(inv.invoice_no || '');
+    const isVendor = vendors.some((v) => v.id === inv.customer_id);
+    setInvPartyType(isVendor ? 'Vendor' : 'Customer');
+    setInvCustomerId(inv.customer_id || (isVendor ? vendors[0]?.id : customers[0]?.id) || '');
     setInvDocDate(inv.invoice_date || todayISO());
     setInvDueDate(inv.due_date || todayISO());
     setInvSalesperson(inv.salesperson || 'Unassigned');
@@ -161,7 +177,7 @@ export function SalesModule() {
     if (inv.items && inv.items.length > 0) {
       setInvLineItems(
         inv.items.map((i) => ({
-          id: i.id || crypto.randomUUID(),
+          id: i.id || safeUUID(),
           product_id: i.product_id || '',
           description: i.description || '',
           qty: i.qty || 1,
@@ -172,7 +188,7 @@ export function SalesModule() {
       );
     } else {
       setInvLineItems([
-        { id: crypto.randomUUID(), product_id: '', description: '', qty: 1, rate: inv.subtotal || inv.total_amount || 0, discount: inv.discount_total || 0, tax_pct: 0 },
+        { id: safeUUID(), product_id: '', description: '', qty: 1, rate: inv.subtotal || inv.total_amount || 0, discount: inv.discount_total || 0, tax_pct: 0 },
       ]);
     }
     setInvoiceViewMode('form');
@@ -181,7 +197,7 @@ export function SalesModule() {
   const addInvLineItem = () => {
     setInvLineItems((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 },
+      { id: safeUUID(), product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 },
     ]);
   };
 
@@ -275,7 +291,7 @@ export function SalesModule() {
       });
       toast.success(`Invoice updated (${status})`);
     } else {
-      const invoiceNo = `MS-${String(invoices.length + 1).padStart(5, '0')}`;
+      const invoiceNo = invReferenceNo || nextDocNumber('SL', (invoices || []).map((i) => i.invoice_no), 2);
       addInvoice({
         invoice_no: invoiceNo,
         customer_id: invCustomerId,
@@ -338,7 +354,7 @@ export function SalesModule() {
     setCnNotes('');
     setCnTermsConditions('');
     setCnLineItems([
-      { id: crypto.randomUUID(), product_id: products[0]?.id || '', description: products[0]?.name || '', qty: 1, rate: products[0]?.sale_price || 0, discount: 0, tax_pct: products[0]?.tax_pct || 0 },
+      { id: safeUUID(), product_id: products[0]?.id || '', description: products[0]?.name || '', qty: 1, rate: products[0]?.sale_price || 0, discount: 0, tax_pct: products[0]?.tax_pct || 0 },
     ]);
     setCreditNoteViewMode('form');
   };
@@ -358,7 +374,7 @@ export function SalesModule() {
     if (cn.items && cn.items.length > 0) {
       setCnLineItems(
         cn.items.map((i: CreditNoteItem) => ({
-          id: i.id || crypto.randomUUID(),
+          id: i.id || safeUUID(),
           product_id: i.product_id || '',
           description: i.description || '',
           qty: i.qty || 1,
@@ -369,7 +385,7 @@ export function SalesModule() {
       );
     } else {
       setCnLineItems([
-        { id: crypto.randomUUID(), product_id: '', description: '', qty: 1, rate: cn.subtotal || cn.total_amount || 0, discount: cn.discount_total || 0, tax_pct: 0 },
+        { id: safeUUID(), product_id: '', description: '', qty: 1, rate: cn.subtotal || cn.total_amount || 0, discount: cn.discount_total || 0, tax_pct: 0 },
       ]);
     }
     setCreditNoteViewMode('form');
@@ -378,7 +394,7 @@ export function SalesModule() {
   const addCnLineItem = () => {
     setCnLineItems((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 },
+      { id: safeUUID(), product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 },
     ]);
   };
 
@@ -619,7 +635,7 @@ export function SalesModule() {
     setSalesDocNotes('');
     setSalesDocLineItems([
       {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         product_id: products[0]?.id || '',
         description: products[0]?.name || '',
         qty: 1,
@@ -649,7 +665,7 @@ export function SalesModule() {
     if (q.items && q.items.length > 0) {
       setSalesDocLineItems(
         q.items.map((i) => ({
-          id: i.id || crypto.randomUUID(),
+          id: i.id || safeUUID(),
           product_id: i.product_id || '',
           description: i.description || '',
           qty: i.qty || 1,
@@ -661,7 +677,7 @@ export function SalesModule() {
     } else {
       setSalesDocLineItems([
         {
-          id: crypto.randomUUID(),
+          id: safeUUID(),
           product_id: products[0]?.id || '',
           description: products[0]?.name || 'Standard Quotation Line',
           qty: 1,
@@ -690,7 +706,7 @@ export function SalesModule() {
     setSalesDocNotes('');
     setSalesDocLineItems([
       {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         product_id: products[0]?.id || '',
         description: products[0]?.name || '',
         qty: 1,
@@ -720,7 +736,7 @@ export function SalesModule() {
     if (so.items && so.items.length > 0) {
       setSalesDocLineItems(
         so.items.map((i) => ({
-          id: i.id || crypto.randomUUID(),
+          id: i.id || safeUUID(),
           product_id: i.product_id || '',
           description: i.description || '',
           qty: i.qty || 1,
@@ -732,7 +748,7 @@ export function SalesModule() {
     } else {
       setSalesDocLineItems([
         {
-          id: crypto.randomUUID(),
+          id: safeUUID(),
           product_id: products[0]?.id || '',
           description: products[0]?.name || 'Standard Order Line',
           qty: 1,
@@ -756,7 +772,7 @@ export function SalesModule() {
   const addSalesDocLine = () => {
     setSalesDocLineItems((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 },
+      { id: safeUUID(), product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 },
     ]);
   };
 
@@ -966,16 +982,7 @@ export function SalesModule() {
 
       {/* Sub Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-1 overflow-x-auto no-scrollbar whitespace-nowrap">
-        {[
-          'Overview',
-          'Quotations',
-          'Sales Orders',
-          'Invoices',
-          'Credit Notes',
-          'Receipts',
-          'Pipeline',
-          'Commissions',
-        ].map((tab) => (
+        {['Sales'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveSubTab(tab as any)}
@@ -990,515 +997,489 @@ export function SalesModule() {
         ))}
       </div>
 
-      {/* OVERVIEW */}
-      {activeSubTab === 'Overview' && (
-        <div className="space-y-5">
-          <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL INVOICED</p>
-              <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">
-                Rs. {totalInvoicedSum.toLocaleString()}
-              </p>
+      {/* SALES TAB */}
+      {activeSubTab === 'Sales' && (
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SALES WORKFLOW</p>
+                <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Sales register</h2>
+              </div>
+              <button
+                onClick={openCreateInvoiceForm}
+                className="flex items-center gap-2 btn-primary shadow-sm"
+              >
+                <Plus className="h-4 w-4" /> New Sales
+              </button>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">QUOTATIONS</p>
-              <p className="mt-1 text-2xl font-extrabold text-amber-500">{quotations.length}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SALES ORDERS</p>
-              <p className="mt-1 text-2xl font-extrabold text-purple-400">{salesOrders.length}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CREDIT NOTES</p>
-              <p className="mt-1 text-2xl font-extrabold text-rose-500">{creditNotes.length}</p>
+
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
+                  <tr>
+                    <th className="px-4 py-3">Number</th>
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3">Party / Customer</th>
+                    <th className="px-4 py-3">Amount</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {invoices.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                        No sales recorded yet. Click New Sales to create one.
+                      </td>
+                    </tr>
+                  ) : (
+                    invoices.map((inv) => {
+                      const party = customers.find((c) => c.id === inv.customer_id) || vendors.find((v) => v.id === inv.customer_id);
+                      return (
+                        <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                          <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{inv.invoice_no}</td>
+                          <td className="px-4 py-3 text-slate-400">{inv.invoice_date}</td>
+                          <td className="px-4 py-3 font-medium text-slate-200">{party?.name || 'Party'}</td>
+                          <td className="px-4 py-3 font-mono font-semibold text-slate-100">
+                            {inv.currency || 'Rs.'} {inv.total_amount?.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${inv.status === 'POSTED' ? 'bg-amber-500/15 text-amber-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                              {inv.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {isAdmin && (
+                                <button onClick={() => openEditInvoiceForm(inv)} className="p-1 text-slate-400 hover:text-amber-400" title="Edit Invoice">
+                                  <Edit className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                              <button onClick={() => setPrintInvoice(inv)} className="p-1 text-slate-400 hover:text-white" title="Print Invoice">
+                                <Printer className="h-3.5 w-3.5" />
+                              </button>
+                              {isAdmin && (
+                                <button onClick={() => { deleteInvoice(inv.id); toast.success('Invoice deleted'); }} className="text-xs text-rose-500 hover:underline">
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* INVOICES TAB */}
-      {activeSubTab === 'Invoices' && (
-        <div className="space-y-6">
-          {invoiceViewMode === 'list' ? (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SALES WORKFLOW</p>
-                  <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Invoice register</h2>
+          {/* NEW SALES INVOICE FORM MODAL */}
+          {invoiceViewMode === 'form' && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="w-full max-w-6xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900 space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 font-mono">SALES INVOICE WORKFLOW</p>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                      {editingInvoiceId ? 'Edit Sales Invoice' : 'New Sales Invoice'}
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setInvoiceViewMode('list')}
+                    className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
-                <button
-                  onClick={openCreateInvoiceForm}
-                  className="flex items-center gap-2 btn-primary shadow-sm"
-                >
-                  <Plus className="h-4 w-4" /> New invoice
-                </button>
-              </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
-                    <tr>
-                      <th className="px-4 py-3">Number</th>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Customer</th>
-                      <th className="px-4 py-3">Amount</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {invoices.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                          No invoices recorded yet. Click New Invoice to create one.
-                        </td>
-                      </tr>
-                    ) : (
-                      invoices.map((inv) => {
-                        const cust = customers.find((c) => c.id === inv.customer_id);
-                        return (
-                          <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{inv.invoice_no}</td>
-                            <td className="px-4 py-3 text-slate-400">{inv.invoice_date}</td>
-                            <td className="px-4 py-3 font-medium text-slate-200">{cust?.name || 'Customer'}</td>
-                            <td className="px-4 py-3 font-mono font-semibold text-slate-100">
-                              {inv.currency || 'Rs.'} {inv.total_amount?.toLocaleString()}
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${inv.status === 'POSTED' ? 'bg-amber-500/15 text-amber-500' : 'bg-amber-500/10 text-amber-500'}`}>
-                                {inv.status}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                {isAdmin && (
-                                  <button onClick={() => openEditInvoiceForm(inv)} className="p-1 text-slate-400 hover:text-amber-400" title="Edit Invoice">
-                                    <Edit className="h-3.5 w-3.5" />
-                                  </button>
-                                )}
-                                <button onClick={() => setPrintInvoice(inv)} className="p-1 text-slate-400 hover:text-white" title="Print Invoice">
-                                  <Printer className="h-3.5 w-3.5" />
-                                </button>
-                                {isAdmin && (
-                                  <button onClick={() => { deleteInvoice(inv.id); toast.success('Invoice deleted'); }} className="text-xs text-rose-500 hover:underline">
-                                    Delete
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            /* NEW SALES INVOICE FORM (Matching Screenshots 1 & 2) */
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <button
-                  onClick={() => setInvoiceViewMode('list')}
-                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
-                >
-                  ← Back to Invoice Register
-                </button>
-              </div>
+                {/* TOP SECTION: Header Details & Posting Actions */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left Card */}
+                  <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                      {editingInvoiceId ? 'Edit Sales' : 'New Sales'}
+                    </h2>
 
-              {/* TOP SECTION: Main Card (Left) & Workflow Card (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                    {editingInvoiceId ? 'Edit Sales Invoice' : 'New Sales Invoice'}
-                  </h2>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 font-mono">Ref / Invoice No</label>
+                        <input
+                          type="text"
+                          value={invReferenceNo}
+                          onChange={(e) => setInvReferenceNo(e.target.value)}
+                          placeholder="e.g. SL-01"
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-bold text-amber-500 dark:border-slate-700 dark:bg-slate-800 outline-none focus:border-amber-500"
+                        />
+                      </div>
 
-                  {/* Row 1: Customer, Document Date, Due Date */}
-                  <div className="grid gap-4 sm:grid-cols-3">
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Type</label>
+                        <select
+                          value={invPartyType}
+                          onChange={(e) => handlePartyTypeChange(e.target.value as 'Customer' | 'Vendor')}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        >
+                          <option value="Customer">Customer</option>
+                          <option value="Supplier">Supplier</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                          Select {invPartyType}
+                        </label>
+                        <select
+                          value={invCustomerId}
+                          onChange={(e) => setInvCustomerId(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        >
+                          <option value="">Select {invPartyType.toLowerCase()}</option>
+                          {invPartyType === 'Customer'
+                            ? customers.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name}
+                                </option>
+                              ))
+                            : vendors.map((v) => (
+                                <option key={v.id} value={v.id}>
+                                  {v.name}
+                                </option>
+                              ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Document date</label>
+                        <input
+                          type="date"
+                          value={invDocDate}
+                          onChange={(e) => setInvDocDate(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Due date</label>
+                        <input
+                          type="date"
+                          value={invDueDate}
+                          onChange={(e) => setInvDueDate(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Salesperson</label>
+                        <select
+                          value={invSalesperson}
+                          onChange={(e) => setInvSalesperson(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        >
+                          <option value="Unassigned">Unassigned</option>
+                          <option value="admin">Admin</option>
+                          <option value="Sales Rep 1">Sales Rep 1</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Currency</label>
+                        <select
+                          value={invCurrency}
+                          onChange={(e) => setInvCurrency(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        >
+                          <option value="PKR">PKR</option>
+                          <option value="USD">USD</option>
+                          <option value="EUR">EUR</option>
+                          <option value="GBP">GBP</option>
+                          <option value="AED">AED</option>
+                          <option value="SAR">SAR</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Exchange rate</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={invExchangeRate}
+                          onChange={(e) => setInvExchangeRate(Number(e.target.value))}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+
                     <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Customer</label>
+                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Warehouse</label>
                       <select
-                        value={invCustomerId}
-                        onChange={(e) => setInvCustomerId(e.target.value)}
+                        value={invWarehouseId}
+                        onChange={(e) => setInvWarehouseId(e.target.value)}
                         className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
-                        <option value="">Select customer</option>
-                        {customers.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
+                        {warehouses.map((w) => (
+                          <option key={w.id} value={w.id}>
+                            {w.name} ({w.code})
                           </option>
                         ))}
                       </select>
                     </div>
 
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Document date</label>
-                      <input
-                        type="date"
-                        value={invDocDate}
-                        onChange={(e) => setInvDocDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account category</label>
+                        <select
+                          value={invAccountCategory}
+                          onChange={(e) => setInvAccountCategory(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        >
+                          <option value="All account categories">All account categories</option>
+                          <option value="Sales Accounts">Sales Accounts</option>
+                          <option value="Revenue Heads">Revenue Heads</option>
+                        </select>
+                      </div>
 
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Due date</label>
-                      <input
-                        type="date"
-                        value={invDueDate}
-                        onChange={(e) => setInvDueDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 2: Salesperson, Currency, Exchange rate */}
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Salesperson</label>
-                      <select
-                        value={invSalesperson}
-                        onChange={(e) => setInvSalesperson(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="Unassigned">Unassigned</option>
-                        <option value="admin">Admin</option>
-                        <option value="Sales Rep 1">Sales Rep 1</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Currency</label>
-                      <select
-                        value={invCurrency}
-                        onChange={(e) => setInvCurrency(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="PKR">PKR</option>
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
-                        <option value="AED">AED</option>
-                        <option value="SAR">SAR</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Exchange rate</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={invExchangeRate}
-                        onChange={(e) => setInvExchangeRate(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account head</label>
+                        <select
+                          value={invAccountHead}
+                          onChange={(e) => setInvAccountHead(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        >
+                          <option value="Default Sales Revenue">Default Sales Revenue</option>
+                          <option value="4000 - Product Sales Revenue">4000 - Product Sales Revenue</option>
+                          <option value="4100 - Service Revenue">4100 - Service Revenue</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Row 3: Warehouse (Full Width) */}
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Warehouse</label>
-                    <select
-                      value={invWarehouseId}
-                      onChange={(e) => setInvWarehouseId(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                    >
-                      {warehouses.map((w) => (
-                        <option key={w.id} value={w.id}>
-                          {w.code || 'MAIN'} · {w.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {/* Right Card */}
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-5 flex flex-col justify-between">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <TrendingUp className="h-4 w-4 text-amber-500" />
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                          Posting & Actions
+                        </h3>
+                      </div>
 
-                  {/* Row 4: Gate pass number, Account category, Account head */}
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Gate pass number</label>
-                      <input
-                        type="text"
-                        value={invGatePassNo}
-                        onChange={(e) => setInvGatePassNo(e.target.value)}
-                        placeholder="Manual gate pass no."
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Gate pass no</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. GP-9988"
+                          value={invGatePassNo}
+                          onChange={(e) => setInvGatePassNo(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                          Salesperson commission rate (%)
+                        </label>
+                        <div className="relative mt-1">
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={invCommissionRate}
+                            onChange={(e) => setInvCommissionRate(Number(e.target.value))}
+                            className="w-full rounded-xl border border-slate-300 bg-white p-2.5 pr-8 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                          />
+                          <Percent className="absolute right-3 top-3 h-3.5 w-3.5 text-slate-400" />
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 space-y-1">
+                        <p className="text-[11px] font-bold text-amber-500">Posting Status</p>
+                        <p className="text-[10px] text-slate-400">
+                          Posting this invoice automatically debits Customer AR and credits Sales Revenue, creating stock ledger entries.
+                        </p>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account category</label>
-                      <select
-                        value={invAccountCategory}
-                        onChange={(e) => setInvAccountCategory(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                    <div className="space-y-2 pt-4">
+                      <button
+                        onClick={() => handleSaveSalesInvoiceRecord('POSTED')}
+                        className="w-full btn-primary py-3 text-xs font-bold tracking-wide shadow-md"
                       >
-                        <option value="All account categories">All account categories</option>
-                        <option value="Revenue">Revenue</option>
-                        <option value="Income">Income</option>
-                        <option value="Sales">Sales</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account head</label>
-                      <select
-                        value={invAccountHead}
-                        onChange={(e) => setInvAccountHead(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        Save & Post Sales Invoice
+                      </button>
+                      <button
+                        onClick={() => handleSaveSalesInvoiceRecord('UNPOSTED')}
+                        className="w-full rounded-xl border border-slate-300 bg-white py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition"
                       >
-                        <option value="Default Sales Revenue">Default Sales Revenue</option>
-                        <option value="Sales Revenue">Sales Revenue</option>
-                        <option value="Other Income">Other Income</option>
-                      </select>
-                      <p className="mt-1 text-[10px] text-slate-400 leading-tight">
-                        Choose the account category first, then select the account head.
-                      </p>
+                        Save as Draft (Unposted)
+                      </button>
+                      <button
+                        onClick={() => setInvoiceViewMode('list')}
+                        className="w-full py-2 text-center text-xs font-semibold text-slate-400 hover:text-slate-200"
+                      >
+                        Cancel
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Workflow Card (Right - 1 Column) */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Workflow</h3>
-
-                    {/* Mint Green Notice Box */}
-                    <div className="rounded-xl bg-amber-500/10 p-4 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 text-xs leading-relaxed border border-amber-500/20 dark:border-amber-500/20">
-                      Posting this document updates customer balances, the general ledger and inventory immediately.
-                    </div>
-
-                    {/* Commission rate % */}
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Commission rate %</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={invCommissionRate}
-                        onChange={(e) => setInvCommissionRate(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    {/* Key-Value Details */}
-                    <div className="space-y-2.5 pt-2 text-xs">
-                      <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
-                        <span>Organization</span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100">AMKAS INTERNATIONAL</span>
-                      </div>
-                      <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
-                        <span>Branch</span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100">All branches</span>
-                      </div>
-                      <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
-                        <span>Number</span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100">
-                          {editingInvoiceId ? 'MS-' + editingInvoiceId.slice(0, 5) : 'Assigned on save'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                {/* BOTTOM SECTION: Line Items Table */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
+                  <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Item Details</h3>
                     <button
-                      type="button"
-                      onClick={() => setInvoiceViewMode('list')}
-                      className="rounded-xl border border-slate-300 px-5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
+                      onClick={addInvLineItem}
+                      className="text-xs font-bold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
                     >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSaveSalesInvoiceRecord('POSTED')}
-                      className="btn-primary"
-                    >
-                      Save & Post
+                      <Plus className="h-3.5 w-3.5" /> Add Product Row
                     </button>
                   </div>
-                </div>
-              </div>
 
-              {/* MIDDLE SECTION: Line Items Card (Full Width) */}
-              <div className="card p-6 space-y-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 font-heading">LINE ITEMS</p>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Products and services</h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addInvLineItem}
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition"
-                  >
-                    + Add line
-                  </button>
-                </div>
-
-                {/* Line Items Table */}
-                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/80">
-                      <tr>
-                        <th className="px-4 py-3 min-w-[200px]">PRODUCT</th>
-                        <th className="px-4 py-3 min-w-[220px]">DESCRIPTION</th>
-                        <th className="px-4 py-3 w-36 text-center">QTY</th>
-                        <th className="px-4 py-3 w-28">RATE</th>
-                        <th className="px-4 py-3 w-28">DISCOUNT</th>
-                        <th className="px-4 py-3 w-12 text-center"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900/30">
-                      {invLineItems.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                          {/* Product */}
-                          <td className="p-3">
-                            <select
-                              value={item.product_id}
-                              onChange={(e) => updateInvLineItem(item.id, { product_id: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none"
-                            >
-                              <option value="">Select product</option>
-                              {products.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.name}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-
-                          {/* Description */}
-                          <td className="p-3">
-                            <input
-                              type="text"
-                              value={item.description}
-                              onChange={(e) => updateInvLineItem(item.id, { description: e.target.value })}
-                              placeholder="Optional description"
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none"
-                            />
-                          </td>
-
-                          {/* Qty with - / + buttons */}
-                          <td className="p-3">
-                            <div className="flex items-center justify-center rounded-xl border border-slate-300 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-800">
-                              <button
-                                type="button"
-                                onClick={() => updateInvLineItem(item.id, { qty: Math.max(1, (item.qty || 1) - 1) })}
-                                className="px-2.5 py-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold"
-                              >
-                                -
-                              </button>
-                              <input
-                                type="number"
-                                min="1"
-                                value={item.qty}
-                                onChange={(e) => updateInvLineItem(item.id, { qty: Number(e.target.value) })}
-                                className="w-12 text-center text-xs font-mono font-medium text-slate-800 dark:text-slate-100 bg-transparent outline-none border-none"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => updateInvLineItem(item.id, { qty: (item.qty || 0) + 1 })}
-                                className="px-2.5 py-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
-
-                          {/* Rate */}
-                          <td className="p-3">
-                            <input
-                              type="number"
-                              value={item.rate}
-                              onChange={(e) => updateInvLineItem(item.id, { rate: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none"
-                            />
-                          </td>
-
-                          {/* Discount */}
-                          <td className="p-3">
-                            <input
-                              type="number"
-                              value={item.discount}
-                              onChange={(e) => updateInvLineItem(item.id, { discount: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none"
-                            />
-                          </td>
-
-                          {/* Delete */}
-                          <td className="p-3 text-center">
-                            <button
-                              type="button"
-                              onClick={() => removeInvLineItem(item.id)}
-                              className="text-slate-400 hover:text-rose-500 transition"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60">
+                        <tr>
+                          <th className="px-3 py-2.5">Product / Item</th>
+                          <th className="px-3 py-2.5">Description</th>
+                          <th className="px-3 py-2.5 w-24">Qty</th>
+                          <th className="px-3 py-2.5 w-28">Rate</th>
+                          <th className="px-3 py-2.5 w-24">Disc (Rs)</th>
+                          <th className="px-3 py-2.5 w-24">Tax (%)</th>
+                          <th className="px-3 py-2.5 w-28 text-right">Amount</th>
+                          <th className="px-3 py-2.5 w-10 text-center"></th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {invLineItems.map((item) => {
+                          const gross = item.qty * item.rate;
+                          const taxable = Math.max(0, gross - item.discount);
+                          const taxAmt = taxable * (item.tax_pct / 100);
+                          const lineTotal = taxable + taxAmt;
 
-                {/* Bottom Summary Grid (SUBTOTAL, DISCOUNT, TAX, GRAND TOTAL) */}
-                {(() => {
-                  const t = calcInvoiceTotals();
-                  return (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden text-center divide-x divide-slate-200 dark:divide-slate-800">
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SUBTOTAL</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.subtotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">DISCOUNT</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.discountTotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TAX</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.taxTotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      {/* Grand Total Box */}
-                      <div className="grand-total-box">
-                        <p className="grand-total-label">GRAND TOTAL</p>
-                        <p className="grand-total-value">
-                          Rs. {t.grandTotal.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* BOTTOM SECTION: Notes & Terms & Conditions Card */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Notes</label>
-                    <textarea
-                      rows={4}
-                      value={invNotes}
-                      onChange={(e) => setInvNotes(e.target.value)}
-                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                    />
+                          return (
+                            <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                              <td className="px-3 py-2">
+                                <select
+                                  value={item.product_id}
+                                  onChange={(e) => updateInvLineItem(item.id, { product_id: e.target.value })}
+                                  className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                                >
+                                  <option value="">Select product</option>
+                                  {products.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="text"
+                                  value={item.description}
+                                  onChange={(e) => updateInvLineItem(item.id, { description: e.target.value })}
+                                  placeholder="Item details..."
+                                  className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={item.qty}
+                                  onChange={(e) => updateInvLineItem(item.id, { qty: Math.max(1, Number(e.target.value)) })}
+                                  className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  value={item.rate}
+                                  onChange={(e) => updateInvLineItem(item.id, { rate: Number(e.target.value) })}
+                                  className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  value={item.discount}
+                                  onChange={(e) => updateInvLineItem(item.id, { discount: Number(e.target.value) })}
+                                  className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  value={item.tax_pct}
+                                  onChange={(e) => updateInvLineItem(item.id, { tax_pct: Number(e.target.value) })}
+                                  className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                                />
+                              </td>
+                              <td className="px-3 py-2 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
+                                {invCurrency} {lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                <button
+                                  onClick={() => removeInvLineItem(item.id)}
+                                  className="text-slate-400 hover:text-rose-500 p-1 transition"
+                                  title="Remove item"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
 
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Terms & conditions</label>
-                    <textarea
-                      rows={4}
-                      value={invTermsConditions}
-                      onChange={(e) => setInvTermsConditions(e.target.value)}
-                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                    />
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-t border-slate-100 dark:border-slate-800 pt-4 gap-4">
+                    <div className="text-xs text-slate-400">
+                      Total Items: <span className="font-bold text-slate-700 dark:text-slate-200">{invLineItems.length}</span>
+                    </div>
+
+                    <div className="w-full sm:w-72 space-y-2 text-xs font-medium">
+                      <div className="flex justify-between text-slate-500 dark:text-slate-400">
+                        <span>Subtotal:</span>
+                        <span className="font-mono">{invCurrency} {calcInvoiceTotals().subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-500 dark:text-slate-400">
+                        <span>Discount:</span>
+                        <span className="font-mono text-rose-500">-{invCurrency} {calcInvoiceTotals().discountTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-500 dark:text-slate-400">
+                        <span>Tax:</span>
+                        <span className="font-mono text-amber-500">+{invCurrency} {calcInvoiceTotals().taxTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-slate-200 dark:border-slate-700 pt-2 text-sm font-bold text-slate-900 dark:text-slate-100">
+                        <span>Grand Total:</span>
+                        <span className="font-mono text-amber-500">{invCurrency} {calcInvoiceTotals().grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2 pt-2">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Customer Notes</label>
+                      <textarea
+                        rows={4}
+                        value={invNotes}
+                        onChange={(e) => setInvNotes(e.target.value)}
+                        className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Terms & conditions</label>
+                      <textarea
+                        rows={4}
+                        value={invTermsConditions}
+                        onChange={(e) => setInvTermsConditions(e.target.value)}
+                        className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2302,7 +2283,7 @@ export function SalesModule() {
                         onChange={(e) => setReceiptCustomerId(e.target.value)}
                         className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
-                        <option value="">Select customer, vendor or account</option>
+                        <option value="">Select customer, supplier or account</option>
                         <optgroup label="Customers">
                           {customers.filter((c) => c.is_active).map((c) => (
                             <option key={`c-${c.id}`} value={c.id}>
@@ -2310,7 +2291,7 @@ export function SalesModule() {
                             </option>
                           ))}
                         </optgroup>
-                        <optgroup label="Vendors">
+                        <optgroup label="Supplier">
                           {vendors.filter((v) => v.is_active).map((v) => (
                             <option key={`v-${v.id}`} value={`v-${v.id}`}>
                               {v.name} ({v.code})

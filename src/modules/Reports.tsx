@@ -302,7 +302,7 @@ export function Reports() {
               </div>
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-                  <span className="text-slate-700 dark:text-slate-300">Vendor Bills Billed</span>
+                  <span className="text-slate-700 dark:text-slate-300">Supplier Bills Billed</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
                     Rs. {financialData.totalPurchasesBilled.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
@@ -382,15 +382,15 @@ export function Reports() {
               </div>
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-                  <span className="text-slate-700 dark:text-slate-300">Vendor Payables Outstanding</span>
+                  <span className="text-slate-700 dark:text-slate-300">Supplier Payables Outstanding</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
                     Rs. {Math.max(0, financialData.totalPurchasesBilled - financialData.totalPurchasesPaid).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
-                  <span className="text-slate-700 dark:text-slate-300">Retained Earnings / Net Profit</span>
+                  <span className="text-slate-700 dark:text-slate-300">Total Operational Liabilities</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
-                    Rs. {financialData.netProfit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    Rs. {financialData.totalLiabilities.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>

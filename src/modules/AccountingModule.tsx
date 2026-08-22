@@ -1813,50 +1813,53 @@ export function AccountingModule() {
 
       {/* NEW JV MODAL */}
       {newJvOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="my-8 w-full max-w-3xl rounded-xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900/80">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">New Journal Entry</h3>
-              <button onClick={() => setNewJvOpen(false)} className="text-slate-400 hover:text-white"><X className="h-5 w-5" /></button>
-            </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
-                <label className="text-[11px] font-semibold text-slate-400">Entry date</label>
-                <input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none" />
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">GENERAL LEDGER</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">New Journal Entry</h3>
+              </div>
+              <button onClick={() => setNewJvOpen(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Entry date</label>
+                <input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} className="input text-xs mt-1" />
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-slate-400">Reference No</label>
-                <input type="text" value={refNo} onChange={(e) => setRefNo(e.target.value)} placeholder="e.g. REF-1002" className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none" />
+                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Reference No</label>
+                <input type="text" value={refNo} onChange={(e) => setRefNo(e.target.value)} placeholder="e.g. REF-1002" className="input text-xs font-mono mt-1" />
               </div>
             </div>
-            <div className="mt-3">
-              <label className="text-[11px] font-semibold text-slate-400">Narration</label>
-              <input type="text" value={narration} onChange={(e) => setNarration(e.target.value)} placeholder="Description of financial entry..." className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none" />
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Narration</label>
+              <input type="text" value={narration} onChange={(e) => setNarration(e.target.value)} placeholder="Description of financial entry..." className="input text-xs mt-1" />
             </div>
-            <div className="mt-6 space-y-2">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-amber-500">BALANCED DEBIT & CREDIT LINES</p>
                 <button onClick={addLine} className="text-xs font-semibold text-amber-500 hover:underline">+ Add line</button>
               </div>
               {lines.map((line) => (
                 <div key={line.id} className="flex items-center gap-2">
-                  <select value={line.account_id} onChange={(e) => updateLine(line.id, { account_id: e.target.value })} className="flex-1 rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none">
+                  <select value={line.account_id} onChange={(e) => updateLine(line.id, { account_id: e.target.value })} className="flex-1 input text-xs">
                     {chartOfAccounts.map((c) => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
                   </select>
-                  <input type="number" placeholder="Debit" value={line.debit || ''} onChange={(e) => updateLine(line.id, { debit: Number(e.target.value), credit: 0 })} className="w-28 rounded-lg border border-slate-300 bg-white p-2 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none" />
-                  <input type="number" placeholder="Credit" value={line.credit || ''} onChange={(e) => updateLine(line.id, { credit: Number(e.target.value), debit: 0 })} className="w-28 rounded-lg border border-slate-300 bg-white p-2 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none" />
-                  <button onClick={() => removeLine(line.id)} className="text-slate-400 hover:text-rose-500"><Trash2 className="h-4 w-4" /></button>
+                  <input type="number" placeholder="Debit" value={line.debit || ''} onChange={(e) => updateLine(line.id, { debit: Number(e.target.value), credit: 0 })} className="w-28 input text-xs font-mono" />
+                  <input type="number" placeholder="Credit" value={line.credit || ''} onChange={(e) => updateLine(line.id, { credit: Number(e.target.value), debit: 0 })} className="w-28 input text-xs font-mono" />
+                  <button onClick={() => removeLine(line.id)} className="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"><Trash2 className="h-4 w-4" /></button>
                 </div>
               ))}
-              <div className="flex justify-between items-center border-t pt-3 font-mono text-xs">
-                <span className="text-slate-400">Total Debit: Rs. {totalDebit.toFixed(2)}</span>
-                <span className="text-slate-400">Total Credit: Rs. {totalCredit.toFixed(2)}</span>
+              <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-800 pt-3 font-mono text-xs">
+                <span className="text-slate-500 dark:text-slate-400">Total Debit: Rs. {totalDebit.toFixed(2)}</span>
+                <span className="text-slate-500 dark:text-slate-400">Total Credit: Rs. {totalCredit.toFixed(2)}</span>
                 <span className={`font-bold ${isBalanced ? 'text-amber-500' : 'text-rose-500'}`}>{isBalanced ? '✓ Balanced' : '✗ Unbalanced'}</span>
               </div>
             </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button onClick={() => setNewJvOpen(false)} className="rounded-lg border border-slate-300 px-3.5 py-1.5 text-xs text-slate-400">Cancel</button>
-              <button onClick={handleSaveJV} disabled={!isBalanced} className="btn-primary disabled:opacity-50">
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <button onClick={() => setNewJvOpen(false)} className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition">Cancel</button>
+              <button onClick={handleSaveJV} disabled={!isBalanced} className="btn-primary text-xs px-5 disabled:opacity-50">
                 Save & Post JV
               </button>
             </div>

@@ -91,7 +91,7 @@ export function ReceivePayment() {
           <div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Receive Payment</h2>
             <p className="text-xs font-medium text-slate-500 mt-1">
-              Use one receipt screen for customers, vendors or direct account heads.
+              Use one receipt screen for customers, suppliers or direct account heads.
             </p>
           </div>
 
@@ -104,7 +104,7 @@ export function ReceivePayment() {
                 onChange={(e) => setReceivedFrom(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               >
-                <option value="">Select customer, vendor or account</option>
+                <option value="">Select customer, supplier or account</option>
                 <optgroup label="Customers">
                   {customers.filter((c) => c.is_active).map((c) => (
                     <option key={`c-${c.id}`} value={c.id}>
@@ -112,7 +112,7 @@ export function ReceivePayment() {
                     </option>
                   ))}
                 </optgroup>
-                <optgroup label="Vendors">
+                <optgroup label="Suppliers">
                   {vendors.filter((v) => v.is_active).map((v) => (
                     <option key={`v-${v.id}`} value={`v-${v.id}`}>
                       {v.name} ({v.code})
@@ -145,17 +145,13 @@ export function ReceivePayment() {
               <select
                 value={depositTo || bankAccounts[0]?.account_name || ''}
                 onChange={(e) => setDepositTo(e.target.value)}
-                className="input"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               >
-                {bankAccounts.length === 0 ? (
-                  <option value="">No bank accounts added in system</option>
-                ) : (
-                  bankAccounts.map((b) => (
-                    <option key={b.id} value={b.account_name}>
-                      {b.account_name} ({b.bank_name})
-                    </option>
-                  ))
-                )}
+                {bankAccounts.map((b) => (
+                  <option key={b.id} value={b.account_name}>
+                    {b.account_name} ({b.bank_name})
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -163,7 +159,7 @@ export function ReceivePayment() {
               <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Amount</label>
               <input
                 type="number"
-                placeholder="Amount"
+                placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                 className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
@@ -171,10 +167,10 @@ export function ReceivePayment() {
             </div>
           </div>
 
-          {/* Row 3: Account head / category & Currency */}
+          {/* Row 3: Account category & Currency */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account head / category</label>
+              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account category</label>
               <select
                 value={accountCategory}
                 onChange={(e) => setAccountCategory(e.target.value)}
@@ -183,9 +179,7 @@ export function ReceivePayment() {
                 <option value="Auto select based on selected party">Auto select based on selected party</option>
                 <option value="Accounts Receivable">Accounts Receivable</option>
                 <option value="Customer Advances">Customer Advances</option>
-                <option value="Accounts Payable">Accounts Payable</option>
-                <option value="Other Income">Other Income</option>
-                <option value="Sales Revenue">Sales Revenue</option>
+                <option value="Sales Income">Sales Income</option>
               </select>
             </div>
 
@@ -235,10 +229,10 @@ export function ReceivePayment() {
             <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Notes</label>
             <textarea
               rows={5}
-              placeholder="Payment notes or remarks"
+              placeholder="Notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
             />
           </div>
         </div>
@@ -250,7 +244,7 @@ export function ReceivePayment() {
 
             {/* Light Emerald Notice Box matching screenshot */}
             <div className="rounded-xl bg-amber-500/10 p-4 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 text-xs leading-relaxed border border-amber-500/20 dark:border-amber-500/20">
-              Customer receipts auto-allocate to outstanding invoices. Vendor/account receipts post directly through the journal with CR numbering.
+              Customer receipts auto-allocate to outstanding invoices. Supplier/account receipts post directly through the journal with CR numbering.
             </div>
           </div>
 

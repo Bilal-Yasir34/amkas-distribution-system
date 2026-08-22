@@ -25,7 +25,7 @@ export function CashFlowPrint({ onClose }: { onClose: () => void }) {
             <span className="font-mono font-bold">Rs. 0.00</span>
           </div>
           <div className="flex justify-between pl-4 text-xs">
-            <span>Less: Cash Paid to Suppliers & Vendors</span>
+            <span>Less: Cash Paid to Suppliers</span>
             <span className="font-mono font-bold">Rs. 0.00</span>
           </div>
           <div className="flex justify-between font-extrabold border-t border-slate-300 pt-2 text-xs text-slate-900">

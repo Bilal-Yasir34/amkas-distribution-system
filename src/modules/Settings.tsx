@@ -26,7 +26,7 @@ const INITIAL_DOC_SEQS: DocSeq[] = [
   { document: 'Sales Return', prefix: 'MCN-', nextNumber: 1, padding: 5 },
   { document: 'Stock Adjustment', prefix: 'MSA-', nextNumber: 1, padding: 5 },
   { document: 'Stock Transfer', prefix: 'MST-', nextNumber: 1, padding: 5 },
-  { document: 'Vendor Bill', prefix: 'MP-', nextNumber: 1, padding: 5 },
+  { document: 'Supplier Bill', prefix: 'MP-', nextNumber: 1, padding: 5 },
 ];
 
 export function Settings() {

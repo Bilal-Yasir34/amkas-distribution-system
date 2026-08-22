@@ -58,7 +58,7 @@ export function Vendors() {
 
   const handleSave = () => {
     if (!name.trim()) {
-      return toast.error('Vendor name is required');
+      return toast.error('Supplier name is required');
     }
 
     if (editingId) {
@@ -73,9 +73,9 @@ export function Vendors() {
         address,
         is_active: isActive,
       });
-      toast.success(`Vendor ${name} updated`);
+      toast.success(`Supplier ${name} updated`);
     } else {
-      const code = `VEN-${String(vendors.length + 1).padStart(5, '0')}`;
+      const code = `SUP-${String(vendors.length + 1).padStart(5, '0')}`;
       addVendor({
         code,
         name,
@@ -91,7 +91,7 @@ export function Vendors() {
         address,
         is_active: isActive,
       });
-      toast.success(`Vendor ${name} added`);
+      toast.success(`Supplier ${name} added`);
     }
     setModalOpen(false);
   };
@@ -99,7 +99,7 @@ export function Vendors() {
   const handleDeleteConfirm = () => {
     if (deleteTarget) {
       deleteVendor(deleteTarget.id);
-      toast.success(`Vendor ${deleteTarget.name} deleted`);
+      toast.success(`Supplier ${deleteTarget.name} deleted`);
       setDeleteTarget(null);
     }
   };
@@ -113,12 +113,12 @@ export function Vendors() {
     (v) =>
       v.name.toLowerCase().includes(search.toLowerCase()) ||
       v.code.toLowerCase().includes(search.toLowerCase()) ||
-      (v.city || '').toLowerCase().includes(search.toLowerCase())
+      (v.city && v.city.toLowerCase().includes(search.toLowerCase()))
   );
 
   const handleExportCSV = () => {
-    downloadCSV('vendors_directory', vendors as unknown as Record<string, unknown>[]);
-    toast.success('Vendor directory exported to CSV');
+    downloadCSV('suppliers_directory', vendors as unknown as Record<string, unknown>[]);
+    toast.success('Supplier directory exported to CSV');
   };
 
   const activeCount = vendors.filter((v) => v.is_active).length;
@@ -128,12 +128,12 @@ export function Vendors() {
     <div className="space-y-5">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
-        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Vendors</h1>
+        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Suppliers</h1>
       </div>
 
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL VENDORS</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL SUPPLIERS</p>
           <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">{vendors.length}</p>
           <p className="mt-1 text-[11px] text-slate-400">Visible in your current access scope</p>
         </div>
@@ -158,14 +158,14 @@ export function Vendors() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ACCOUNTS PAYABLE</p>
-            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Vendor directory</h2>
+            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Supplier directory</h2>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search vendors..."
+                placeholder="Search suppliers..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="rounded-lg border border-slate-300 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none w-48"
@@ -181,7 +181,7 @@ export function Vendors() {
               onClick={openCreate}
               className="flex items-center gap-1.5 btn-primary"
             >
-              <Plus className="h-4 w-4" /> Add vendor
+              <Plus className="h-4 w-4" /> Add supplier
             </button>
           </div>
         </div>
@@ -190,7 +190,7 @@ export function Vendors() {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
               <tr>
-                <th className="px-4 py-3">Vendor</th>
+                <th className="px-4 py-3">Supplier</th>
                 <th className="px-4 py-3">Code</th>
                 <th className="px-4 py-3">City</th>
                 <th className="px-4 py-3">Phone</th>
@@ -204,7 +204,7 @@ export function Vendors() {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
-                    No vendors found matching "{search}".
+                    No suppliers found matching "{search}".
                   </td>
                 </tr>
               ) : (
@@ -219,48 +219,39 @@ export function Vendors() {
                     <td className="px-4 py-3 font-mono text-slate-400">{v.code}</td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{v.city || '—'}</td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{v.phone || '—'}</td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{v.salesperson || 'admin'}</td>
-                    <td className="px-4 py-3 font-mono">Rs. {v.opening_balance?.toLocaleString() || '0.00'}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{v.salesperson || 'Unassigned'}</td>
+                    <td className="px-4 py-3 font-mono font-semibold text-amber-500">
+                      Rs. {(v.opening_balance || 0).toLocaleString()}
+                    </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                          v.is_active ? 'bg-amber-500/15 text-amber-500 dark:text-amber-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                      <button
+                        onClick={() => toggleStatus(v)}
+                        className={`rounded-md px-2 py-0.5 text-[10px] font-semibold transition ${
+                          v.is_active
+                            ? 'bg-amber-500/15 text-amber-500 hover:bg-amber-500/25'
+                            : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-400'
                         }`}
                       >
-                        {v.is_active ? 'Active' : 'Deactivated'}
-                      </span>
+                        {v.is_active ? 'Active' : 'Inactive'}
+                      </button>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {isAdmin ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => toggleStatus(v)}
-                            className={`flex items-center gap-1 text-xs font-bold transition px-2 py-1 rounded-lg border ${
-                              v.is_active
-                                ? 'border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400'
-                                : 'border-amber-500/30 bg-amber-500/10/50 text-amber-500 hover:bg-amber-500/20 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400'
-                            }`}
-                          >
-                            <Power className="h-3.5 w-3.5" />
-                            {v.is_active ? 'Deactivate' : 'Activate'}
-                          </button>
-                          <button
-                            onClick={() => openEdit(v)}
-                            className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white"
-                          >
-                            <Edit className="h-3.5 w-3.5" /> Edit
-                          </button>
-                          <button
-                            onClick={() => setDeleteTarget({ id: v.id, name: v.name })}
-                            className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-400"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" /> Delete
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] font-semibold text-slate-400">View Only</span>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => openEdit(v)}
+                          className="p-1 text-slate-400 hover:text-amber-500 transition"
+                          title="Edit supplier"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(v)}
+                          className="p-1 text-slate-400 hover:text-rose-500 transition"
+                          title="Delete supplier"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -278,7 +269,7 @@ export function Vendors() {
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SHARED DIRECTORY</p>
                 <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
-                  {editingId ? 'Edit vendor' : 'New vendor'}
+                  {editingId ? 'Edit supplier' : 'New supplier'}
                 </h3>
               </div>
               <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-white">
@@ -289,7 +280,7 @@ export function Vendors() {
             <div className="mt-4 space-y-3">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-400">Vendor name</label>
+                  <label className="text-[11px] font-semibold text-slate-400">Supplier name</label>
                   <input
                     type="text"
                     value={name}
@@ -298,7 +289,7 @@ export function Vendors() {
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-400">Vendor code</label>
+                  <label className="text-[11px] font-semibold text-slate-400">Supplier code</label>
                   <input
                     type="text"
                     disabled
@@ -407,7 +398,7 @@ export function Vendors() {
                 onClick={handleSave}
                 className="btn-primary"
               >
-                {editingId ? 'Update vendor' : 'Save vendor'}
+                {editingId ? 'Update supplier' : 'Save supplier'}
               </button>
             </div>
           </div>
@@ -420,7 +411,7 @@ export function Vendors() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
         itemName={deleteTarget?.name}
-        itemType="vendor"
+        itemType="supplier"
       />
     </div>
   );

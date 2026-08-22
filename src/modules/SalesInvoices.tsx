@@ -90,7 +90,7 @@ export function SalesInvoices() {
 
   function openCreate() {
     setEditingId(null);
-    setInvoiceNo(nextDocNumber('MS', invoices.map((i) => i.invoice_no)));
+    setInvoiceNo(nextDocNumber('SL', invoices.map((i) => i.invoice_no), 2));
     setCustomerId(customers[0]?.id ?? '');
     setWarehouseId(warehouses[0]?.id ?? '');
     setInvoiceDate(todayISO());

@@ -18,6 +18,17 @@ export function todayISO(): string {
   return new Date().toISOString().split('T')[0];
 }
 
+export function safeUUID(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try {
+      return crypto.randomUUID();
+    } catch {
+      // Fall through if crypto.randomUUID fails in insecure context
+    }
+  }
+  return 'id-' + Math.random().toString(36).substring(2, 11) + '-' + Date.now().toString(36);
+}
+
 export function downloadCSV(filename: string, rows: Record<string, unknown>[]) {
   if (!rows.length) return;
   const headers = Object.keys(rows[0]);
@@ -43,13 +54,14 @@ export function computeLineTotal(qty: number, rate: number, discount: number, ta
   return afterDiscount + tax;
 }
 
-export function nextDocNumber(prefix: string, existing: string[]): string {
+export function nextDocNumber(prefix: string, existing: string[], padLength: number = 2): string {
   let max = 0;
   for (const no of existing) {
+    if (!no) continue;
     const m = no.match(/(\d+)$/);
     if (m) max = Math.max(max, parseInt(m[1], 10));
   }
-  return `${prefix}-${String(max + 1).padStart(5, '0')}`;
+  return `${prefix}-${String(max + 1).padStart(padLength, '0')}`;
 }
 
 export function getCustomerName(id: string | null | undefined, customers: { id: string; name: string; is_active?: boolean }[]): string {

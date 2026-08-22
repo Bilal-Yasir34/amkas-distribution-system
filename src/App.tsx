@@ -10,7 +10,9 @@ import { Login } from '@/modules/Login';
 import { Dashboard } from '@/modules/Dashboard';
 import { Approvals } from '@/modules/Approvals';
 import { SalesModule } from '@/modules/SalesModule';
+import { SalesReturnModule } from '@/modules/SalesReturnModule';
 import { PurchaseModule } from '@/modules/PurchaseModule';
+import { PurchaseReturnModule } from '@/modules/PurchaseReturnModule';
 import { ReceivePayment } from '@/modules/ReceivePayment';
 import { PayPayment } from '@/modules/PayPayment';
 import { InventoryModule } from '@/modules/InventoryModule';
@@ -19,6 +21,8 @@ import { AccountingModule } from '@/modules/AccountingModule';
 import { ChartOfAccounts } from '@/modules/ChartOfAccounts';
 import { FinancialYears } from '@/modules/FinancialYears';
 import { ReportsModule } from '@/modules/ReportsModule';
+import { AccountTypeModule } from '@/modules/AccountTypeModule';
+import { AddAccountModule } from '@/modules/AddAccountModule';
 import { Customers } from '@/modules/Customers';
 import { Vendors } from '@/modules/Vendors';
 import { Products } from '@/modules/Products';
@@ -48,7 +52,9 @@ const modules: Record<ModuleKey, () => JSX.Element> = {
   dashboard: Dashboard,
   approvals: Approvals,
   sales: SalesModule,
+  sales_return: SalesReturnModule,
   purchases: PurchaseModule,
+  purchase_return: PurchaseReturnModule,
   receive_payment: ReceivePayment,
   pay_payment: PayPayment,
   inventory: InventoryModule,
@@ -57,6 +63,8 @@ const modules: Record<ModuleKey, () => JSX.Element> = {
   chart_of_accounts: ChartOfAccounts,
   financial_years: FinancialYears,
   reports: ReportsModule,
+  account_type: AccountTypeModule,
+  add_account: AddAccountModule,
   customers: Customers,
   vendors: Vendors,
   products: Products,
@@ -79,7 +87,7 @@ function Router() {
   const { rolePermissions } = useDataStore();
 
   const role = profile?.role ?? 'super_admin';
-  const allowed = rolePermissions[role] || ROLE_MODULES[role] || ROLE_MODULES.super_admin;
+  const allowed = Array.from(new Set([...(ROLE_MODULES[role] || ROLE_MODULES.super_admin), ...(rolePermissions[role] || [])]));
   const effective = allowed.includes(activeModule) ? activeModule : (allowed[0] || 'dashboard');
   const Component = modules[effective] || Dashboard;
 

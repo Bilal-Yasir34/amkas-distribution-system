@@ -42,7 +42,9 @@ const moduleIcons: Record<ModuleKey, typeof LayoutDashboard> = {
   dashboard: LayoutDashboard,
   approvals: CheckSquare,
   sales: FileText,
+  sales_return: FileText,
   purchases: FileText,
+  purchase_return: FileText,
   receive_payment: PlusCircle,
   pay_payment: MinusCircle,
   inventory: Warehouse,
@@ -51,6 +53,8 @@ const moduleIcons: Record<ModuleKey, typeof LayoutDashboard> = {
   chart_of_accounts: BookOpen,
   financial_years: Calendar,
   reports: BarChart3,
+  account_type: Tags,
+  add_account: UserCircle,
   customers: Users,
   vendors: Truck,
   products: Package,
@@ -81,7 +85,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const role = profile?.role ?? 'super_admin';
   const { rolePermissions } = useDataStore();
-  const allowed = rolePermissions[role] || ROLE_MODULES[role] || ROLE_MODULES.super_admin;
+  const allowed = Array.from(new Set([...(ROLE_MODULES[role] || ROLE_MODULES.super_admin), ...(rolePermissions[role] || [])]));
   const currentLabel = MODULE_LABELS[activeModule as ModuleKey] ?? 'Dashboard';
   const roleLabel = ROLES.find((r) => r.id === role)?.label ?? 'Super Admin';
 
@@ -109,7 +113,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
     {
       title: 'OPERATIONS',
-      keys: ['sales', 'purchases', 'receive_payment', 'pay_payment', 'inventory', 'banking'].filter((k) =>
+      keys: ['sales', 'sales_return', 'purchases', 'purchase_return', 'receive_payment', 'pay_payment', 'inventory', 'banking'].filter((k) =>
         allowed.includes(k as ModuleKey)
       ) as ModuleKey[],
     },
@@ -121,7 +125,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
     {
       title: 'MASTER DATA',
-      keys: ['customers', 'vendors', 'products', 'categories', 'warehouses'].filter((k) =>
+      keys: ['account_type', 'add_account', 'products', 'categories', 'warehouses'].filter((k) =>
         allowed.includes(k as ModuleKey)
       ) as ModuleKey[],
     },

@@ -41,7 +41,9 @@ export type ModuleKey =
   | 'dashboard'
   | 'approvals'
   | 'sales'
+  | 'sales_return'
   | 'purchases'
+  | 'purchase_return'
   | 'receive_payment'
   | 'pay_payment'
   | 'inventory'
@@ -50,6 +52,8 @@ export type ModuleKey =
   | 'chart_of_accounts'
   | 'financial_years'
   | 'reports'
+  | 'account_type'
+  | 'add_account'
   | 'customers'
   | 'vendors'
   | 'products'
@@ -69,7 +73,9 @@ export const ROLE_MODULES: Record<Role, ModuleKey[]> = {
     'dashboard',
     'approvals',
     'sales',
+    'sales_return',
     'purchases',
+    'purchase_return',
     'receive_payment',
     'pay_payment',
     'inventory',
@@ -78,8 +84,8 @@ export const ROLE_MODULES: Record<Role, ModuleKey[]> = {
     'chart_of_accounts',
     'financial_years',
     'reports',
-    'customers',
-    'vendors',
+    'account_type',
+    'add_account',
     'products',
     'categories',
     'warehouses',
@@ -96,7 +102,9 @@ export const ROLE_MODULES: Record<Role, ModuleKey[]> = {
     'dashboard',
     'approvals',
     'sales',
+    'sales_return',
     'purchases',
+    'purchase_return',
     'receive_payment',
     'pay_payment',
     'banking',
@@ -108,6 +116,7 @@ export const ROLE_MODULES: Record<Role, ModuleKey[]> = {
   sales_manager: [
     'dashboard',
     'sales',
+    'sales_return',
     'receive_payment',
     'customers',
     'products',
@@ -117,6 +126,7 @@ export const ROLE_MODULES: Record<Role, ModuleKey[]> = {
   purchase_clerk: [
     'dashboard',
     'purchases',
+    'purchase_return',
     'pay_payment',
     'vendors',
     'products',
@@ -140,7 +150,9 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   dashboard: 'Dashboard',
   approvals: 'Approval Center',
   sales: 'Sales',
+  sales_return: 'Sales Return',
   purchases: 'Purchases',
+  purchase_return: 'Purchase Return',
   receive_payment: 'Receive Payment',
   pay_payment: 'Pay Payment',
   inventory: 'Inventory',
@@ -149,8 +161,10 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   chart_of_accounts: 'Chart of Accounts',
   financial_years: 'Financial Years',
   reports: 'Reports & Analytics',
+  account_type: 'Account Type',
+  add_account: 'Add Account',
   customers: 'Customers',
-  vendors: 'Vendors',
+  vendors: 'Suppliers',
   products: 'Products',
   categories: 'Product Categories',
   warehouses: 'Warehouses',

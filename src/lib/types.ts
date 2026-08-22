@@ -157,10 +157,20 @@ export interface StockLedgerEntry {
   created_at: string;
 }
 
+export interface AccountTypeItem {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface Customer {
   id: string;
   code: string;
   name: string;
+  account_type?: string | null;
   company_name?: string | null;
   contact_person?: string | null;
   phone: string | null;
@@ -173,6 +183,7 @@ export interface Customer {
   current_balance?: number;
   tax_id: string | null;
   salesperson?: string | null;
+  commission_pct?: number | null;
   is_active: boolean;
 }
 
@@ -180,6 +191,7 @@ export interface Vendor {
   id: string;
   code: string;
   name: string;
+  account_type?: string | null;
   company_name?: string | null;
   contact_person?: string | null;
   phone: string | null;
@@ -191,6 +203,7 @@ export interface Vendor {
   current_balance?: number;
   tax_id: string | null;
   salesperson?: string | null;
+  commission_pct?: number | null;
   is_active: boolean;
 }
 
@@ -360,6 +373,68 @@ export interface CreditNote {
   org_id?: string | null;
   branch_id?: string | null;
   items?: CreditNoteItem[];
+  created_at: string;
+}
+
+export interface SalesReturnItem {
+  id: string;
+  product_id: string | null;
+  description?: string | null;
+  qty: number;
+  rate: number;
+  discount?: number;
+  tax_pct?: number;
+  line_total?: number;
+}
+
+export interface SalesReturn {
+  id: string;
+  return_no: string;
+  party_type: 'Customer' | 'Vendor';
+  customer_id: string | null;
+  warehouse_id?: string | null;
+  document_date: string;
+  due_date?: string | null;
+  account_category?: string | null;
+  account_head?: string | null;
+  status: 'POSTED' | 'UNPOSTED' | 'DRAFT' | string;
+  subtotal: number;
+  discount_total?: number;
+  tax_total?: number;
+  total_amount: number;
+  notes?: string | null;
+  items?: SalesReturnItem[];
+  created_at: string;
+}
+
+export interface PurchaseReturnItem {
+  id: string;
+  product_id: string | null;
+  description?: string | null;
+  qty: number;
+  rate: number;
+  discount?: number;
+  tax_pct?: number;
+  line_total?: number;
+}
+
+export interface PurchaseReturn {
+  id: string;
+  return_no: string;
+  party_type: 'Vendor' | 'Customer';
+  vendor_id: string | null;
+  warehouse_id?: string | null;
+  document_date: string;
+  due_date?: string | null;
+  account_category?: string | null;
+  account_head?: string | null;
+  status: 'POSTED' | 'UNPOSTED' | 'DRAFT' | string;
+  subtotal: number;
+  discount_total?: number;
+  tax_total?: number;
+  total_amount: number;
+  notes?: string | null;
+  items?: PurchaseReturnItem[];
   created_at: string;
 }
 

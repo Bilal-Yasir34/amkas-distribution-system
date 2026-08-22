@@ -84,7 +84,7 @@ export function GlobalSearchModal({ isOpen, onClose }: Props) {
           </div>
           <input
             type="text"
-            placeholder="Search invoices, products, customers, vendors..."
+            placeholder="Search invoices, products, customers, suppliers..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full bg-transparent text-base font-medium text-white placeholder-slate-500 outline-none"
@@ -113,7 +113,7 @@ export function GlobalSearchModal({ isOpen, onClose }: Props) {
             { id: 'invoices', label: 'Invoices', allowedKey: 'sales' },
             { id: 'products', label: 'Products', allowedKey: 'products' },
             { id: 'customers', label: 'Customers', allowedKey: 'customers' },
-            { id: 'vendors', label: 'Vendors', allowedKey: 'vendors' },
+            { id: 'vendors', label: 'Suppliers', allowedKey: 'vendors' },
           ].map((cat) => {
             if (cat.allowedKey && !allowed.includes(cat.allowedKey as ModuleKey)) return null;
             const active = category === cat.id;
@@ -307,8 +307,8 @@ export function GlobalSearchModal({ isOpen, onClose }: Props) {
           {filteredVendors.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-purple-400 px-1">
-                <span>Vendors ({filteredVendors.length})</span>
-                <span className="text-slate-500 text-[10px]">Vendor Management</span>
+                <span>Suppliers ({filteredVendors.length})</span>
+                <span className="text-slate-500 text-[10px]">Supplier Directory</span>
               </div>
               <div className="grid gap-2">
                 {filteredVendors.slice(0, 5).map((v) => (

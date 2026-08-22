@@ -3,7 +3,7 @@ import { Plus, ShoppingCart, DollarSign, FileText, CheckCircle, Clock, X, Trash2
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
-import { todayISO } from '@/lib/utils';
+import { todayISO, safeUUID, nextDocNumber } from '@/lib/utils';
 import type { VendorBill, Vendor } from '@/lib/types';
 
 export function PurchaseModule() {
@@ -42,9 +42,7 @@ export function PurchaseModule() {
     deleteVendorPayment,
   } = useDataStore();
 
-  const [activeSubTab, setActiveSubTab] = useState<
-    'Overview' | 'Requests' | 'Purchase Orders' | 'Purchase Invoices' | 'Vendor Bills' | 'Debit Notes' | 'Payments'
-  >('Overview');
+  const [activeSubTab, setActiveSubTab] = useState<'Purchases' | 'Requests' | 'Purchase Orders' | 'Purchase Invoices' | 'Debit Notes' | 'Payments'>('Purchases');
 
   const [newBillOpen, setNewBillOpen] = useState(false);
   const [genericModalOpen, setGenericModalOpen] = useState(false);
@@ -76,7 +74,7 @@ export function PurchaseModule() {
     setVendorInvoiceNo('');
     setNotes('');
     setLineItems([
-      { id: crypto.randomUUID(), product_id: products[0]?.id || '', description: products[0]?.name || '', qty: 1, rate: products[0]?.purchase_price || 0, tax_pct: 0 },
+      { id: safeUUID(), product_id: products[0]?.id || '', description: products[0]?.name || '', qty: 1, rate: products[0]?.purchase_price || 0, tax_pct: 0 },
     ]);
     setNewBillOpen(true);
   };
@@ -107,7 +105,7 @@ export function PurchaseModule() {
     setPrStatus('Draft');
     setPrLineItems([
       {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         product_id: products[0]?.id || '',
         description: products[0]?.name || '',
         qty: 1,
@@ -128,7 +126,7 @@ export function PurchaseModule() {
     if (pr.items && pr.items.length > 0) {
       setPrLineItems(
         pr.items.map((i: any) => ({
-          id: i.id || crypto.randomUUID(),
+          id: i.id || safeUUID(),
           product_id: i.product_id || '',
           description: i.description || '',
           qty: i.qty || 1,
@@ -140,7 +138,7 @@ export function PurchaseModule() {
     } else {
       setPrLineItems([
         {
-          id: crypto.randomUUID(),
+          id: safeUUID(),
           product_id: products[0]?.id || '',
           description: products[0]?.name || '',
           qty: 1,
@@ -159,7 +157,7 @@ export function PurchaseModule() {
     setPrLineItems((prev) => [
       ...prev,
       {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         product_id: defaultProd?.id || '',
         description: defaultProd?.name || '',
         qty: 1,
@@ -276,7 +274,7 @@ export function PurchaseModule() {
     setPoNotes('');
     setPoLineItems([
       {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         product_id: products[0]?.id || '',
         description: products[0]?.name || '',
         qty: 1,
@@ -302,7 +300,7 @@ export function PurchaseModule() {
     if (po.items && po.items.length > 0) {
       setPoLineItems(
         po.items.map((i: any) => ({
-          id: i.id || crypto.randomUUID(),
+          id: i.id || safeUUID(),
           product_id: i.product_id || '',
           description: i.description || '',
           qty: i.qty || 1,
@@ -314,7 +312,7 @@ export function PurchaseModule() {
     } else {
       setPoLineItems([
         {
-          id: crypto.randomUUID(),
+          id: safeUUID(),
           product_id: products[0]?.id || '',
           description: products[0]?.name || '',
           qty: 1,
@@ -333,7 +331,7 @@ export function PurchaseModule() {
     setPoLineItems((prev) => [
       ...prev,
       {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         product_id: defaultProd?.id || '',
         description: defaultProd?.name || '',
         qty: 1,
@@ -456,7 +454,18 @@ export function PurchaseModule() {
   const [piViewMode, setPiViewMode] = useState<'list' | 'form'>('list');
   const [editingPIId, setEditingPIId] = useState<string | null>(null);
 
+  const [piPartyType, setPiPartyType] = useState<'Vendor' | 'Customer'>('Vendor');
   const [piVendorId, setPiVendorId] = useState('');
+
+  const handlePIPartyTypeChange = (type: 'Vendor' | 'Customer') => {
+    setPiPartyType(type);
+    if (type === 'Vendor') {
+      setPiVendorId(vendors[0]?.id || '');
+    } else {
+      setPiVendorId(customers[0]?.id || '');
+    }
+  };
+
   const [piDocDate, setPiDocDate] = useState('2026-07-22');
   const [piDueDate, setPiDueDate] = useState('2026-07-29');
   const [piWarehouseId, setPiWarehouseId] = useState('');
@@ -464,6 +473,8 @@ export function PurchaseModule() {
   const [piAccountCategory, setPiAccountCategory] = useState('All account categories');
   const [piAccountHead, setPiAccountHead] = useState('Default Inventory / Purchase Account');
   const [piNotes, setPiNotes] = useState('');
+  const [piReferenceNo, setPiReferenceNo] = useState('');
+  const [piVendorInvoiceNo, setPiVendorInvoiceNo] = useState('');
 
   const [piLineItems, setPiLineItems] = useState<
     { id: string; product_id: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
@@ -471,6 +482,7 @@ export function PurchaseModule() {
 
   const openCreatePIForm = () => {
     setEditingPIId(null);
+    setPiPartyType('Vendor');
     setPiVendorId(vendors[0]?.id || '');
     setPiDocDate(todayISO());
     setPiDueDate(todayISO());
@@ -479,9 +491,12 @@ export function PurchaseModule() {
     setPiAccountCategory('All account categories');
     setPiAccountHead('Default Inventory / Purchase Account');
     setPiNotes('');
+    setPiVendorInvoiceNo('');
+    const autoRef = nextDocNumber('PI', (purchaseInvoices || []).map((p) => p.invoice_no || ''), 2);
+    setPiReferenceNo(autoRef);
     setPiLineItems([
       {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         product_id: products[0]?.id || '',
         description: products[0]?.name || '',
         qty: 1,
@@ -495,7 +510,10 @@ export function PurchaseModule() {
 
   const openEditPIForm = (pi: any) => {
     setEditingPIId(pi.id);
-    setPiVendorId(pi.vendor_id || vendors[0]?.id || '');
+    setPiReferenceNo(pi.invoice_no || pi.grn_no || '');
+    const isCustomer = customers.some((c) => c.id === pi.vendor_id);
+    setPiPartyType(isCustomer ? 'Customer' : 'Vendor');
+    setPiVendorId(pi.vendor_id || (isCustomer ? customers[0]?.id : vendors[0]?.id) || '');
     setPiDocDate(pi.received_date || pi.document_date || todayISO());
     setPiDueDate(pi.due_date || todayISO());
     setPiWarehouseId(pi.warehouse_id || warehouses[0]?.id || 'w1');
@@ -507,7 +525,7 @@ export function PurchaseModule() {
     if (pi.items && pi.items.length > 0) {
       setPiLineItems(
         pi.items.map((i: any) => ({
-          id: i.id || crypto.randomUUID(),
+          id: i.id || safeUUID(),
           product_id: i.product_id || '',
           description: i.description || '',
           qty: i.qty || 1,
@@ -519,7 +537,7 @@ export function PurchaseModule() {
     } else {
       setPiLineItems([
         {
-          id: crypto.randomUUID(),
+          id: safeUUID(),
           product_id: products[0]?.id || '',
           description: products[0]?.name || '',
           qty: 1,
@@ -538,7 +556,7 @@ export function PurchaseModule() {
     setPiLineItems((prev) => [
       ...prev,
       {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         product_id: defaultProd?.id || '',
         description: defaultProd?.name || '',
         qty: 1,
@@ -595,7 +613,7 @@ export function PurchaseModule() {
     return { subtotal, discountTotal, taxTotal, grandTotal };
   };
 
-  const handleSavePIRecord = () => {
+  const handleSavePIRecord = (_status?: string) => {
     if (!piVendorId) return toast.error('Please select a vendor');
     const totals = calcPITotals();
 
@@ -632,7 +650,7 @@ export function PurchaseModule() {
       });
       toast.success('Purchase Invoice updated and posted successfully');
     } else {
-      const piNo = `PI-${String((purchaseInvoices || []).length + 1).padStart(5, '0')}`;
+      const piNo = piReferenceNo || nextDocNumber('PI', (purchaseInvoices || []).map((p) => p.invoice_no || ''), 2);
       addPurchaseInvoice({
         grn_no: piNo,
         invoice_no: piNo,
@@ -693,7 +711,7 @@ export function PurchaseModule() {
     setVbNotes('');
     setVbLineItems([
       {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         product_id: products[0]?.id || '',
         description: products[0]?.name || '',
         qty: 1,
@@ -722,7 +740,7 @@ export function PurchaseModule() {
     if (vb.items && vb.items.length > 0) {
       setVbLineItems(
         vb.items.map((i: any) => ({
-          id: i.id || crypto.randomUUID(),
+          id: i.id || safeUUID(),
           product_id: i.product_id || '',
           description: i.description || '',
           qty: i.qty || 1,
@@ -734,7 +752,7 @@ export function PurchaseModule() {
     } else {
       setVbLineItems([
         {
-          id: crypto.randomUUID(),
+          id: safeUUID(),
           product_id: products[0]?.id || '',
           description: products[0]?.name || '',
           qty: 1,
@@ -753,7 +771,7 @@ export function PurchaseModule() {
     setVbLineItems((prev) => [
       ...prev,
       {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         product_id: defaultProd?.id || '',
         description: defaultProd?.name || '',
         qty: 1,
@@ -902,7 +920,7 @@ export function PurchaseModule() {
     setDnPurposeReason('');
     setDnLineItems([
       {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         product_id: products[0]?.id || '',
         description: products[0]?.name || '',
         qty: 1,
@@ -925,7 +943,7 @@ export function PurchaseModule() {
     if (dn.items && dn.items.length > 0) {
       setDnLineItems(
         dn.items.map((i: any) => ({
-          id: i.id || crypto.randomUUID(),
+          id: i.id || safeUUID(),
           product_id: i.product_id || '',
           description: i.description || '',
           qty: i.qty || 1,
@@ -937,7 +955,7 @@ export function PurchaseModule() {
     } else {
       setDnLineItems([
         {
-          id: crypto.randomUUID(),
+          id: safeUUID(),
           product_id: products[0]?.id || '',
           description: products[0]?.name || '',
           qty: 1,
@@ -956,7 +974,7 @@ export function PurchaseModule() {
     setDnLineItems((prev) => [
       ...prev,
       {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         product_id: defaultProd?.id || '',
         description: defaultProd?.name || '',
         qty: 1,
@@ -1144,7 +1162,7 @@ export function PurchaseModule() {
   const addLine = () => {
     setLineItems((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), product_id: '', description: '', qty: 1, rate: 0, tax_pct: 0 },
+      { id: safeUUID(), product_id: '', description: '', qty: 1, rate: 0, tax_pct: 0 },
     ]);
   };
 
@@ -1319,575 +1337,89 @@ export function PurchaseModule() {
 
       {/* Sub Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-1 overflow-x-auto no-scrollbar whitespace-nowrap">
-        {['Overview', 'Requests', 'Purchase Orders', 'Purchase Invoices', 'Vendor Bills', 'Debit Notes', 'Payments'].map(
-          (tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveSubTab(tab as any)}
-              className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition border-b-2 ${
-                activeSubTab === tab
-                  ? 'border-amber-500 text-amber-500 bg-amber-500/5'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {tab}
-            </button>
-          )
-        )}
+        {['Purchases'].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveSubTab(tab as any)}
+            className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition border-b-2 ${
+              activeSubTab === tab
+                ? 'border-amber-500 text-amber-500 bg-amber-500/5'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
-      {/* OVERVIEW */}
-      {activeSubTab === 'Overview' && (
-        <div className="space-y-5">
-          <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL PROCURED</p>
-              <p className="mt-1 text-2xl font-extrabold text-slate-800 dark:text-slate-100">
-                Rs. {totalProcuredSum.toLocaleString()}
-              </p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PURCHASE ORDERS</p>
-              <p className="mt-1 text-2xl font-extrabold text-amber-500">{purchaseOrders.length}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">VENDOR BILLS</p>
-              <p className="mt-1 text-2xl font-extrabold text-purple-400">{vendorBills.length}</p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">DEBIT NOTES</p>
-              <p className="mt-1 text-2xl font-extrabold text-rose-500">{debitNotes.length}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* VENDOR BILLS TAB */}
-      {activeSubTab === 'Vendor Bills' && (
+      {/* PURCHASES TAB */}
+      {activeSubTab === 'Purchases' && (
         <div className="space-y-6">
-          {vbViewMode === 'list' ? (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PROCUREMENT WORKFLOW</p>
-                  <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Vendor bills register</h2>
-                </div>
-                <button
-                  onClick={openCreateVBForm}
-                  className="flex items-center gap-2 btn-primary shadow-sm"
-                >
-                  <Plus className="h-4 w-4" /> New vendor bill
-                </button>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PROCUREMENT WORKFLOW</p>
+                <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Purchase register</h2>
               </div>
-
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
-                    <tr>
-                      <th className="px-4 py-3">Bill Number</th>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Vendor</th>
-                      <th className="px-4 py-3">Warehouse</th>
-                      <th className="px-4 py-3">Amount</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {(vendorBills || []).length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                          No vendor bills recorded yet. Click New Vendor Bill to create one.
-                        </td>
-                      </tr>
-                    ) : (
-                      (vendorBills || []).map((b) => {
-                        const vend = vendors.find((v) => v.id === b.vendor_id);
-                        const wh = warehouses.find((w) => w.id === b.warehouse_id);
-                        return (
-                          <tr key={b.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{b.bill_no}</td>
-                            <td className="px-4 py-3 text-slate-400">{b.bill_date || b.document_date}</td>
-                            <td className="px-4 py-3 font-medium text-slate-200">{vend?.name || 'Vendor'}</td>
-                            <td className="px-4 py-3 text-slate-400">{wh?.name || 'Main Warehouse'}</td>
-                            <td className="px-4 py-3 font-mono font-semibold text-amber-400">
-                              Rs. {(b.total_amount || 0).toLocaleString()}
-                            </td>
-                            <td className="px-4 py-3">
-                              <span
-                                className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
-                                  b.status === 'POSTED' ? 'bg-amber-500/15 text-amber-500' : 'bg-amber-500/10 text-amber-500'
-                                }`}
-                              >
-                                {b.status || 'POSTED'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                {isAdmin ? (
-                                  <>
-                                    <button
-                                      onClick={() => openEditVBForm(b)}
-                                      className="p-1 text-slate-400 hover:text-amber-400 transition"
-                                      title="Edit Vendor Bill"
-                                    >
-                                      <Edit className="h-3.5 w-3.5" />
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        deleteVendorBill(b.id);
-                                        toast.success('Vendor bill deleted');
-                                      }}
-                                      className="text-xs text-rose-500 hover:underline"
-                                    >
-                                      Delete
-                                    </button>
-                                  </>
-                                ) : (
-                                  <span className="text-[11px] font-semibold text-slate-400">View Only</span>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <button
+                onClick={openCreatePIForm}
+                className="flex items-center gap-2 btn-primary shadow-sm"
+              >
+                <Plus className="h-4 w-4" /> New Purchase
+              </button>
             </div>
-          ) : (
-            /* NEW VENDOR BILL FORM (Matching User Screenshots) */
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <button
-                  onClick={() => setVbViewMode('list')}
-                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
-                >
-                  ← Back to Vendor Bills Register
-                </button>
-              </div>
 
-              {/* TOP SECTION: Main Header Card (Left) & Procurement Workflow (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Header Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                    {editingVBId ? 'Edit Vendor Bill' : 'New Vendor Bill'}
-                  </h2>
-
-                  {/* Row 1: Vendor, Document date, Due date */}
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Vendor</label>
-                      <select
-                        value={vbVendorId}
-                        onChange={(e) => setVbVendorId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="">Select vendor</option>
-                        {vendors.map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {v.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Document date</label>
-                      <input
-                        type="date"
-                        value={vbDocDate}
-                        onChange={(e) => setVbDocDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Due date</label>
-                      <input
-                        type="date"
-                        value={vbDueDate}
-                        onChange={(e) => setVbDueDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 2: Warehouse (Full Width) */}
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Warehouse</label>
-                    <select
-                      value={vbWarehouseId}
-                      onChange={(e) => setVbWarehouseId(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                    >
-                      <option value="">Select warehouse</option>
-                      {warehouses.map((w) => (
-                        <option key={w.id} value={w.id}>
-                          {w.code ? `${w.code} · ` : ''}{w.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Row 3: Gate pass number, Account category, Account head */}
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Gate pass number</label>
-                      <input
-                        type="text"
-                        placeholder="Manual gate pass no."
-                        value={vbGatePassNo}
-                        onChange={(e) => setVbGatePassNo(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account category</label>
-                      <select
-                        value={vbAccountCategory}
-                        onChange={(e) => setVbAccountCategory(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="All account categories">All account categories</option>
-                        <option value="Current Assets">Current Assets</option>
-                        <option value="Inventory Accounts">Inventory Accounts</option>
-                        <option value="Direct Expenses">Direct Expenses</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account head</label>
-                      <select
-                        value={vbAccountHead}
-                        onChange={(e) => setVbAccountHead(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="Default Inventory / Purchase Account">Default Inventory / Purchase Account</option>
-                        <option value="Inventory - Main Stock">Inventory - Main Stock</option>
-                        <option value="Cost of Goods Sold">Cost of Goods Sold</option>
-                        <option value="Raw Material Purchases">Raw Material Purchases</option>
-                      </select>
-                      <p className="text-[11px] font-semibold text-slate-400 mt-1 leading-tight">
-                        Choose the account category first, then select the account head.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Row 4: Currency, Exchange rate, Supplier invoice/reference */}
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Currency</label>
-                      <select
-                        value={vbCurrency}
-                        onChange={(e) => setVbCurrency(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="PKR">PKR</option>
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
-                        <option value="AED">AED</option>
-                        <option value="SAR">SAR</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Exchange rate</label>
-                      <input
-                        type="number"
-                        value={vbExchangeRate}
-                        onChange={(e) => setVbExchangeRate(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Supplier invoice/reference</label>
-                      <input
-                        type="text"
-                        placeholder="Supplier invoice/reference"
-                        value={vbSupplierRef}
-                        onChange={(e) => setVbSupplierRef(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Procurement Workflow Card (Right - 1 Column) matching screenshot */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
-                  <div className="space-y-4">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Procurement workflow</h3>
-
-                    {/* Light Emerald Notice Box from screenshot */}
-                    <div className="rounded-xl bg-amber-500/10 dark:bg-amber-500/10 p-3.5 border border-amber-500/30 dark:border-amber-500/20 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
-                      Posting updates stock, payables and the general ledger.
-                    </div>
-
-                    <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-500 dark:text-slate-400 font-medium">Number</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {editingVBId ? 'Assigned' : 'Assigned on save'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-500 dark:text-slate-400 font-medium">Financial year</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">Auto selected</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons at Bottom Right matching screenshot */}
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <button
-                      type="button"
-                      onClick={() => setVbViewMode('list')}
-                      className="rounded-xl border border-slate-300 px-5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSaveVBRecord}
-                      className="rounded-xl bg-[#00a884] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#008f70] transition"
-                    >
-                      Save & Post
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* LINE ITEMS CARD (Matching Screenshots) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">LINE ITEMS</p>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Products and services</h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addVBLineItem}
-                    className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition shadow-sm"
-                  >
-                    + Add line
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-                  <table className="w-full text-left text-xs min-w-[700px]">
-                    <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
-                      <tr>
-                        <th className="px-4 py-3 w-56">PRODUCT</th>
-                        <th className="px-4 py-3">DESCRIPTION</th>
-                        <th className="px-4 py-3 w-36 text-center">QTY</th>
-                        <th className="px-4 py-3 w-28">RATE</th>
-                        <th className="px-4 py-3 w-24">DISCOUNT</th>
-                        <th className="px-4 py-3 w-12"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {vbLineItems.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
-                          <td className="px-4 py-3">
-                            <select
-                              value={item.product_id}
-                              onChange={(e) => updateVBLineItem(item.id, { product_id: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            >
-                              <option value="">Select product</option>
-                              {products.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.name}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="text"
-                              placeholder="Optional description"
-                              value={item.description}
-                              onChange={(e) => updateVBLineItem(item.id, { description: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-center rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-800 overflow-hidden">
-                              <button
-                                type="button"
-                                onClick={() => updateVBLineItem(item.id, { qty: Math.max(1, (item.qty || 1) - 1) })}
-                                className="px-3 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold"
-                              >
-                                -
-                              </button>
-                              <input
-                                type="number"
-                                value={item.qty}
-                                onChange={(e) => updateVBLineItem(item.id, { qty: Math.max(1, Number(e.target.value)) })}
-                                className="w-12 text-center text-xs font-bold text-slate-800 dark:text-slate-100 outline-none border-none bg-transparent"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => updateVBLineItem(item.id, { qty: (item.qty || 1) + 1 })}
-                                className="px-3 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="number"
-                              value={item.rate}
-                              onChange={(e) => updateVBLineItem(item.id, { rate: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="number"
-                              value={item.discount}
-                              onChange={(e) => updateVBLineItem(item.id, { discount: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <button
-                              type="button"
-                              onClick={() => removeVBLineItem(item.id)}
-                              className="text-slate-400 hover:text-rose-500 transition"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Bottom Summary Grid (SUBTOTAL, DISCOUNT, TAX, GRAND TOTAL) matching Screenshots */}
-                {(() => {
-                  const t = calcVBTotals();
-                  return (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden text-center divide-x divide-slate-200 dark:divide-slate-800">
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SUBTOTAL</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.subtotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">DISCOUNT</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.discountTotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TAX</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.taxTotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      {/* Grand Total Box */}
-                      <div className="grand-total-box">
-                        <p className="grand-total-label">GRAND TOTAL</p>
-                        <p className="grand-total-value">
-                          Rs. {t.grandTotal.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Notes Bottom Card */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Notes</label>
-                <textarea
-                  rows={4}
-                  value={vbNotes}
-                  onChange={(e) => setVbNotes(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* PURCHASE REQUESTS TAB */}
-      {activeSubTab === 'Requests' && (
-        <div className="space-y-6">
-          {prViewMode === 'list' ? (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PROCUREMENT WORKFLOW</p>
-                  <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Purchase requests register</h2>
-                </div>
-                <button
-                  onClick={openCreatePRForm}
-                  className="flex items-center gap-2 btn-primary shadow-sm"
-                >
-                  <Plus className="h-4 w-4" /> New request
-                </button>
-              </div>
-
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
+                  <tr>
+                    <th className="px-4 py-3">GRN / Invoice No</th>
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3">Party / Vendor</th>
+                    <th className="px-4 py-3">Warehouse</th>
+                    <th className="px-4 py-3">Amount</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {(purchaseInvoices || []).length === 0 ? (
                     <tr>
-                      <th className="px-4 py-3">Request No</th>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Required Date</th>
-                      <th className="px-4 py-3">Amount</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
+                      <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                        No purchases recorded yet. Click New Purchase to create one.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {(purchaseRequests || []).length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                          No purchase requests recorded yet. Click New Request to create one.
-                        </td>
-                      </tr>
-                    ) : (
-                      (purchaseRequests || []).map((pr) => (
-                        <tr key={pr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                          <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{pr.request_no}</td>
-                          <td className="px-4 py-3 text-slate-400">{pr.request_date || pr.document_date}</td>
-                          <td className="px-4 py-3 text-slate-300">{pr.required_date || '-'}</td>
+                  ) : (
+                    (purchaseInvoices || []).map((pi) => {
+                      const party = vendors.find((v) => v.id === pi.vendor_id) || customers.find((c) => c.id === pi.vendor_id);
+                      const wh = warehouses.find((w) => w.id === pi.warehouse_id);
+                      return (
+                        <tr key={pi.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                          <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{pi.grn_no || pi.invoice_no}</td>
+                          <td className="px-4 py-3 text-slate-400">{pi.received_date || pi.document_date}</td>
+                          <td className="px-4 py-3 font-medium text-slate-200">{party?.name || 'Party'}</td>
+                          <td className="px-4 py-3 text-slate-400">{wh?.name || 'Main Warehouse'}</td>
                           <td className="px-4 py-3 font-mono font-semibold text-amber-400">
-                            Rs. {(pr.total_amount || 0).toLocaleString()}
+                            Rs. {(pi.total_amount || 0).toLocaleString()}
                           </td>
                           <td className="px-4 py-3">
-                            <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
-                              {pr.status}
+                            <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
+                              {pi.status || 'POSTED'}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-2">
                               <button
-                                onClick={() => openEditPRForm(pr)}
+                                onClick={() => openEditPIForm(pi)}
                                 className="p-1 text-slate-400 hover:text-amber-400 transition"
-                                title="Edit Request"
+                                title="Edit Purchase Invoice"
                               >
                                 <Edit className="h-3.5 w-3.5" />
                               </button>
                               <button
                                 onClick={() => {
-                                  deletePurchaseRequest(pr.id);
-                                  toast.success('Request deleted');
+                                  deletePurchaseInvoice(pi.id);
+                                  toast.success('Purchase Invoice deleted');
                                 }}
                                 className="text-xs text-rose-500 hover:underline"
                               >
@@ -1896,1723 +1428,294 @@ export function PurchaseModule() {
                             </div>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
-          ) : (
-            /* NEW PURCHASE REQUEST FORM (Matching User Screenshot) */
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <button
-                  onClick={() => setPrViewMode('list')}
-                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
-                >
-                  ← Back to Purchase Requests Register
-                </button>
-              </div>
+          </div>
 
-              {/* TOP SECTION: Main Header Card (Left) & Procurement Workflow (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Header Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                    {editingPRId ? 'Edit Purchase Request' : 'New Purchase Request'}
-                  </h2>
-
-                  {/* Document Date & Required Date Grid */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Document date</label>
-                      <input
-                        type="date"
-                        value={prDocDate}
-                        onChange={(e) => setPrDocDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Required date</label>
-                      <input
-                        type="date"
-                        value={prRequiredDate}
-                        onChange={(e) => setPrRequiredDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Procurement Workflow Card (Right - 1 Column) */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
-                  <div className="space-y-4">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Procurement workflow</h3>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Status</label>
-                      <select
-                        value={prStatus}
-                        onChange={(e) => setPrStatus(e.target.value as any)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="Draft">Draft</option>
-                        <option value="Submitted">Submitted</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-500 dark:text-slate-400 font-medium">Number</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {editingPRId ? 'Assigned' : 'Assigned on save'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-500 dark:text-slate-400 font-medium">Financial year</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">Auto selected</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons at Bottom Right matching screenshot */}
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <button
-                      type="button"
-                      onClick={() => setPrViewMode('list')}
-                      className="rounded-xl border border-slate-300 px-5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSavePRRecord}
-                      className="rounded-xl bg-[#00a884] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#008f70] transition"
-                    >
-                      Save & Continue
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* LINE ITEMS CARD (Matching Screenshot) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-                <div className="flex items-center justify-between">
+          {/* NEW / EDIT PURCHASE INVOICE MODAL */}
+          {piViewMode === 'form' && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="w-full max-w-6xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900 space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">LINE ITEMS</p>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Products and services</h3>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 font-mono">PURCHASE INVOICE WORKFLOW</p>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                      {editingPIId ? 'Edit Purchase Invoice' : 'New Purchase Invoice'}
+                    </h3>
                   </div>
                   <button
-                    type="button"
-                    onClick={addPRLineItem}
-                    className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition shadow-sm"
+                    onClick={() => setPiViewMode('list')}
+                    className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                   >
-                    + Add line
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-                  <table className="w-full text-left text-xs min-w-[700px]">
-                    <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
-                      <tr>
-                        <th className="px-4 py-3 w-56">PRODUCT</th>
-                        <th className="px-4 py-3">DESCRIPTION</th>
-                        <th className="px-4 py-3 w-36 text-center">QTY</th>
-                        <th className="px-4 py-3 w-28">RATE</th>
-                        <th className="px-4 py-3 w-24">DISCOUNT</th>
-                        <th className="px-4 py-3 w-12"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {prLineItems.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
-                          <td className="px-4 py-3">
-                            <select
-                              value={item.product_id}
-                              onChange={(e) => updatePRLineItem(item.id, { product_id: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            >
-                              <option value="">Select product</option>
-                              {products.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.name}
+                {/* TOP SECTION: Main Header Card (Left) & Procurement Workflow (Right) */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Main Header Card (Left - 2 Columns) */}
+                  <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                      {editingPIId ? 'Edit Purchase' : 'New Purchase'}
+                    </h2>
+
+                    {/* Row 1: Type, Party Selection, Reference No, Document date, Due date */}
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 font-mono">Ref / Invoice No</label>
+                        <input
+                          type="text"
+                          value={piReferenceNo}
+                          onChange={(e) => setPiReferenceNo(e.target.value)}
+                          placeholder="e.g. PI-01"
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-bold text-amber-500 dark:border-slate-700 dark:bg-slate-800 outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Type</label>
+                        <select
+                          value={piPartyType}
+                          onChange={(e) => handlePIPartyTypeChange(e.target.value as 'Vendor' | 'Customer')}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        >
+                          <option value="Vendor">Supplier</option>
+                          <option value="Customer">Customer</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                          Select {piPartyType === 'Vendor' ? 'Supplier' : 'Customer'}
+                        </label>
+                        <select
+                          value={piVendorId}
+                          onChange={(e) => setPiVendorId(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        >
+                          <option value="">Select {piPartyType === 'Vendor' ? 'supplier' : 'customer'}</option>
+                          {piPartyType === 'Vendor'
+                            ? vendors.map((v) => (
+                                <option key={v.id} value={v.id}>
+                                  {v.name}
+                                </option>
+                              ))
+                            : customers.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name}
                                 </option>
                               ))}
-                            </select>
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="text"
-                              placeholder="Optional description"
-                              value={item.description}
-                              onChange={(e) => updatePRLineItem(item.id, { description: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-center rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-800 overflow-hidden">
-                              <button
-                                type="button"
-                                onClick={() => updatePRLineItem(item.id, { qty: Math.max(1, (item.qty || 1) - 1) })}
-                                className="px-3 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold"
-                              >
-                                -
-                              </button>
-                              <input
-                                type="number"
-                                value={item.qty}
-                                onChange={(e) => updatePRLineItem(item.id, { qty: Math.max(1, Number(e.target.value)) })}
-                                className="w-12 text-center text-xs font-bold text-slate-800 dark:text-slate-100 outline-none border-none bg-transparent"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => updatePRLineItem(item.id, { qty: (item.qty || 1) + 1 })}
-                                className="px-3 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="number"
-                              value={item.rate}
-                              onChange={(e) => updatePRLineItem(item.id, { rate: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="number"
-                              value={item.discount}
-                              onChange={(e) => updatePRLineItem(item.id, { discount: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <button
-                              type="button"
-                              onClick={() => removePRLineItem(item.id)}
-                              className="text-slate-400 hover:text-rose-500 transition"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Bottom Summary Grid (SUBTOTAL, DISCOUNT, TAX, GRAND TOTAL) matching Screenshot */}
-                {(() => {
-                  const t = calcPRTotals();
-                  return (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden text-center divide-x divide-slate-200 dark:divide-slate-800">
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SUBTOTAL</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.subtotal.toFixed(2)}
-                        </p>
+                        </select>
                       </div>
 
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">DISCOUNT</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.discountTotal.toFixed(2)}
-                        </p>
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Document date</label>
+                        <input
+                          type="date"
+                          value={piDocDate}
+                          onChange={(e) => setPiDocDate(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        />
                       </div>
 
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TAX</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.taxTotal.toFixed(2)}
-                        </p>
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Due date</label>
+                        <input
+                          type="date"
+                          value={piDueDate}
+                          onChange={(e) => setPiDueDate(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Warehouse</label>
+                        <select
+                          value={piWarehouseId}
+                          onChange={(e) => setPiWarehouseId(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        >
+                          {warehouses.map((w) => (
+                            <option key={w.id} value={w.id}>
+                              {w.name} ({w.code})
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
-                      {/* Grand Total Box */}
-                      <div className="grand-total-box">
-                        <p className="grand-total-label">GRAND TOTAL</p>
-                        <p className="grand-total-value">
-                          Rs. {t.grandTotal.toFixed(2)}
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Supplier Invoice No</label>
+                        <input
+                          type="text"
+                          value={piVendorInvoiceNo}
+                          onChange={(e) => setPiVendorInvoiceNo(e.target.value)}
+                          placeholder="e.g. INV-9901"
+                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Procurement Workflow (Right - 1 Column) */}
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
+                    <div className="space-y-4">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Procurement Workflow</h3>
+
+                      <div className="rounded-xl bg-amber-500/10 p-3.5 border border-amber-500/30 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
+                        <p className="font-bold text-amber-400">Posting Rule</p>
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          Saving & posting this purchase updates inventory stock levels and supplier payables immediately.
                         </p>
                       </div>
                     </div>
-                  );
-                })()}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* PURCHASE ORDERS TAB */}
-      {activeSubTab === 'Purchase Orders' && (
-        <div className="space-y-6">
-          {poViewMode === 'list' ? (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PROCUREMENT WORKFLOW</p>
-                  <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Purchase orders register</h2>
+                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setPiViewMode('list')}
+                        className="rounded-xl border border-slate-300 px-5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSavePIRecord('POSTED')}
+                        className="btn-primary text-xs px-5"
+                      >
+                        Save & Post Purchase
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <button
-                  onClick={openCreatePOForm}
-                  className="flex items-center gap-2 btn-primary shadow-sm"
-                >
-                  <Plus className="h-4 w-4" /> New purchase order
-                </button>
-              </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
-                    <tr>
-                      <th className="px-4 py-3">PO Number</th>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Vendor</th>
-                      <th className="px-4 py-3">Expected Date</th>
-                      <th className="px-4 py-3">Amount</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {(purchaseOrders || []).length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                          No purchase orders recorded yet. Click New Purchase Order to create one.
-                        </td>
-                      </tr>
-                    ) : (
-                      (purchaseOrders || []).map((po) => {
-                        const vend = vendors.find((v) => v.id === po.vendor_id);
-                        return (
-                          <tr key={po.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{po.po_no}</td>
-                            <td className="px-4 py-3 text-slate-400">{po.po_date || po.document_date}</td>
-                            <td className="px-4 py-3 font-medium text-slate-200">{vend?.name || 'Vendor'}</td>
-                            <td className="px-4 py-3 text-slate-400">{po.expected_date || po.expected_delivery || '-'}</td>
-                            <td className="px-4 py-3 font-mono font-semibold text-amber-400">
-                              {po.currency || 'Rs.'} {po.total_amount?.toLocaleString()}
+                {/* Line Items Card */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">ITEMS</p>
+                      <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Products & items purchased</h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addPILineItem}
+                      className="btn-primary text-xs"
+                    >
+                      + Add line
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                    <table className="w-full text-left text-xs min-w-[700px]">
+                      <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
+                        <tr>
+                          <th className="px-4 py-3 w-56">PRODUCT</th>
+                          <th className="px-4 py-3">DESCRIPTION</th>
+                          <th className="px-4 py-3 w-36 text-center">QTY</th>
+                          <th className="px-4 py-3 w-28">RATE</th>
+                          <th className="px-4 py-3 w-24">DISCOUNT</th>
+                          <th className="px-4 py-3 w-12 text-center"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {piLineItems.map((item) => (
+                          <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
+                            <td className="px-4 py-3">
+                              <select
+                                value={item.product_id}
+                                onChange={(e) => updatePILineItem(item.id, { product_id: e.target.value })}
+                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                              >
+                                <option value="">Select product</option>
+                                {products.map((p) => (
+                                  <option key={p.id} value={p.id}>
+                                    {p.name}
+                                  </option>
+                                ))}
+                              </select>
                             </td>
                             <td className="px-4 py-3">
-                              <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
-                                {po.status}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => openEditPOForm(po)}
-                                  className="p-1 text-slate-400 hover:text-amber-400 transition"
-                                  title="Edit Purchase Order"
-                                >
-                                  <Edit className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    deletePurchaseOrder(po.id);
-                                    toast.success('Purchase Order deleted');
-                                  }}
-                                  className="text-xs text-rose-500 hover:underline"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            /* NEW PURCHASE ORDER FORM (Matching User Screenshot) */
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <button
-                  onClick={() => setPoViewMode('list')}
-                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
-                >
-                  ← Back to Purchase Orders Register
-                </button>
-              </div>
-
-              {/* TOP SECTION: Main Header Card (Left) & Procurement Workflow (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Header Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                    {editingPOId ? 'Edit Purchase Order' : 'New Purchase Order'}
-                  </h2>
-
-                  {/* Row 1: Vendor, Document date, Expected date */}
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Vendor</label>
-                      <select
-                        value={poVendorId}
-                        onChange={(e) => setPoVendorId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="">Select vendor</option>
-                        {vendors.map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {v.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Document date</label>
-                      <input
-                        type="date"
-                        value={poDocDate}
-                        onChange={(e) => setPoDocDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Expected date</label>
-                      <input
-                        type="date"
-                        value={poExpectedDate}
-                        onChange={(e) => setPoExpectedDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 2: Currency, Exchange rate, Supplier invoice/reference */}
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Currency</label>
-                      <select
-                        value={poCurrency}
-                        onChange={(e) => setPoCurrency(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="PKR">PKR</option>
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
-                        <option value="AED">AED</option>
-                        <option value="SAR">SAR</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Exchange rate</label>
-                      <input
-                        type="number"
-                        value={poExchangeRate}
-                        onChange={(e) => setPoExchangeRate(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Supplier invoice/reference</label>
-                      <input
-                        type="text"
-                        placeholder="Supplier invoice/reference"
-                        value={poSupplierRef}
-                        onChange={(e) => setPoSupplierRef(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Procurement Workflow Card (Right - 1 Column) */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
-                  <div className="space-y-4">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Procurement workflow</h3>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Status</label>
-                      <select
-                        value={poStatus}
-                        onChange={(e) => setPoStatus(e.target.value as any)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="Draft">Draft</option>
-                        <option value="Submitted">Submitted</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Cancelled">Cancelled</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-500 dark:text-slate-400 font-medium">Number</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {editingPOId ? 'Assigned' : 'Assigned on save'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-500 dark:text-slate-400 font-medium">Financial year</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">Auto selected</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons at Bottom Right matching screenshot */}
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <button
-                      type="button"
-                      onClick={() => setPoViewMode('list')}
-                      className="rounded-xl border border-slate-300 px-5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSavePORecord}
-                      className="rounded-xl bg-[#00a884] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#008f70] transition"
-                    >
-                      Save & Continue
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* LINE ITEMS CARD (Matching Screenshot) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">LINE ITEMS</p>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Products and services</h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addPOLineItem}
-                    className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition shadow-sm"
-                  >
-                    + Add line
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-                  <table className="w-full text-left text-xs min-w-[700px]">
-                    <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
-                      <tr>
-                        <th className="px-4 py-3 w-56">PRODUCT</th>
-                        <th className="px-4 py-3">DESCRIPTION</th>
-                        <th className="px-4 py-3 w-36 text-center">QTY</th>
-                        <th className="px-4 py-3 w-28">RATE</th>
-                        <th className="px-4 py-3 w-24">DISCOUNT</th>
-                        <th className="px-4 py-3 w-12"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {poLineItems.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
-                          <td className="px-4 py-3">
-                            <select
-                              value={item.product_id}
-                              onChange={(e) => updatePOLineItem(item.id, { product_id: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            >
-                              <option value="">Select product</option>
-                              {products.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.name}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="text"
-                              placeholder="Optional description"
-                              value={item.description}
-                              onChange={(e) => updatePOLineItem(item.id, { description: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-center rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-800 overflow-hidden">
-                              <button
-                                type="button"
-                                onClick={() => updatePOLineItem(item.id, { qty: Math.max(1, (item.qty || 1) - 1) })}
-                                className="px-3 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold"
-                              >
-                                -
-                              </button>
                               <input
-                                type="number"
-                                value={item.qty}
-                                onChange={(e) => updatePOLineItem(item.id, { qty: Math.max(1, Number(e.target.value)) })}
-                                className="w-12 text-center text-xs font-bold text-slate-800 dark:text-slate-100 outline-none border-none bg-transparent"
+                                type="text"
+                                placeholder="Description / details"
+                                value={item.description}
+                                onChange={(e) => updatePILineItem(item.id, { description: e.target.value })}
+                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                               />
-                              <button
-                                type="button"
-                                onClick={() => updatePOLineItem(item.id, { qty: (item.qty || 1) + 1 })}
-                                className="px-3 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="number"
-                              value={item.rate}
-                              onChange={(e) => updatePOLineItem(item.id, { rate: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="number"
-                              value={item.discount}
-                              onChange={(e) => updatePOLineItem(item.id, { discount: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <button
-                              type="button"
-                              onClick={() => removePOLineItem(item.id)}
-                              className="text-slate-400 hover:text-rose-500 transition"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Bottom Summary Grid (SUBTOTAL, DISCOUNT, TAX, GRAND TOTAL) matching Screenshot */}
-                {(() => {
-                  const t = calcPOTotals();
-                  return (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden text-center divide-x divide-slate-200 dark:divide-slate-800">
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SUBTOTAL</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.subtotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">DISCOUNT</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.discountTotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TAX</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.taxTotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      {/* Grand Total Box */}
-                      <div className="grand-total-box">
-                        <p className="grand-total-label">GRAND TOTAL</p>
-                        <p className="grand-total-value">
-                          Rs. {t.grandTotal.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Notes Bottom Card */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Notes</label>
-                <textarea
-                  rows={4}
-                  value={poNotes}
-                  onChange={(e) => setPoNotes(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* PURCHASE INVOICES TAB */}
-      {activeSubTab === 'Purchase Invoices' && (
-        <div className="space-y-6">
-          {piViewMode === 'list' ? (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PROCUREMENT WORKFLOW</p>
-                  <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Purchase invoices register</h2>
-                </div>
-                <button
-                  onClick={openCreatePIForm}
-                  className="flex items-center gap-2 btn-primary shadow-sm"
-                >
-                  <Plus className="h-4 w-4" /> New purchase invoice
-                </button>
-              </div>
-
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
-                    <tr>
-                      <th className="px-4 py-3">GRN / Invoice No</th>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Vendor</th>
-                      <th className="px-4 py-3">Warehouse</th>
-                      <th className="px-4 py-3">Amount</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {(purchaseInvoices || []).length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                          No purchase invoices recorded yet. Click New Purchase Invoice to create one.
-                        </td>
-                      </tr>
-                    ) : (
-                      (purchaseInvoices || []).map((pi) => {
-                        const vend = vendors.find((v) => v.id === pi.vendor_id);
-                        const wh = warehouses.find((w) => w.id === pi.warehouse_id);
-                        return (
-                          <tr key={pi.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{pi.grn_no || pi.invoice_no}</td>
-                            <td className="px-4 py-3 text-slate-400">{pi.received_date || pi.document_date}</td>
-                            <td className="px-4 py-3 font-medium text-slate-200">{vend?.name || 'Vendor'}</td>
-                            <td className="px-4 py-3 text-slate-400">{wh?.name || 'Main Warehouse'}</td>
-                            <td className="px-4 py-3 font-mono font-semibold text-amber-400">
-                              Rs. {(pi.total_amount || 0).toLocaleString()}
                             </td>
                             <td className="px-4 py-3">
-                              <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
-                                {pi.status || 'POSTED'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => openEditPIForm(pi)}
-                                  className="p-1 text-slate-400 hover:text-amber-400 transition"
-                                  title="Edit Purchase Invoice"
-                                >
-                                  <Edit className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    deletePurchaseInvoice(pi.id);
-                                    toast.success('Purchase Invoice deleted');
-                                  }}
-                                  className="text-xs text-rose-500 hover:underline"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            /* NEW PURCHASE INVOICE FORM (Matching User Screenshots) */
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <button
-                  onClick={() => setPiViewMode('list')}
-                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
-                >
-                  ← Back to Purchase Invoices Register
-                </button>
-              </div>
-
-              {/* TOP SECTION: Main Header Card (Left) & Procurement Workflow (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Header Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                    {editingPIId ? 'Edit Purchase Invoice' : 'New Purchase Invoice'}
-                  </h2>
-
-                  {/* Row 1: Vendor, Document date, Due date */}
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Vendor</label>
-                      <select
-                        value={piVendorId}
-                        onChange={(e) => setPiVendorId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="">Select vendor</option>
-                        {vendors.map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {v.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Document date</label>
-                      <input
-                        type="date"
-                        value={piDocDate}
-                        onChange={(e) => setPiDocDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Due date</label>
-                      <input
-                        type="date"
-                        value={piDueDate}
-                        onChange={(e) => setPiDueDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 2: Warehouse (Full Width) */}
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Warehouse</label>
-                    <select
-                      value={piWarehouseId}
-                      onChange={(e) => setPiWarehouseId(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                    >
-                      <option value="">Select warehouse</option>
-                      {warehouses.map((w) => (
-                        <option key={w.id} value={w.id}>
-                          {w.code ? `${w.code} · ` : ''}{w.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Row 3: Gate pass number, Account category, Account head */}
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Gate pass number</label>
-                      <input
-                        type="text"
-                        placeholder="Manual gate pass no."
-                        value={piGatePassNo}
-                        onChange={(e) => setPiGatePassNo(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account category</label>
-                      <select
-                        value={piAccountCategory}
-                        onChange={(e) => setPiAccountCategory(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="All account categories">All account categories</option>
-                        <option value="Current Assets">Current Assets</option>
-                        <option value="Inventory Accounts">Inventory Accounts</option>
-                        <option value="Direct Expenses">Direct Expenses</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account head</label>
-                      <select
-                        value={piAccountHead}
-                        onChange={(e) => setPiAccountHead(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="Default Inventory / Purchase Account">Default Inventory / Purchase Account</option>
-                        <option value="Inventory - Main Stock">Inventory - Main Stock</option>
-                        <option value="Cost of Goods Sold">Cost of Goods Sold</option>
-                        <option value="Raw Material Purchases">Raw Material Purchases</option>
-                      </select>
-                      <p className="text-[11px] font-semibold text-slate-400 mt-1 leading-tight">
-                        Choose the account category first, then select the account head.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Procurement Workflow Card (Right - 1 Column) matching screenshot */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
-                  <div className="space-y-4">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Procurement workflow</h3>
-
-                    {/* Green Notice Box from screenshot */}
-                    <div className="rounded-xl bg-amber-500/10 dark:bg-amber-500/10 p-3.5 border border-amber-500/30 dark:border-amber-500/20 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
-                      Posting a purchase invoice receives stock. Use vendor bill only if you need a separate accounting liability workflow.
-                    </div>
-
-                    <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-500 dark:text-slate-400 font-medium">Number</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {editingPIId ? 'Assigned' : 'Assigned on save'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-500 dark:text-slate-400 font-medium">Financial year</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">Auto selected</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons at Bottom Right matching screenshot */}
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <button
-                      type="button"
-                      onClick={() => setPiViewMode('list')}
-                      className="rounded-xl border border-slate-300 px-5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSavePIRecord}
-                      className="rounded-xl bg-[#00a884] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#008f70] transition"
-                    >
-                      Save & Post
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* LINE ITEMS CARD (Matching Screenshots) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">LINE ITEMS</p>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Products and services</h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addPILineItem}
-                    className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition shadow-sm"
-                  >
-                    + Add line
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-                  <table className="w-full text-left text-xs min-w-[700px]">
-                    <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
-                      <tr>
-                        <th className="px-4 py-3 w-56">PRODUCT</th>
-                        <th className="px-4 py-3">DESCRIPTION</th>
-                        <th className="px-4 py-3 w-36 text-center">QTY</th>
-                        <th className="px-4 py-3 w-28">RATE</th>
-                        <th className="px-4 py-3 w-24">DISCOUNT</th>
-                        <th className="px-4 py-3 w-12"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {piLineItems.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
-                          <td className="px-4 py-3">
-                            <select
-                              value={item.product_id}
-                              onChange={(e) => updatePILineItem(item.id, { product_id: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            >
-                              <option value="">Select product</option>
-                              {products.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.name}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="text"
-                              placeholder="Optional description"
-                              value={item.description}
-                              onChange={(e) => updatePILineItem(item.id, { description: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-center rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-800 overflow-hidden">
-                              <button
-                                type="button"
-                                onClick={() => updatePILineItem(item.id, { qty: Math.max(1, (item.qty || 1) - 1) })}
-                                className="px-3 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold"
-                              >
-                                -
-                              </button>
                               <input
                                 type="number"
+                                min="1"
                                 value={item.qty}
                                 onChange={(e) => updatePILineItem(item.id, { qty: Math.max(1, Number(e.target.value)) })}
-                                className="w-12 text-center text-xs font-bold text-slate-800 dark:text-slate-100 outline-none border-none bg-transparent"
+                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                               />
-                              <button
-                                type="button"
-                                onClick={() => updatePILineItem(item.id, { qty: (item.qty || 1) + 1 })}
-                                className="px-3 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="number"
-                              value={item.rate}
-                              onChange={(e) => updatePILineItem(item.id, { rate: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="number"
-                              value={item.discount}
-                              onChange={(e) => updatePILineItem(item.id, { discount: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <button
-                              type="button"
-                              onClick={() => removePILineItem(item.id)}
-                              className="text-slate-400 hover:text-rose-500 transition"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Bottom Summary Grid (SUBTOTAL, DISCOUNT, TAX, GRAND TOTAL) matching Screenshot */}
-                {(() => {
-                  const t = calcPITotals();
-                  return (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden text-center divide-x divide-slate-200 dark:divide-slate-800">
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SUBTOTAL</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.subtotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">DISCOUNT</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.discountTotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TAX</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.taxTotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      {/* Grand Total Box */}
-                      <div className="grand-total-box">
-                        <p className="grand-total-label">GRAND TOTAL</p>
-                        <p className="grand-total-value">
-                          Rs. {t.grandTotal.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Notes Bottom Card */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Notes</label>
-                <textarea
-                  rows={4}
-                  value={piNotes}
-                  onChange={(e) => setPiNotes(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* DEBIT NOTES TAB (New Purchase Return) */}
-      {activeSubTab === 'Debit Notes' && (
-        <div className="space-y-6">
-          {dnViewMode === 'list' ? (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PROCUREMENT WORKFLOW</p>
-                  <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Debit notes / Purchase returns register</h2>
-                </div>
-                <button
-                  onClick={openCreateDNForm}
-                  className="flex items-center gap-2 btn-primary shadow-sm"
-                >
-                  <Plus className="h-4 w-4" /> New debit note
-                </button>
-              </div>
-
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
-                    <tr>
-                      <th className="px-4 py-3">Debit Note No</th>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Vendor</th>
-                      <th className="px-4 py-3">Purpose / Reason</th>
-                      <th className="px-4 py-3">Amount</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {(debitNotes || []).length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                          No debit notes recorded yet. Click New Debit Note to create one.
-                        </td>
-                      </tr>
-                    ) : (
-                      (debitNotes || []).map((dn) => {
-                        const vend = vendors.find((v) => v.id === dn.vendor_id);
-                        return (
-                          <tr key={dn.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{dn.debit_note_no}</td>
-                            <td className="px-4 py-3 text-slate-400">{dn.note_date || dn.document_date}</td>
-                            <td className="px-4 py-3 font-medium text-slate-200">{vend?.name || 'Vendor'}</td>
-                            <td className="px-4 py-3 text-slate-400">{dn.reason || dn.purpose_reason || 'Purchase Return'}</td>
-                            <td className="px-4 py-3 font-mono font-semibold text-rose-400">
-                              Rs. {(dn.total_amount || 0).toLocaleString()}
                             </td>
                             <td className="px-4 py-3">
-                              <span className="rounded-md bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-rose-500">
-                                {dn.status || 'POSTED'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => openEditDNForm(dn)}
-                                  className="p-1 text-slate-400 hover:text-amber-400 transition"
-                                  title="Edit Debit Note"
-                                >
-                                  <Edit className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    deleteDebitNote(dn.id);
-                                    toast.success('Debit Note deleted');
-                                  }}
-                                  className="text-xs text-rose-500 hover:underline"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            /* NEW PURCHASE RETURN FORM (Matching User Screenshots) */
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <button
-                  onClick={() => setDnViewMode('list')}
-                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
-                >
-                  ← Back to Debit Notes Register
-                </button>
-              </div>
-
-              {/* TOP SECTION: Main Header Card (Left) & Procurement Workflow (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Header Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                    {editingDNId ? 'Edit Purchase Return' : 'New Purchase Return'}
-                  </h2>
-
-                  {/* Row 1: Vendor, Document date, Due date */}
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Vendor</label>
-                      <select
-                        value={dnVendorId}
-                        onChange={(e) => setDnVendorId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="">Select vendor</option>
-                        {vendors.map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {v.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Document date</label>
-                      <input
-                        type="date"
-                        value={dnDocDate}
-                        onChange={(e) => setDnDocDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Due date</label>
-                      <input
-                        type="date"
-                        value={dnDueDate}
-                        onChange={(e) => setDnDueDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 2: Warehouse (Full Width) */}
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Warehouse</label>
-                    <select
-                      value={dnWarehouseId}
-                      onChange={(e) => setDnWarehouseId(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                    >
-                      <option value="">Select warehouse</option>
-                      {warehouses.map((w) => (
-                        <option key={w.id} value={w.id}>
-                          {w.code ? `${w.code} · ` : ''}{w.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Procurement Workflow Card (Right - 1 Column) matching screenshot */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
-                  <div className="space-y-4">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Procurement workflow</h3>
-
-                    {/* Light Emerald Notice Box from screenshot */}
-                    <div className="rounded-xl bg-amber-500/10 dark:bg-amber-500/10 p-3.5 border border-amber-500/30 dark:border-amber-500/20 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
-                      Posting updates stock, payables and the general ledger.
-                    </div>
-
-                    <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-xs">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-500 dark:text-slate-400 font-medium">Number</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {editingDNId ? 'Assigned' : 'Assigned on save'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-500 dark:text-slate-400 font-medium">Financial year</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">Auto selected</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons at Bottom Right matching screenshot */}
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <button
-                      type="button"
-                      onClick={() => setDnViewMode('list')}
-                      className="rounded-xl border border-slate-300 px-5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSaveDNRecord}
-                      className="rounded-xl bg-[#00a884] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#008f70] transition"
-                    >
-                      Save & Post
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* LINE ITEMS CARD (Matching Screenshots) */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">LINE ITEMS</p>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Products and services</h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addDNLineItem}
-                    className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 transition shadow-sm"
-                  >
-                    + Add line
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-                  <table className="w-full text-left text-xs min-w-[700px]">
-                    <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
-                      <tr>
-                        <th className="px-4 py-3 w-56">PRODUCT</th>
-                        <th className="px-4 py-3">DESCRIPTION</th>
-                        <th className="px-4 py-3 w-36 text-center">QTY</th>
-                        <th className="px-4 py-3 w-28">RATE</th>
-                        <th className="px-4 py-3 w-24">DISCOUNT</th>
-                        <th className="px-4 py-3 w-12"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {dnLineItems.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
-                          <td className="px-4 py-3">
-                            <select
-                              value={item.product_id}
-                              onChange={(e) => updateDNLineItem(item.id, { product_id: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            >
-                              <option value="">Select product</option>
-                              {products.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.name}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="text"
-                              placeholder="Optional description"
-                              value={item.description}
-                              onChange={(e) => updateDNLineItem(item.id, { description: e.target.value })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-center rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-800 overflow-hidden">
-                              <button
-                                type="button"
-                                onClick={() => updateDNLineItem(item.id, { qty: Math.max(1, (item.qty || 1) - 1) })}
-                                className="px-3 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold"
-                              >
-                                -
-                              </button>
                               <input
                                 type="number"
-                                value={item.qty}
-                                onChange={(e) => updateDNLineItem(item.id, { qty: Math.max(1, Number(e.target.value)) })}
-                                className="w-12 text-center text-xs font-bold text-slate-800 dark:text-slate-100 outline-none border-none bg-transparent"
+                                value={item.rate}
+                                onChange={(e) => updatePILineItem(item.id, { rate: Number(e.target.value) })}
+                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                               />
+                            </td>
+                            <td className="px-4 py-3">
+                              <input
+                                type="number"
+                                value={item.discount}
+                                onChange={(e) => updatePILineItem(item.id, { discount: Number(e.target.value) })}
+                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-center">
                               <button
                                 type="button"
-                                onClick={() => updateDNLineItem(item.id, { qty: (item.qty || 1) + 1 })}
-                                className="px-3 py-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold"
+                                onClick={() => removePILineItem(item.id)}
+                                className="text-slate-400 hover:text-rose-500 p-1"
                               >
-                                +
+                                <Trash2 className="h-4 w-4" />
                               </button>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="number"
-                              value={item.rate}
-                              onChange={(e) => updateDNLineItem(item.id, { rate: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="number"
-                              value={item.discount}
-                              onChange={(e) => updateDNLineItem(item.id, { discount: Number(e.target.value) })}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <button
-                              type="button"
-                              onClick={() => removeDNLineItem(item.id)}
-                              className="text-slate-400 hover:text-rose-500 transition"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Bottom Summary Grid (SUBTOTAL, DISCOUNT, TAX, GRAND TOTAL) matching Screenshots */}
-                {(() => {
-                  const t = calcDNTotals();
-                  return (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden text-center divide-x divide-slate-200 dark:divide-slate-800">
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SUBTOTAL</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.subtotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">DISCOUNT</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.discountTotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TAX</p>
-                        <p className="mt-1 text-sm font-bold font-mono text-slate-800 dark:text-slate-100">
-                          Rs. {t.taxTotal.toFixed(2)}
-                        </p>
-                      </div>
-
-                      {/* Grand Total Box */}
-                      <div className="grand-total-box">
-                        <p className="grand-total-label">GRAND TOTAL</p>
-                        <p className="grand-total-value">
-                          Rs. {t.grandTotal.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Purpose / Reason Bottom Card */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Purpose / Reason</label>
-                <textarea
-                  rows={4}
-                  value={dnPurposeReason}
-                  onChange={(e) => setDnPurposeReason(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* PAYMENTS TAB (Pay Vendor Form) */}
-      {activeSubTab === 'Payments' && (
-        <div className="space-y-6">
-          {vpViewMode === 'list' ? (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PROCUREMENT WORKFLOW</p>
-                  <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Vendor payments register</h2>
-                </div>
-                <button
-                  onClick={openCreateVPForm}
-                  className="flex items-center gap-2 btn-primary shadow-sm"
-                >
-                  <Plus className="h-4 w-4" /> New payment
-                </button>
-              </div>
-
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
-                    <tr>
-                      <th className="px-4 py-3">Payment No</th>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Vendor</th>
-                      <th className="px-4 py-3">Pay From</th>
-                      <th className="px-4 py-3">Reference No</th>
-                      <th className="px-4 py-3">Amount</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {(vendorPayments || []).length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                          No vendor payments recorded yet. Click New Payment to create one.
-                        </td>
-                      </tr>
-                    ) : (
-                      (vendorPayments || []).map((vp) => {
-                        const vend = vendors.find((v) => v.id === vp.vendor_id);
-                        return (
-                          <tr key={vp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{vp.payment_no}</td>
-                            <td className="px-4 py-3 text-slate-400">{vp.payment_date}</td>
-                            <td className="px-4 py-3 font-medium text-slate-200">{vend?.name || 'Vendor'}</td>
-                            <td className="px-4 py-3 text-slate-300">{vp.payment_method || 'Cash in Hand'}</td>
-                            <td className="px-4 py-3 font-mono text-slate-400">{vp.reference_no || '-'}</td>
-                            <td className="px-4 py-3 font-mono font-semibold text-amber-400">
-                              Rs. {(vp.amount || 0).toLocaleString()}
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => openEditVPForm(vp)}
-                                  className="p-1 text-slate-400 hover:text-amber-400 transition"
-                                  title="Edit Payment"
-                                >
-                                  <Edit className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    deleteVendorPayment(vp.id);
-                                    toast.success('Payment deleted');
-                                  }}
-                                  className="text-xs text-rose-500 hover:underline"
-                                >
-                                  Delete
-                                </button>
-                              </div>
                             </td>
                           </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            /* PAY PAYMENT FORM (Matching User Screenshot) */
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <button
-                  onClick={() => setVpViewMode('list')}
-                  className="text-xs font-semibold text-amber-500 hover:text-emerald-700 flex items-center gap-1"
-                >
-                  ← Back to Vendor Payments Register
-                </button>
-              </div>
-
-              {/* Title Outside Card matching screenshot */}
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">AMKAS INTERNATIONAL</p>
-                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Pay Payment</h1>
-              </div>
-
-              {/* TOP SECTION: Main Header Card (Left) & Posting Rules Card (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Header Card (Left - 2 Columns) */}
-                <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                      {editingVPId ? 'Edit Payment' : 'Pay Payment'}
-                    </h2>
-                    <p className="text-xs font-medium text-slate-500 mt-1">
-                      Use one payment screen for vendors, customers or direct account heads.
-                    </p>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
 
-                  {/* Row 1: Paid to & Date */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Paid to</label>
-                      <select
-                        value={vpVendorId}
-                        onChange={(e) => setVpVendorId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="">Select customer, vendor or account</option>
-                        <optgroup label="Vendors">
-                          {vendors.map((v) => (
-                            <option key={`v-${v.id}`} value={v.id}>
-                              {v.name} ({v.code})
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Customers">
-                          {customers.map((c) => (
-                            <option key={`c-${c.id}`} value={`c-${c.id}`}>
-                              {c.name} ({c.code})
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Direct Account Heads">
-                          <option value="acc-ap">Accounts Payable</option>
-                          <option value="acc-advance">Vendor Advances</option>
-                          <option value="acc-direct-exp">Direct Expenses</option>
-                          <option value="acc-op-exp">Operating Expenses</option>
-                        </optgroup>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Date</label>
-                      <input
-                        type="date"
-                        value={vpPaymentDate}
-                        onChange={(e) => setVpPaymentDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 2: Pay from & Amount */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Pay from</label>
-                      <select
-                        value={vpPayFrom || bankAccounts[0]?.account_name || ''}
-                        onChange={(e) => setVpPayFrom(e.target.value)}
-                        className="input"
-                      >
-                        {bankAccounts.length === 0 ? (
-                          <option value="">No bank accounts added in system</option>
-                        ) : (
-                          bankAccounts.map((b) => (
-                            <option key={b.id} value={b.account_name}>
-                              {b.account_name} ({b.bank_name})
-                            </option>
-                          ))
-                        )}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Amount</label>
-                      <input
-                        type="number"
-                        placeholder="Amount"
-                        value={vpAmount}
-                        onChange={(e) => setVpAmount(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 3: Account head / category & Currency */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account head / category</label>
-                      <select
-                        value={vpAccountCategory}
-                        onChange={(e) => setVpAccountCategory(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="Auto select based on selected party">Auto select based on selected party</option>
-                        <option value="Accounts Payable">Accounts Payable</option>
-                        <option value="Vendor Advances">Vendor Advances</option>
-                        <option value="Accounts Receivable">Accounts Receivable</option>
-                        <option value="Direct Expenses">Direct Expenses</option>
-                        <option value="Operating Expenses">Operating Expenses</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Currency</label>
-                      <select
-                        value={vpCurrency}
-                        onChange={(e) => setVpCurrency(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="PKR">PKR</option>
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
-                        <option value="AED">AED</option>
-                        <option value="SAR">SAR</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Row 4: Exchange rate & Reference number */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Exchange rate</label>
-                      <input
-                        type="number"
-                        value={vpExchangeRate}
-                        onChange={(e) => setVpExchangeRate(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Reference number</label>
-                      <input
-                        type="text"
-                        placeholder="Reference number"
-                        value={vpRefNumber}
-                        onChange={(e) => setVpRefNumber(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 5: Notes (Full Width) */}
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Notes</label>
-                    <textarea
-                      rows={5}
-                      placeholder="Notes"
-                      value={vpNotes}
-                      onChange={(e) => setVpNotes(e.target.value)}
-                      className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                    />
-                  </div>
+                  {(() => {
+                    const t = calcPITotals();
+                    return (
+                      <div className="flex justify-end pt-2">
+                        <div className="w-64 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/40 space-y-2 text-xs">
+                          <div className="flex justify-between text-slate-500 dark:text-slate-400">
+                            <span>Subtotal</span>
+                            <span className="font-mono">Rs. {t.subtotal.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between border-t border-slate-200 dark:border-slate-700 pt-2 font-bold text-slate-900 dark:text-slate-100">
+                            <span>Grand Total</span>
+                            <span className="font-mono text-amber-500">Rs. {t.grandTotal.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
-                {/* Posting rules Card (Right - 1 Column) matching screenshot */}
-                <div className="lg:col-span-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
-                  <div className="space-y-4">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Posting rules</h3>
-
-                    {/* Light Emerald Notice Box from screenshot */}
-                    <div className="rounded-xl bg-amber-500/10 dark:bg-amber-500/10 p-3.5 border border-amber-500/30 dark:border-amber-500/20 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
-                      Vendor payments auto-allocate to outstanding bills. Customer/account payments post directly through the journal with CP numbering.
-                    </div>
-                  </div>
-
-                  {/* Action Buttons at Bottom Right matching screenshot */}
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <button
-                      type="button"
-                      onClick={() => setVpViewMode('list')}
-                      className="rounded-xl border border-slate-300 px-5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSaveVPRecord}
-                      className="rounded-xl bg-[#00a884] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#008f70] transition"
-                    >
-                      Post payment
-                    </button>
-                  </div>
+                {/* Notes Bottom Card */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
+                  <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Notes / Remarks</label>
+                  <textarea
+                    rows={4}
+                    value={piNotes}
+                    onChange={(e) => setPiNotes(e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                  />
                 </div>
               </div>
             </div>
