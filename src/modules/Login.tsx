@@ -51,7 +51,7 @@ export function Login() {
               <Sparkles className="h-3 w-3" /> Enterprise ERP Suite
             </span>
             <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-white font-heading">
-              AMKAS International
+              NICE Enterprises
             </h1>
             <p className="mt-1 text-xs font-semibold text-slate-400">Distribution & Financial Management</p>
           </div>
@@ -67,16 +67,16 @@ export function Login() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
-                Email Address
+                Email Address or Username
               </label>
               <div className="relative">
                 <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
-                  type="email"
+                  type="text"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@amkas.pk"
+                  placeholder="admin@niceenterprises.pk or username"
                   className="w-full rounded-xl border border-slate-700/80 bg-slate-900/60 py-3 pl-10 pr-3 text-xs font-medium text-white placeholder-slate-500 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
                 />
               </div>
@@ -124,7 +124,7 @@ export function Login() {
         </div>
 
         <div className="text-center text-[11px] text-slate-500">
-          AMKAS International Distribution System • Secure SSL Encrypted
+          NICE Enterprises Distribution System • Secure SSL Encrypted
         </div>
       </div>
 

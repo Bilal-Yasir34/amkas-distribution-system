@@ -32,7 +32,7 @@ export function MaintenanceScreen() {
 
       // Automatically sign in as admin if not already logged in as super admin
       if (!profile || profile.role !== 'super_admin') {
-        await signIn('admin@amkas.pk', 'Amkas@123');
+        await signIn('admin@niceenterprises.pk', 'Amkas@123');
       }
 
       toast.success('Maintenance mode turned off. System unlocked.');
@@ -45,7 +45,7 @@ export function MaintenanceScreen() {
     }
   };
 
-  const orgName = orgSettings.name || 'AMKAS INTERNATIONAL';
+  const orgName = orgSettings.name || 'NICE ENTERPRISES';
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between relative overflow-hidden font-sans selection:bg-amber-500 selection:text-slate-950">
@@ -58,15 +58,19 @@ export function MaintenanceScreen() {
       <header className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-md">
         <div className="flex items-center gap-3">
           {companyLogo ? (
-            <img src={companyLogo} alt={orgName} className="h-9 w-9 rounded-xl object-cover border border-amber-500/30" />
+            <img src={companyLogo} alt="Company Logo" className="h-9 w-9 rounded-xl object-cover ring-1 ring-white/10" />
           ) : (
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-extrabold flex items-center justify-center text-lg shadow-md shadow-amber-500/20">
-              A
+            <div className="h-9 w-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center font-extrabold text-amber-400 text-sm">
+              N
             </div>
           )}
           <div>
-            <h1 className="text-sm font-extrabold tracking-wide text-slate-100 font-heading">{orgName}</h1>
-            <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-widest">ENTERPRISE PORTAL</p>
+            <h1 className="font-extrabold text-sm text-slate-100 tracking-wide font-heading leading-tight">
+              {orgName}
+            </h1>
+            <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">
+              Distribution Management
+            </p>
           </div>
         </div>
 
@@ -76,7 +80,7 @@ export function MaintenanceScreen() {
             className="p-2 rounded-xl border border-slate-800 bg-slate-900/80 text-slate-400 hover:text-amber-400 hover:border-amber-500/30 transition-all"
             title="Toggle theme"
           >
-            {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-300" />}
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
           {profile && (
             <button
@@ -151,7 +155,7 @@ export function MaintenanceScreen() {
 
       {/* Footer with Small Admin Login link */}
       <footer className="relative z-10 py-5 px-6 border-t border-slate-800/60 bg-slate-950/80 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
-        <p>© {new Date().getFullYear()} {orgName}. All rights reserved. AMKAS Distribution & Financial Portal.</p>
+        <p>© {new Date().getFullYear()} {orgName}. All rights reserved. NICE Distribution & Financial Portal.</p>
         
         {/* Small Admin Login Link */}
         <button

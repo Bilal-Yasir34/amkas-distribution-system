@@ -83,7 +83,7 @@ export function PayPayment() {
     <div className="mx-auto max-w-6xl space-y-6 p-2 sm:p-6">
       {/* Title Outside Card matching screenshot */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">AMKAS INTERNATIONAL</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">NICE ENTERPRISES</p>
         <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Pay Payment</h1>
       </div>
 

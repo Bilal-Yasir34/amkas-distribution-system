@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Plus,
   FileText,
@@ -20,7 +20,7 @@ import {
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
-import { todayISO, safeUUID, nextDocNumber } from '@/lib/utils';
+import { todayISO, safeUUID, nextDocNumber, STANDARD_UNITS, convertUnitRate } from '@/lib/utils';
 import { InvoicePrint } from '@/components/InvoicePrint';
 import type { SalesInvoice, Customer, Quotation, SalesOrder, QuotationItem, SalesOrderItem, CreditNote, CreditNoteItem, CustomerReceipt } from '@/lib/types';
 
@@ -30,6 +30,7 @@ export function SalesModule() {
   const {
     customers = [],
     vendors = [],
+    accountTypes = [],
     products = [],
     categories = [],
     warehouses = [],
@@ -94,23 +95,40 @@ export function SalesModule() {
   const [salesDocNotes, setSalesDocNotes] = useState('');
 
   const [salesDocLineItems, setSalesDocLineItems] = useState<
-    { id: string; product_id: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
-  >([{ id: '1', product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
+    { id: string; product_id: string; description: string; unit: string; base_unit: string; base_rate: number; qty: number; rate: number; discount: number; tax_pct: number }[]
+  >([{ id: '1', product_id: '', description: '', unit: 'pcs', base_unit: 'pcs', base_rate: 0, qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
 
   // Invoice Form State (matching screenshots)
   const [invoiceViewMode, setInvoiceViewMode] = useState<'list' | 'form'>('list');
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
 
-  const [invPartyType, setInvPartyType] = useState<'Customer' | 'Vendor'>('Customer');
+  const [invPartyType, setInvPartyType] = useState<string>('ALL');
   const [invCustomerId, setInvCustomerId] = useState('');
 
-  const handlePartyTypeChange = (type: 'Customer' | 'Vendor') => {
+  const availableParties = useMemo<any[]>(() => {
+    const all: any[] = [...customers, ...vendors];
+    if (!invPartyType || invPartyType === 'ALL') return all;
+    const matches = all.filter((c) => {
+      if (c.account_type) {
+        return c.account_type.toLowerCase() === invPartyType.toLowerCase();
+      }
+      if (invPartyType.toLowerCase() === 'customer') return 'credit_limit' in c;
+      if (invPartyType.toLowerCase() === 'supplier' || invPartyType.toLowerCase() === 'vendor') return !('credit_limit' in c);
+      return true;
+    });
+    return matches.length > 0 ? matches : all;
+  }, [customers, vendors, invPartyType]);
+
+  const handlePartyTypeChange = (type: string) => {
     setInvPartyType(type);
-    if (type === 'Customer') {
-      setInvCustomerId(customers[0]?.id || '');
-    } else {
-      setInvCustomerId(vendors[0]?.id || '');
-    }
+    const filtered = [...customers, ...vendors].filter((c) =>
+      type === 'ALL'
+        ? true
+        : c.account_type
+        ? c.account_type.toLowerCase() === type.toLowerCase()
+        : type.toLowerCase() === 'customer'
+    );
+    setInvCustomerId(filtered[0]?.id || '');
   };
 
   const [invDocDate, setInvDocDate] = useState('2026-07-22');
@@ -128,8 +146,8 @@ export function SalesModule() {
   const [invReferenceNo, setInvReferenceNo] = useState('');
 
   const [invLineItems, setInvLineItems] = useState<
-    { id: string; product_id: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
-  >([{ id: '1', product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
+    { id: string; product_id: string; description: string; unit: string; base_unit: string; base_rate: number; qty: number; rate: number; discount: number; tax_pct: number }[]
+  >([{ id: '1', product_id: '', description: '', unit: 'pcs', base_unit: 'pcs', base_rate: 0, qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
 
   const openCreateInvoiceForm = () => {
     setEditingInvoiceId(null);
@@ -147,10 +165,20 @@ export function SalesModule() {
     setInvCommissionRate(0);
     setInvNotes('');
     setInvTermsConditions('');
-    const autoRef = nextDocNumber('SL', (invoices || []).map((i) => i.invoice_no), 2);
-    setInvReferenceNo(autoRef);
+    const firstProd = products[0];
     setInvLineItems([
-      { id: safeUUID(), product_id: products[0]?.id || '', description: products[0]?.name || '', qty: 1, rate: products[0]?.sale_price || 0, discount: 0, tax_pct: products[0]?.tax_pct || 0 },
+      {
+        id: safeUUID(),
+        product_id: firstProd?.id || '',
+        description: firstProd?.name || '',
+        unit: firstProd?.unit || 'pcs',
+        base_unit: firstProd?.unit || 'pcs',
+        base_rate: firstProd?.sale_price || 0,
+        qty: 1,
+        rate: firstProd?.sale_price || 0,
+        discount: 0,
+        tax_pct: firstProd?.tax_pct || 0,
+      },
     ]);
     setInvoiceViewMode('form');
   };
@@ -176,15 +204,21 @@ export function SalesModule() {
 
     if (inv.items && inv.items.length > 0) {
       setInvLineItems(
-        inv.items.map((i) => ({
-          id: i.id || safeUUID(),
-          product_id: i.product_id || '',
-          description: i.description || '',
-          qty: i.qty || 1,
-          rate: i.rate || 0,
-          discount: i.discount || 0,
-          tax_pct: i.tax_pct || 0,
-        }))
+        inv.items.map((i) => {
+          const p = products.find((x) => x.id === i.product_id);
+          return {
+            id: i.id || safeUUID(),
+            product_id: i.product_id || '',
+            description: i.description || '',
+            unit: p?.unit || 'pcs',
+            base_unit: p?.unit || 'pcs',
+            base_rate: p?.sale_price || i.rate || 0,
+            qty: i.qty || 1,
+            rate: i.rate || 0,
+            discount: i.discount || 0,
+            tax_pct: i.tax_pct || 0,
+          };
+        })
       );
     } else {
       setInvLineItems([
@@ -197,7 +231,7 @@ export function SalesModule() {
   const addInvLineItem = () => {
     setInvLineItems((prev) => [
       ...prev,
-      { id: safeUUID(), product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 },
+      { id: safeUUID(), product_id: '', description: '', unit: 'pcs', base_unit: 'pcs', base_rate: 0, qty: 1, rate: 0, discount: 0, tax_pct: 0 },
     ]);
   };
 
@@ -206,14 +240,39 @@ export function SalesModule() {
       prev.map((item) => {
         if (item.id === id) {
           const updated = { ...item, ...patch };
+          const p = products.find((x) => x.id === (patch.product_id || item.product_id));
+
           if (patch.product_id) {
-            const p = products.find((x) => x.id === patch.product_id);
             if (p) {
               updated.description = p.description || p.name;
-              updated.rate = p.sale_price;
+              updated.unit = p.unit || 'pcs';
+              updated.base_unit = p.unit || 'pcs';
+              updated.base_rate = p.sale_price || 0;
+              updated.rate = p.sale_price || 0;
               updated.tax_pct = p.tax_pct || 0;
             }
           }
+
+          if (patch.unit) {
+            const newUnit = patch.unit;
+            const bUnit = item.base_unit || (p ? p.unit : 'pcs');
+            const bRate = (item.base_rate !== undefined && item.base_rate !== null && item.base_rate !== 0)
+              ? item.base_rate
+              : (p ? p.sale_price : item.rate);
+
+            updated.base_unit = bUnit;
+            updated.base_rate = bRate;
+            updated.unit = newUnit;
+            updated.rate = convertUnitRate(bRate, bUnit, newUnit);
+          }
+
+          if (patch.rate !== undefined && !patch.unit && !patch.product_id) {
+            updated.rate = patch.rate;
+            if (updated.unit === updated.base_unit) {
+              updated.base_rate = patch.rate;
+            }
+          }
+
           return updated;
         }
         return item;
@@ -633,15 +692,19 @@ export function SalesModule() {
     setSalesDocOrgId(organizations[0]?.id || 'org1');
     setSalesDocBranchId(branches[0]?.id || 'b1');
     setSalesDocNotes('');
+    const firstProd = products[0];
     setSalesDocLineItems([
       {
         id: safeUUID(),
-        product_id: products[0]?.id || '',
-        description: products[0]?.name || '',
+        product_id: firstProd?.id || '',
+        description: firstProd?.name || '',
+        unit: firstProd?.unit || 'pcs',
+        base_unit: firstProd?.unit || 'pcs',
+        base_rate: firstProd?.sale_price || 0,
         qty: 1,
-        rate: products[0]?.sale_price || 0,
+        rate: firstProd?.sale_price || 0,
         discount: 0,
-        tax_pct: products[0]?.tax_pct || 0,
+        tax_pct: firstProd?.tax_pct || 0,
       },
     ]);
     setSalesDocModalOpen(true);
@@ -664,22 +727,32 @@ export function SalesModule() {
 
     if (q.items && q.items.length > 0) {
       setSalesDocLineItems(
-        q.items.map((i) => ({
-          id: i.id || safeUUID(),
-          product_id: i.product_id || '',
-          description: i.description || '',
-          qty: i.qty || 1,
-          rate: i.rate || 0,
-          discount: i.discount || 0,
-          tax_pct: i.tax_pct || 0,
-        }))
+        q.items.map((i) => {
+          const p = products.find((x) => x.id === i.product_id);
+          return {
+            id: i.id || safeUUID(),
+            product_id: i.product_id || '',
+            description: i.description || '',
+            unit: p?.unit || 'pcs',
+            base_unit: p?.unit || 'pcs',
+            base_rate: p?.sale_price || i.rate || 0,
+            qty: i.qty || 1,
+            rate: i.rate || 0,
+            discount: i.discount || 0,
+            tax_pct: i.tax_pct || 0,
+          };
+        })
       );
     } else {
+      const firstProd = products[0];
       setSalesDocLineItems([
         {
           id: safeUUID(),
-          product_id: products[0]?.id || '',
-          description: products[0]?.name || 'Standard Quotation Line',
+          product_id: firstProd?.id || '',
+          description: firstProd?.name || 'Standard Quotation Line',
+          unit: firstProd?.unit || 'pcs',
+          base_unit: firstProd?.unit || 'pcs',
+          base_rate: q.subtotal || q.total_amount || 0,
           qty: 1,
           rate: q.subtotal || q.total_amount || 0,
           discount: q.discount_total || 0,
@@ -704,15 +777,19 @@ export function SalesModule() {
     setSalesDocOrgId(organizations[0]?.id || 'org1');
     setSalesDocBranchId(branches[0]?.id || 'b1');
     setSalesDocNotes('');
+    const firstProd = products[0];
     setSalesDocLineItems([
       {
         id: safeUUID(),
-        product_id: products[0]?.id || '',
-        description: products[0]?.name || '',
+        product_id: firstProd?.id || '',
+        description: firstProd?.name || '',
+        unit: firstProd?.unit || 'pcs',
+        base_unit: firstProd?.unit || 'pcs',
+        base_rate: firstProd?.sale_price || 0,
         qty: 1,
-        rate: products[0]?.sale_price || 0,
+        rate: firstProd?.sale_price || 0,
         discount: 0,
-        tax_pct: products[0]?.tax_pct || 0,
+        tax_pct: firstProd?.tax_pct || 0,
       },
     ]);
     setSalesDocModalOpen(true);
@@ -735,22 +812,32 @@ export function SalesModule() {
 
     if (so.items && so.items.length > 0) {
       setSalesDocLineItems(
-        so.items.map((i) => ({
-          id: i.id || safeUUID(),
-          product_id: i.product_id || '',
-          description: i.description || '',
-          qty: i.qty || 1,
-          rate: i.rate || 0,
-          discount: i.discount || 0,
-          tax_pct: i.tax_pct || 0,
-        }))
+        so.items.map((i) => {
+          const p = products.find((x) => x.id === i.product_id);
+          return {
+            id: i.id || safeUUID(),
+            product_id: i.product_id || '',
+            description: i.description || '',
+            unit: p?.unit || 'pcs',
+            base_unit: p?.unit || 'pcs',
+            base_rate: p?.sale_price || i.rate || 0,
+            qty: i.qty || 1,
+            rate: i.rate || 0,
+            discount: i.discount || 0,
+            tax_pct: i.tax_pct || 0,
+          };
+        })
       );
     } else {
+      const firstProd = products[0];
       setSalesDocLineItems([
         {
           id: safeUUID(),
-          product_id: products[0]?.id || '',
-          description: products[0]?.name || 'Standard Order Line',
+          product_id: firstProd?.id || '',
+          description: firstProd?.name || 'Standard Order Line',
+          unit: firstProd?.unit || 'pcs',
+          base_unit: firstProd?.unit || 'pcs',
+          base_rate: so.subtotal || so.total_amount || 0,
           qty: 1,
           rate: so.subtotal || so.total_amount || 0,
           discount: so.discount_total || 0,
@@ -772,7 +859,7 @@ export function SalesModule() {
   const addSalesDocLine = () => {
     setSalesDocLineItems((prev) => [
       ...prev,
-      { id: safeUUID(), product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 },
+      { id: safeUUID(), product_id: '', description: '', unit: 'pcs', base_unit: 'pcs', base_rate: 0, qty: 1, rate: 0, discount: 0, tax_pct: 0 },
     ]);
   };
 
@@ -781,14 +868,39 @@ export function SalesModule() {
       prev.map((item) => {
         if (item.id === id) {
           const updated = { ...item, ...patch };
+          const p = products.find((x) => x.id === (patch.product_id || item.product_id));
+
           if (patch.product_id) {
-            const p = products.find((x) => x.id === patch.product_id);
             if (p) {
               updated.description = p.description || p.name;
-              updated.rate = p.sale_price;
+              updated.unit = p.unit || 'pcs';
+              updated.base_unit = p.unit || 'pcs';
+              updated.base_rate = p.sale_price || 0;
+              updated.rate = p.sale_price || 0;
               updated.tax_pct = p.tax_pct || 0;
             }
           }
+
+          if (patch.unit) {
+            const newUnit = patch.unit;
+            const bUnit = item.base_unit || (p ? p.unit : 'pcs');
+            const bRate = (item.base_rate !== undefined && item.base_rate !== null && item.base_rate !== 0)
+              ? item.base_rate
+              : (p ? p.sale_price : item.rate);
+
+            updated.base_unit = bUnit;
+            updated.base_rate = bRate;
+            updated.unit = newUnit;
+            updated.rate = convertUnitRate(bRate, bUnit, newUnit);
+          }
+
+          if (patch.rate !== undefined && !patch.unit && !patch.product_id) {
+            updated.rate = patch.rate;
+            if (updated.unit === updated.base_unit) {
+              updated.base_rate = patch.rate;
+            }
+          }
+
           return updated;
         }
         return item;
@@ -976,7 +1088,7 @@ export function SalesModule() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">NICE ENTERPRISES</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Sales Management</h1>
       </div>
 
@@ -1118,35 +1230,33 @@ export function SalesModule() {
                         <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Type</label>
                         <select
                           value={invPartyType}
-                          onChange={(e) => handlePartyTypeChange(e.target.value as 'Customer' | 'Vendor')}
+                          onChange={(e) => handlePartyTypeChange(e.target.value)}
                           className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                         >
-                          <option value="Customer">Customer</option>
-                          <option value="Supplier">Supplier</option>
+                          <option value="ALL">All Account Types</option>
+                          {(accountTypes || []).filter((at) => at.is_active).map((at) => (
+                            <option key={at.id} value={at.name}>
+                              {at.name}
+                            </option>
+                          ))}
                         </select>
                       </div>
 
                       <div>
                         <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                          Select {invPartyType}
+                          Select {invPartyType === 'ALL' ? 'Party / Account' : invPartyType}
                         </label>
                         <select
                           value={invCustomerId}
                           onChange={(e) => setInvCustomerId(e.target.value)}
                           className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                         >
-                          <option value="">Select {invPartyType.toLowerCase()}</option>
-                          {invPartyType === 'Customer'
-                            ? customers.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                  {c.name}
-                                </option>
-                              ))
-                            : vendors.map((v) => (
-                                <option key={v.id} value={v.id}>
-                                  {v.name}
-                                </option>
-                              ))}
+                          <option value="">-- Select {invPartyType === 'ALL' ? 'Party / Account' : invPartyType} --</option>
+                          {availableParties.map((c: any) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} {c.code ? `(${c.code})` : ''}
+                            </option>
+                          ))}
                         </select>
                       </div>
 
@@ -1171,7 +1281,7 @@ export function SalesModule() {
                       </div>
                     </div>
 
-                    <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-2">
                       <div>
                         <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Salesperson</label>
                         <select
@@ -1186,72 +1296,17 @@ export function SalesModule() {
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Currency</label>
+                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Warehouse</label>
                         <select
-                          value={invCurrency}
-                          onChange={(e) => setInvCurrency(e.target.value)}
+                          value={invWarehouseId}
+                          onChange={(e) => setInvWarehouseId(e.target.value)}
                           className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                         >
-                          <option value="PKR">PKR</option>
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                          <option value="GBP">GBP</option>
-                          <option value="AED">AED</option>
-                          <option value="SAR">SAR</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Exchange rate</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={invExchangeRate}
-                          onChange={(e) => setInvExchangeRate(Number(e.target.value))}
-                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Warehouse</label>
-                      <select
-                        value={invWarehouseId}
-                        onChange={(e) => setInvWarehouseId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        {warehouses.map((w) => (
-                          <option key={w.id} value={w.id}>
-                            {w.name} ({w.code})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account category</label>
-                        <select
-                          value={invAccountCategory}
-                          onChange={(e) => setInvAccountCategory(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                        >
-                          <option value="All account categories">All account categories</option>
-                          <option value="Sales Accounts">Sales Accounts</option>
-                          <option value="Revenue Heads">Revenue Heads</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account head</label>
-                        <select
-                          value={invAccountHead}
-                          onChange={(e) => setInvAccountHead(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                        >
-                          <option value="Default Sales Revenue">Default Sales Revenue</option>
-                          <option value="4000 - Product Sales Revenue">4000 - Product Sales Revenue</option>
-                          <option value="4100 - Service Revenue">4100 - Service Revenue</option>
+                          {warehouses.map((w) => (
+                            <option key={w.id} value={w.id}>
+                              {w.name} ({w.code})
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -1343,6 +1398,7 @@ export function SalesModule() {
                         <tr>
                           <th className="px-3 py-2.5">Product / Item</th>
                           <th className="px-3 py-2.5">Description</th>
+                          <th className="px-3 py-2.5 w-28">Unit</th>
                           <th className="px-3 py-2.5 w-24">Qty</th>
                           <th className="px-3 py-2.5 w-28">Rate</th>
                           <th className="px-3 py-2.5 w-24">Disc (Rs)</th>
@@ -1382,6 +1438,19 @@ export function SalesModule() {
                                   placeholder="Item details..."
                                   className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                                 />
+                              </td>
+                              <td className="px-3 py-2 w-28">
+                                <select
+                                  value={item.unit || 'pcs'}
+                                  onChange={(e) => updateInvLineItem(item.id, { unit: e.target.value })}
+                                  className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                                >
+                                  {STANDARD_UNITS.map((u) => (
+                                    <option key={u.value} value={u.value}>
+                                      {u.label}
+                                    </option>
+                                  ))}
+                                </select>
                               </td>
                               <td className="px-3 py-2">
                                 <input
@@ -1946,7 +2015,7 @@ export function SalesModule() {
                     <div className="space-y-2.5 pt-2 text-xs">
                       <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
                         <span>Organization</span>
-                        <span className="font-bold text-slate-900 dark:text-slate-100">AMKAS INTERNATIONAL</span>
+                        <span className="font-bold text-slate-900 dark:text-slate-100">NICE ENTERPRISES</span>
                       </div>
                       <div className="flex justify-between items-center text-slate-500 dark:text-slate-400">
                         <span>Branch</span>
@@ -2827,7 +2896,7 @@ export function SalesModule() {
                     <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
                       <FileText className="h-3.5 w-3.5" /> Header Details
                     </h4>
-                    <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                       
                       {/* Customer */}
                       <div>
@@ -2882,34 +2951,7 @@ export function SalesModule() {
                         />
                       </div>
 
-                      {/* Currency */}
-                      <div>
-                        <label className="text-[11px] font-semibold text-slate-400">Currency</label>
-                        <select
-                          value={salesDocCurrency}
-                          onChange={(e) => setSalesDocCurrency(e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                        >
-                          <option value="PKR">PKR - Pakistani Rupee</option>
-                          <option value="USD">USD - US Dollar</option>
-                          <option value="EUR">EUR - Euro</option>
-                          <option value="GBP">GBP - British Pound</option>
-                          <option value="AED">AED - UAE Dirham</option>
-                          <option value="SAR">SAR - Saudi Riyal</option>
-                        </select>
-                      </div>
 
-                      {/* Exchange Rate */}
-                      <div>
-                        <label className="text-[11px] font-semibold text-slate-400">Exchange Rate</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={salesDocExchangeRate}
-                          onChange={(e) => setSalesDocExchangeRate(Number(e.target.value))}
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                        />
-                      </div>
                     </div>
                   </div>
 
@@ -2934,6 +2976,7 @@ export function SalesModule() {
                           <tr>
                             <th className="px-3 py-2.5 min-w-[170px]">Select Product</th>
                             <th className="px-3 py-2.5 min-w-[180px]">Description</th>
+                            <th className="px-3 py-2.5 w-28">Unit</th>
                             <th className="px-3 py-2.5 w-20">Qty</th>
                             <th className="px-3 py-2.5 w-24">Rate</th>
                             <th className="px-3 py-2.5 w-24">Discount</th>
@@ -2975,6 +3018,21 @@ export function SalesModule() {
                                     placeholder="Product description"
                                     className="w-full rounded-md border border-slate-300 bg-white p-1.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none"
                                   />
+                                </td>
+
+                                {/* Unit */}
+                                <td className="p-2 w-28">
+                                  <select
+                                    value={item.unit || 'pcs'}
+                                    onChange={(e) => updateSalesDocLine(item.id, { unit: e.target.value })}
+                                    className="w-full rounded-md border border-slate-300 bg-white p-1.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none"
+                                  >
+                                    {STANDARD_UNITS.map((u) => (
+                                      <option key={u.value} value={u.value}>
+                                        {u.label}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </td>
 
                                 {/* Qty */}
@@ -3120,7 +3178,7 @@ export function SalesModule() {
                             </option>
                           ))
                         ) : (
-                          <option value="org1">AMKAS INTERNATIONAL</option>
+                          <option value="org1">NICE ENTERPRISES</option>
                         )}
                       </select>
                     </div>

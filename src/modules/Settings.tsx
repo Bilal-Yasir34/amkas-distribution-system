@@ -45,8 +45,8 @@ export function Settings() {
   const [docSeqs, setDocSeqs] = useState<DocSeq[]>(INITIAL_DOC_SEQS);
 
   // Profile Form State
-  const [orgName, setOrgName] = useState(orgSettings.name || 'AMKAS INTERNATIONAL');
-  const [legalName, setLegalName] = useState(orgSettings.legal_name || 'AMKAS INTERNATIONAL ERP');
+  const [orgName, setOrgName] = useState(orgSettings.name || 'NICE ENTERPRISES');
+  const [legalName, setLegalName] = useState(orgSettings.legal_name || 'NICE ENTERPRISES ERP');
   const [regAddress, setRegAddress] = useState(orgSettings.address || '');
   const [phone, setPhone] = useState(orgSettings.phone || '');
   const [email, setEmail] = useState(orgSettings.email || 'admin123@gmail.com');
@@ -109,7 +109,7 @@ export function Settings() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">NICE ENTERPRISES</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Organization Settings</h1>
       </div>
 

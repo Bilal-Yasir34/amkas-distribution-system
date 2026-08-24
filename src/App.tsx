@@ -108,7 +108,7 @@ function AppContent() {
   const { isMaintenanceMode } = useDataStore();
 
   if (loading) {
-    return <StylishLoadingScreen message="Initializing AMKAS Enterprise Portal..." />;
+    return <StylishLoadingScreen message="Initializing NICE Enterprises Portal..." />;
   }
 
   // When Maintenance Mode is active, block all unauthenticated visitors and non-admin users

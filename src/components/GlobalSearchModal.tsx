@@ -355,7 +355,7 @@ export function GlobalSearchModal({ isOpen, onClose }: Props) {
             </span>
           </div>
           <div className="text-amber-500/80 font-bold">
-            AMKAS Intelligent Search
+            NICE Enterprises Search
           </div>
         </div>
 

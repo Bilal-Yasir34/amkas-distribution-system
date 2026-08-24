@@ -102,7 +102,7 @@ export function LabelPrint({
         {Array.from({ length: count }).map((_, i) => (
           <div key={i} className="rounded-xl border border-slate-300 p-3 text-center bg-white shadow-2xs">
             {showCompany && (
-              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">AMKAS International</p>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">NICE Enterprises</p>
             )}
             <p className="text-xs font-bold text-slate-900 line-clamp-1">{activeProduct.name}</p>
             <div className="my-1.5 flex justify-center">

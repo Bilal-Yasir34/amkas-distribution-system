@@ -10,6 +10,7 @@ interface DeleteConfirmModalProps {
   itemName?: string;
   itemType?: string;
   description?: string;
+  message?: string;
   confirmText?: string;
 }
 
@@ -20,9 +21,11 @@ export function DeleteConfirmModal({
   title = 'Confirm Deletion',
   itemName,
   itemType = 'record',
-  description = 'This action cannot be undone. All associated ledger entries and history for this item will be affected.',
+  description,
+  message,
   confirmText = 'Permanently Delete',
 }: DeleteConfirmModalProps) {
+  const displayDescription = message || description || 'This action cannot be undone. All associated ledger entries and history for this item will be affected.';
   if (!isOpen) return null;
 
   return (
@@ -63,7 +66,7 @@ export function DeleteConfirmModal({
             <span>Warning</span>
           </div>
           <p className="text-[11px] leading-relaxed text-rose-600/90 dark:text-rose-300/90">
-            {description}
+            {displayDescription}
           </p>
         </div>
 

@@ -17,7 +17,7 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       theme: 'dark',
       activeModule: 'dashboard',
-      selectedOrg: 'AMKAS INTERNATIONAL',
+      selectedOrg: 'NICE ENTERPRISES',
       selectedBranch: 'All Branches',
       toggleTheme: () => set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
       setActiveModule: (m) => set({ activeModule: m }),

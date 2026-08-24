@@ -710,6 +710,7 @@ export interface UserEmployee {
   id: string;
   full_name: string;
   email: string;
+  username?: string;
   phone: string | null;
   employee_code: string;
   designation: string | null;

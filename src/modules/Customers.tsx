@@ -133,7 +133,7 @@ export function Customers() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">NICE ENTERPRISES</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Customers</h1>
       </div>
 
@@ -253,7 +253,7 @@ export function Customers() {
                           </button>
                           <button
                             onClick={() => openEdit(c)}
-                            className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white"
+                            className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-slate-700 dark:hover:text-white"
                           >
                             <Edit className="h-3.5 w-3.5" /> Edit
                           </button>

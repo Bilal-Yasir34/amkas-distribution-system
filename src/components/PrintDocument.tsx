@@ -44,7 +44,7 @@ export function PrintDocument({
       open={isOpen}
       onClose={onClose}
       title="Print Executive Document"
-      subtitle={`${orgSettings.name || 'AMKAS INTERNATIONAL'} — ${title}`}
+      subtitle={`${orgSettings.name || 'NICE ENTERPRISES'} — ${title}`}
       size="xl"
       footer={
         <>
@@ -62,7 +62,7 @@ export function PrintDocument({
         <div className="flex items-start justify-between border-b-2 border-slate-900 pb-5">
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 font-heading">
-              {orgSettings.name || 'AMKAS INTERNATIONAL'}
+              {orgSettings.name || 'NICE ENTERPRISES'}
             </h1>
             <p className="text-xs text-slate-600 mt-1">
               {orgSettings.legal_name || 'Enterprise Distribution & Logistics Suite'}
@@ -70,7 +70,7 @@ export function PrintDocument({
             <p className="text-xs text-slate-600">
               Plot 14, Industrial Estate, Karachi · NTN: NTN-4400000-1
             </p>
-            <p className="text-xs text-slate-600">+92-21-111-222-333 · info@amkasintl.com</p>
+            <p className="text-xs text-slate-600">+92-21-111-222-333 · info@niceenterprises.com</p>
           </div>
 
           <div className="text-right">
@@ -104,7 +104,7 @@ export function PrintDocument({
 
         {/* Document Footer */}
         <div className="mt-8 border-t border-slate-200 pt-3 text-center text-[10px] text-slate-500">
-          Official Computer-Generated Document from AMKAS International ERP · Confidential & Sealed
+          Official Computer-Generated Document from NICE Enterprises ERP · Confidential & Sealed
         </div>
       </div>
     </Modal>

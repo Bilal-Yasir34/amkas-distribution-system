@@ -225,16 +225,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 2. Check Registered Employees / Users in dataStore (created by Super Admin)
     const matchedUser = (store.users || []).find((u) => {
-      const uEmail = (u.email || '').toLowerCase();
-      const uCode = (u.employee_code || '').toLowerCase();
-      const uUsername = uEmail.split('@')[0];
-      return uEmail === cleanEmail || uCode === cleanEmail || uUsername === cleanEmail;
+      const cInput = cleanEmail.trim().toLowerCase();
+      const uEmail = (u.email || '').trim().toLowerCase();
+      const uCode = (u.employee_code || '').trim().toLowerCase();
+      const uUsername = (u.username || (uEmail.includes('@') ? uEmail.split('@')[0] : uEmail)).trim().toLowerCase();
+      const uFullName = (u.full_name || '').trim().toLowerCase();
+
+      const cPrefix = cInput.includes('@') ? cInput.split('@')[0] : cInput;
+      const uPrefix = uEmail.includes('@') ? uEmail.split('@')[0] : uEmail;
+
+      return (
+        uEmail === cInput ||
+        uCode === cInput ||
+        uUsername === cInput ||
+        uFullName === cInput ||
+        uPrefix === cPrefix ||
+        uUsername === cPrefix ||
+        (uCode && cInput.includes(uCode))
+      );
     });
 
     if (matchedUser) {
       if (matchedUser.is_active === false) {
         store.addLoginLog({
-          username: matchedUser.email.split('@')[0],
+          username: matchedUser.username || matchedUser.email.split('@')[0],
           status: 'Blocked (Deactivated)',
           ip_address: '127.0.0.1',
           user_agent: navigator.userAgent || 'Chrome',
@@ -244,13 +258,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Check password: match user.password or allowed default employee passwords
-      const userExpectedPassword = matchedUser.password || 'Amkas@123';
-      const validEmployeePasswords = [userExpectedPassword, 'Amkas@123', 'amkas@123', 'admin', 'admin123', '123456', matchedUser.employee_code];
-      const isUserPassValid = validEmployeePasswords.includes(password.trim()) || cleanPassword.toLowerCase() === 'amkas@123';
+      const userExpectedPassword = matchedUser.password || '123456';
+      const cleanInputPassword = password.trim();
+
+      const validEmployeePasswords = [
+        userExpectedPassword,
+        '123456',
+        'Amkas@123',
+        'amkas@123',
+        'admin',
+        'admin123',
+        matchedUser.employee_code,
+      ];
+
+      const isUserPassValid =
+        validEmployeePasswords.some((p) => p && p.toLowerCase() === cleanInputPassword.toLowerCase()) ||
+        cleanInputPassword === userExpectedPassword;
 
       if (!isUserPassValid) {
         store.addLoginLog({
-          username: matchedUser.email.split('@')[0],
+          username: matchedUser.username || matchedUser.email.split('@')[0],
           status: 'Failed (Password mismatch)',
           ip_address: '127.0.0.1',
           user_agent: navigator.userAgent || 'Chrome',

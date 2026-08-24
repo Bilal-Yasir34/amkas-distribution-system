@@ -157,7 +157,7 @@ export function AddAccountModule() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">NICE ENTERPRISES</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Add Account / Accounts Register</h1>
       </div>
 
@@ -287,15 +287,13 @@ export function AddAccountModule() {
                         >
                           <Edit className="h-3.5 w-3.5" />
                         </button>
-                        {isAdmin && (
-                          <button
-                            onClick={() => setDeleteTarget({ id: c.id, name: c.name })}
-                            className="p-1 text-slate-400 hover:text-rose-500 transition"
-                            title="Delete"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setDeleteTarget({ id: c.id, name: c.name })}
+                          className="p-1 text-slate-400 hover:text-rose-500 transition"
+                          title="Delete Account"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     </td>
                   </tr>

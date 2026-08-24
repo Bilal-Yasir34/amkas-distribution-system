@@ -176,7 +176,7 @@ export function BankingModule() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">AMKAS INTERNATIONAL</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">NICE ENTERPRISES</p>
         <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Banking & Reconciliation</h1>
       </div>
 

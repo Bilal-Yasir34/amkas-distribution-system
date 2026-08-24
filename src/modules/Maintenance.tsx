@@ -34,7 +34,7 @@ export function Maintenance() {
   };
 
   const handleDownloadBackup = () => {
-    const backupSQL = `-- AMKAS International ERP Full SQL Backup Dump
+    const backupSQL = `-- NICE Enterprises ERP Full SQL Backup Dump
 -- Generated at: ${new Date().toISOString()}
 -- Database Version: v1.1
 
@@ -57,8 +57,8 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
   };
 
   const handleClearBusinessData = () => {
-    if (resetInput !== 'RESET AMKAS') {
-      return toast.error('Type RESET AMKAS to confirm');
+    if (resetInput !== 'RESET NICE') {
+      return toast.error('Type RESET NICE to confirm');
     }
     resetBusinessData();
     toast.success('Business records cleared. Organization setup preserved.');
@@ -325,14 +325,14 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
             <div className="space-y-4 border-t border-slate-200 dark:border-amber-500/20 pt-4">
               <div className="rounded-xl bg-rose-500/10 p-3 border border-rose-500/30">
                 <p className="text-xs font-bold text-rose-600 dark:text-rose-400">
-                  Type <span className="font-mono font-extrabold underline">RESET AMKAS</span> below to confirm data wipe:
+                  Type <span className="font-mono font-extrabold underline">RESET NICE</span> below to confirm data wipe:
                 </p>
               </div>
               <input
                 type="text"
                 value={resetInput}
                 onChange={(e) => setResetInput(e.target.value)}
-                placeholder="RESET AMKAS"
+                placeholder="RESET NICE"
                 className="input font-mono font-bold text-sm tracking-wider uppercase"
               />
               <div className="flex gap-3">

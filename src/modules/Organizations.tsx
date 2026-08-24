@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Building2, X, Edit, Trash2, Power } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
+import { useAppStore } from '@/lib/store';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 import type { Organization } from '@/lib/types';
@@ -10,6 +11,7 @@ export function Organizations() {
   const toast = useToast();
   const { isAdmin } = useAuth();
   const { organizations, branches = [], users = [], addOrg, updateOrg, deleteOrg } = useDataStore();
+  const { setSelectedOrg } = useAppStore();
 
   const totalBranchesCount = (branches || []).filter((b) => b.is_active !== false).length;
   const totalUsersCount = (users || []).length || 1;
@@ -23,6 +25,9 @@ export function Organizations() {
   const [code, setCode] = useState('');
   const [currency, setCurrency] = useState('PKR');
   const [taxId, setTaxId] = useState('');
+  const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [firstBranch, setFirstBranch] = useState('Head Office');
   const [status, setStatus] = useState('Active');
 
@@ -33,6 +38,9 @@ export function Organizations() {
     setCode('');
     setCurrency('PKR');
     setTaxId('');
+    setAddress('Lahore, Pakistan');
+    setPhone('+92 42 111 222 333');
+    setEmail('info@niceenterprises.pk');
     setFirstBranch('Head Office');
     setStatus('Active');
     setModalOpen(true);
@@ -45,6 +53,9 @@ export function Organizations() {
     setCode(o.org_code || 'ORG01');
     setCurrency(o.currency || 'PKR');
     setTaxId(o.tax_id || '');
+    setAddress(o.address || '');
+    setPhone(o.phone || '');
+    setEmail(o.email || '');
     setFirstBranch('Head Office');
     setStatus(o.status || 'Active');
     setModalOpen(true);
@@ -60,8 +71,12 @@ export function Organizations() {
         org_code: code,
         currency,
         tax_id: taxId,
+        address,
+        phone,
+        email,
         status,
       });
+      setSelectedOrg(name);
       toast.success(`Organization ${name} updated`);
     } else {
       addOrg({
@@ -69,14 +84,15 @@ export function Organizations() {
         legal_name: legalName,
         org_code: code || `ORG0${organizations.length + 1}`,
         currency,
-        address: 'Lahore, Pakistan',
-        phone: '+92 42 111 222 333',
-        email: 'info@org.pk',
+        address: address || 'Lahore, Pakistan',
+        phone: phone || '+92 42 111 222 333',
+        email: email || 'info@niceenterprises.pk',
         tax_id: taxId,
         branches_count: 1,
         users_count: 1,
         status,
       });
+      setSelectedOrg(name);
       toast.success(`Organization ${name} created`);
     }
     setModalOpen(false);
@@ -99,7 +115,7 @@ export function Organizations() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">NICE ENTERPRISES</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Organizations</h1>
       </div>
 
@@ -280,13 +296,37 @@ export function Organizations() {
                 />
               </div>
 
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Email Address</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="input text-xs mt-1"
+                    placeholder="info@niceenterprises.pk"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Phone Number</label>
+                  <input
+                    type="text"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="input text-xs mt-1"
+                    placeholder="+92 42 111 222 333"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">First branch</label>
+                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Office / Business Address</label>
                 <input
                   type="text"
-                  value={firstBranch}
-                  onChange={(e) => setFirstBranch(e.target.value)}
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
                   className="input text-xs mt-1"
+                  placeholder="Lahore, Pakistan"
                 />
               </div>
 

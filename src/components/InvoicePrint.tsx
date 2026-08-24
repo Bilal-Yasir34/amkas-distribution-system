@@ -53,9 +53,9 @@ export function InvoicePrint({ invoice, onClose }: Props) {
         {/* Header */}
         <div className="flex items-start justify-between border-b-2 border-slate-800 pb-4">
           <div>
-            <h1 className="text-2xl font-bold">AMKAS International</h1>
+            <h1 className="text-2xl font-bold">NICE Enterprises</h1>
             <p className="text-sm text-slate-600">Plot 14, Industrial Estate, Karachi</p>
-            <p className="text-sm text-slate-600">+92-21-111-222-333 · info@amkasintl.com</p>
+            <p className="text-sm text-slate-600">+92-21-111-222-333 · info@niceenterprises.com</p>
             <p className="text-sm text-slate-600">NTN: NTN-4400000-1</p>
           </div>
           <div className="text-right">
@@ -139,7 +139,7 @@ export function InvoicePrint({ invoice, onClose }: Props) {
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-400">
-          This is a computer-generated document from AMKAS International ERP · Status: {invoice.status}
+          This is a computer-generated document from NICE Enterprises ERP · Status: {invoice.status}
         </p>
       </div>
     </Modal>

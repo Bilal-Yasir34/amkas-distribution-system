@@ -177,11 +177,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <img src={companyLogo} alt="Logo" className="h-8 w-8 rounded-xl object-cover ring-2 ring-amber-500/30" />
             ) : (
               <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 font-extrabold text-slate-950 shadow-lg shadow-amber-500/30 ring-1 ring-white/30">
-                A
+                N
               </div>
             )}
             <div className="leading-tight">
-              <p className="text-sm font-extrabold tracking-tight text-slate-900 dark:text-white font-heading">AMKAS ERP</p>
+              <p className="text-sm font-extrabold tracking-tight text-slate-900 dark:text-white font-heading">NICE Enterprises</p>
               <p className="text-[9px] uppercase tracking-widest text-amber-500 dark:text-amber-400 font-bold">ENTERPRISE SUITE</p>
             </div>
           </div>
@@ -237,7 +237,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="border-t border-slate-200/80 dark:border-amber-500/20 p-3.5">
           <div className="flex items-center gap-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800/80 p-2.5 border border-slate-200 dark:border-slate-700/60 shadow-sm">
             <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 font-extrabold text-slate-950 text-xs shadow-sm">
-              A
+              N
             </div>
             <div className="flex-1 truncate">
               <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{profile?.full_name || 'admin'}</p>
@@ -254,11 +254,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <img src={companyLogo} alt="Logo" className="h-8 w-8 rounded-xl object-cover ring-2 ring-amber-500/30" />
           ) : (
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 font-extrabold text-slate-950 shadow-lg shadow-amber-500/30 ring-1 ring-white/30">
-              A
+              N
             </div>
           )}
           <div className="leading-tight">
-            <p className="text-sm font-extrabold tracking-tight text-slate-900 dark:text-white font-heading">AMKAS ERP</p>
+            <p className="text-sm font-extrabold tracking-tight text-slate-900 dark:text-white font-heading">NICE Enterprises</p>
             <p className="text-[9px] uppercase tracking-widest text-amber-500 dark:text-amber-400 font-bold">ENTERPRISE SUITE</p>
           </div>
         </div>
@@ -341,7 +341,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <option key={o.id} value={o.name}>{o.name}</option>
                   ))
                 ) : (
-                  <option value="AMKAS INTERNATIONAL">AMKAS INTERNATIONAL</option>
+                  <option value="NICE ENTERPRISES">NICE ENTERPRISES</option>
                 )}
               </select>
             </div>
@@ -388,7 +388,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="flex items-center gap-1.5 sm:gap-2 rounded-2xl border border-slate-200 bg-white px-2.5 sm:px-3 py-1.5 text-xs transition hover:border-amber-500/40 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] dark:border-amber-500/30 dark:bg-slate-800"
               >
                 <div className="grid h-6 w-6 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 text-xs font-extrabold text-slate-950 shadow-sm shrink-0">
-                  A
+                  N
                 </div>
                 <div className="text-left leading-tight hidden sm:block">
                   <p className="font-extrabold text-slate-800 dark:text-slate-100">{profile?.full_name || 'admin'}</p>
@@ -400,7 +400,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {userMenu && (
                 <div className="absolute right-0 top-12 z-30 w-52 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl dark:border-amber-500/30 dark:bg-slate-900 backdrop-blur-2xl">
                   <div className="border-b border-slate-100 px-3 py-2 dark:border-slate-800">
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-100">{profile?.email || 'admin@amkas.pk'}</p>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-100">{profile?.email || 'admin@niceenterprises.pk'}</p>
                     <p className="mt-0.5 text-[10px] text-amber-500 font-bold">{roleLabel}</p>
                   </div>
                   <button

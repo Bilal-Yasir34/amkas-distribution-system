@@ -127,10 +127,10 @@ export function StylishLoadingScreen({ message = 'Loading Enterprise Portal...' 
         {/* Text Title & Subtitle */}
         <div className="space-y-2">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-[10px] font-extrabold uppercase tracking-widest text-amber-500 dark:text-amber-400 shadow-sm">
-            <Sparkles className="h-3.5 w-3.5" /> AMKAS ERP SUITE
+            <Sparkles className="h-3.5 w-3.5" /> NICE ENTERPRISES SUITE
           </span>
           <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 font-heading">
-            AMKAS International
+            NICE Enterprises
           </h3>
           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 max-w-xs">
             {message}

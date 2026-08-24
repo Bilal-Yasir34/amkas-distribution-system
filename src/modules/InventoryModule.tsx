@@ -554,7 +554,7 @@ export function InventoryModule() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">AMKAS INTERNATIONAL</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">NICE ENTERPRISES</p>
         <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Inventory Management</h1>
       </div>
 
@@ -657,21 +657,21 @@ export function InventoryModule() {
                                 min={0}
                                 value={editingStockQty}
                                 onChange={(e) => setEditingStockQty(Number(e.target.value))}
-                                className="w-20 rounded border border-emerald-400 bg-white px-2 py-1 text-xs dark:bg-slate-800 dark:text-white outline-none"
+                                className="w-20 rounded-lg border border-amber-500 bg-white px-2 py-1 text-xs font-mono font-bold text-slate-800 dark:bg-slate-800 dark:text-white outline-none"
                               />
                               <button
                                 onClick={() => {
-                                  updateProduct(p.id, { stock_quantity: editingStockQty });
-                                  toast.success(`Stock updated for ${p.name}`);
+                                  updateProduct(p.id, { stock_quantity: editingStockQty, opening_balance: editingStockQty });
+                                  toast.success(`Stock updated to ${editingStockQty} ${p.unit || 'pcs'} for ${p.name}`);
                                   setEditingStockId(null);
                                 }}
-                                className="rounded bg-amber-500 px-2 py-1 text-[10px] font-bold text-white hover:bg-amber-600"
+                                className="rounded-lg bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-amber-600 shadow-sm"
                               >
                                 Save
                               </button>
                               <button
                                 onClick={() => setEditingStockId(null)}
-                                className="rounded bg-slate-200 px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300"
+                                className="rounded-lg bg-slate-200 px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300"
                               >
                                 Cancel
                               </button>
@@ -679,9 +679,9 @@ export function InventoryModule() {
                           ) : (
                             <button
                               onClick={() => { setEditingStockId(p.id); setEditingStockQty(qty); }}
-                              className="rounded bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600 hover:bg-amber-500/10 hover:text-amber-500 dark:bg-slate-700 dark:text-slate-300"
+                              className="inline-flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 hover:bg-amber-500/20 dark:text-amber-400 transition"
                             >
-                              Update
+                              <Edit className="h-3 w-3" /> Edit Stock
                             </button>
                           )
                         ) : (
@@ -1638,7 +1638,7 @@ export function InventoryModule() {
                   <div className="mx-auto max-w-sm rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 p-5 text-center bg-slate-50/50 dark:bg-slate-800/40">
                     {showCompanyOnLabel && (
                       <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
-                        AMKAS INTERNATIONAL
+                        NICE ENTERPRISES
                       </p>
                     )}
                     <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
@@ -1702,7 +1702,7 @@ export function InventoryModule() {
                       onChange={(e) => setShowCompanyOnLabel(e.target.checked)}
                       className="rounded border-slate-300 text-amber-500 focus:ring-amber-500 h-4 w-4"
                     />
-                    Include Company Branding (`AMKAS`)
+                    Include Company Branding (`NICE`)
                   </label>
 
                   <label className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">

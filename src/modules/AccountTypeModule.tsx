@@ -94,7 +94,7 @@ export function AccountTypeModule() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">NICE ENTERPRISES</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Account Type Management</h1>
       </div>
 
@@ -181,24 +181,26 @@ export function AccountTypeModule() {
                       </button>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openEdit(at)}
-                          className="p-1 text-slate-400 hover:text-amber-500 transition"
-                          title="Edit Account Type"
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </button>
-                        {isAdmin && (
+                      {isAdmin ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openEdit(at)}
+                            className="p-1 text-slate-400 hover:text-amber-500 transition"
+                            title="Edit Account Type"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </button>
                           <button
                             onClick={() => setDeleteTarget({ id: at.id, name: at.name })}
                             className="p-1 text-slate-400 hover:text-rose-500 transition"
-                            title="Delete"
+                            title="Delete Account Type"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-slate-400">View Only</span>
+                      )}
                     </td>
                   </tr>
                 ))

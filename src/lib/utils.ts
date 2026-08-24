@@ -47,6 +47,78 @@ export function downloadCSV(filename: string, rows: Record<string, unknown>[]) {
   URL.revokeObjectURL(url);
 }
 
+export const STANDARD_UNITS = [
+  { value: 'pcs', label: 'pcs (Pieces)' },
+  { value: 'box', label: 'box (Box / Carton)' },
+  { value: 'pack', label: 'pack (Pack / Packet)' },
+  { value: 'kg', label: 'kg (Kilogram)' },
+  { value: 'g', label: 'g (Gram)' },
+  { value: 'ltr', label: 'ltr (Liter)' },
+  { value: 'ml', label: 'ml (Milliliter)' },
+  { value: 'm', label: 'm (Meter)' },
+  { value: 'ft', label: 'ft (Feet)' },
+  { value: 'doz', label: 'doz (Dozen)' },
+  { value: 'set', label: 'set (Set)' },
+  { value: 'unit', label: 'unit (Unit)' },
+  { value: 'bag', label: 'bag (Bag)' },
+  { value: 'roll', label: 'roll (Roll)' },
+  { value: 'pair', label: 'pair (Pair)' },
+  { value: 'ctn', label: 'ctn (Carton)' },
+];
+
+export const UNIT_CONVERSION_SCALES: Record<string, number> = {
+  kg: 1.0,
+  kgs: 1.0,
+  kilogram: 1.0,
+  g: 0.001,
+  gram: 0.001,
+  m: 0.6666666667,
+  meter: 0.6666666667,
+  meters: 0.6666666667,
+  ft: 0.2032,
+  feet: 0.2032,
+  ltr: 1.0,
+  liter: 1.0,
+  liters: 1.0,
+  ml: 0.001,
+  milliliter: 0.001,
+  pcs: 1.0,
+  piece: 1.0,
+  pieces: 1.0,
+  unit: 1.0,
+  doz: 12.0,
+  dozen: 12.0,
+  pair: 2.0,
+  pack: 5.0,
+  packet: 5.0,
+  box: 10.0,
+  bag: 10.0,
+  roll: 10.0,
+  ctn: 24.0,
+  carton: 24.0,
+};
+
+export function convertUnitRate(baseRate: number, baseUnit: string = 'pcs', targetUnit: string = 'pcs'): number {
+  if (!baseRate || isNaN(baseRate)) return 0;
+  if (!baseUnit || !targetUnit || baseUnit.toLowerCase().trim() === targetUnit.toLowerCase().trim()) {
+    return baseRate;
+  }
+
+  const bKey = baseUnit.toLowerCase().trim();
+  const tKey = targetUnit.toLowerCase().trim();
+
+  const bScale = UNIT_CONVERSION_SCALES[bKey];
+  const tScale = UNIT_CONVERSION_SCALES[tKey];
+
+  if (bScale !== undefined && tScale !== undefined) {
+    const factor = tScale / bScale;
+    const newRate = baseRate * factor;
+    return Number(newRate.toFixed(5));
+  }
+
+  return baseRate;
+}
+
 export function computeLineTotal(qty: number, rate: number, discount: number, taxPct: number): number {
   const gross = (qty || 0) * (rate || 0);
   const afterDiscount = gross - (discount || 0);

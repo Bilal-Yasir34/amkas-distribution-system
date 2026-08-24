@@ -338,8 +338,8 @@ export const useDataStore = create<DataStoreState>()(
       organizations: [
         {
           id: 'org1',
-          name: 'AMKAS INTERNATIONAL',
-          legal_name: 'AMKAS INTERNATIONAL ERP',
+          name: 'NICE ENTERPRISES',
+          legal_name: 'NICE ENTERPRISES ERP',
           org_code: 'ORG01',
           currency: 'PKR',
           address: 'Lahore, Pakistan',
@@ -358,7 +358,7 @@ export const useDataStore = create<DataStoreState>()(
         },
       ],
       branches: [
-        { id: 'b1', org_id: 'org1', name: 'Head Office', code: 'HO', address: 'Main Blvd, Lahore', phone: '+92 42 35000000', email: 'ho@amkas.pk', is_active: true }
+        { id: 'b1', org_id: 'org1', name: 'Head Office', code: 'HO', address: 'Main Blvd, Lahore', phone: '+92 42 35000000', email: 'ho@niceenterprises.pk', is_active: true }
       ],
       departments: [
         { id: 'd1', branch_id: 'b1', name: 'Administration', code: 'ADMIN', is_active: true }
@@ -367,7 +367,7 @@ export const useDataStore = create<DataStoreState>()(
         {
           id: 'u1',
           full_name: 'Super Admin',
-          email: 'admin@amkas.pk',
+          email: 'admin@niceenterprises.pk',
           phone: '+92 300 0000000',
           employee_code: 'EMP-001',
           designation: 'System Administrator',
@@ -465,8 +465,8 @@ export const useDataStore = create<DataStoreState>()(
 
       companyLogo: null,
       orgSettings: {
-        name: 'AMKAS INTERNATIONAL',
-        legal_name: 'AMKAS INTERNATIONAL ERP',
+        name: 'NICE ENTERPRISES',
+        legal_name: 'NICE ENTERPRISES ERP',
         email: 'admin123@gmail.com',
         phone: '+92 42 111 222 333',
         currency: 'PKR',
@@ -508,6 +508,17 @@ export const useDataStore = create<DataStoreState>()(
             auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Customers', action: 'Delete', description: `Customer deleted: ${cust?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
+
+      // Account Type Actions
+      addAccountType: (at) => set((s) => ({ accountTypes: [{ id: crypto.randomUUID(), ...at }, ...(s.accountTypes || [])] })),
+      updateAccountType: (id, patch) =>
+        set((s) => ({
+          accountTypes: (s.accountTypes || []).map((at) => (at.id === id ? { ...at, ...patch } : at)),
+        })),
+      deleteAccountType: (id) =>
+        set((s) => ({
+          accountTypes: (s.accountTypes || []).filter((at) => at.id !== id),
+        })),
 
       // Vendor Actions
       addVendor: (v) => set((s) => ({ vendors: [{ id: crypto.randomUUID(), ...v }, ...s.vendors] })),
@@ -827,15 +838,46 @@ export const useDataStore = create<DataStoreState>()(
       })),
 
       // Org & Branch & Dept Actions
-      addOrg: (o) => set((s) => ({ organizations: [{ id: crypto.randomUUID(), ...o }, ...s.organizations] })),
+      addOrg: (o) =>
+        set((s) => {
+          const newOrgs = [{ id: crypto.randomUUID(), ...o }, ...s.organizations];
+          return {
+            organizations: newOrgs,
+            orgSettings: {
+              ...s.orgSettings,
+              name: o.name || s.orgSettings.name,
+              legal_name: o.legal_name || s.orgSettings.legal_name,
+              currency: o.currency || s.orgSettings.currency,
+              phone: o.phone || s.orgSettings.phone,
+              email: o.email || s.orgSettings.email,
+              address: o.address || s.orgSettings.address,
+              tax_id: o.tax_id || s.orgSettings.tax_id,
+            },
+          };
+        }),
       updateOrg: (id, patch) =>
-        set((s) => ({
-          organizations: s.organizations.map((o) => (o.id === id ? { ...o, ...patch } : o)),
-          // If org is deactivated, deactivate all its branches
-          branches: patch.status === 'Inactive'
-            ? s.branches.map((b) => b.org_id === id ? { ...b, is_active: false } : b)
-            : s.branches,
-        })),
+        set((s) => {
+          const updatedOrgs = s.organizations.map((o) => (o.id === id ? { ...o, ...patch } : o));
+          const targetOrg = updatedOrgs.find((o) => o.id === id) || updatedOrgs[0];
+          return {
+            organizations: updatedOrgs,
+            orgSettings: {
+              ...s.orgSettings,
+              name: targetOrg?.name || s.orgSettings.name,
+              legal_name: targetOrg?.legal_name || s.orgSettings.legal_name,
+              currency: targetOrg?.currency || s.orgSettings.currency,
+              phone: targetOrg?.phone || s.orgSettings.phone,
+              email: targetOrg?.email || s.orgSettings.email,
+              address: targetOrg?.address || s.orgSettings.address,
+              tax_id: targetOrg?.tax_id || s.orgSettings.tax_id,
+              default_invoice_prefix: targetOrg?.default_invoice_prefix || s.orgSettings.default_invoice_prefix,
+            },
+            // If org is deactivated, deactivate all its branches
+            branches: patch.status === 'Inactive'
+              ? s.branches.map((b) => b.org_id === id ? { ...b, is_active: false } : b)
+              : s.branches,
+          };
+        }),
       deleteOrg: (id) =>
         set((s) => {
           const org = s.organizations.find((o) => o.id === id);
@@ -901,7 +943,28 @@ export const useDataStore = create<DataStoreState>()(
 
       // Logo Actions
       setCompanyLogo: (logoUrl) => set({ companyLogo: logoUrl }),
-      updateOrgSettings: (patch) => set((s) => ({ orgSettings: { ...s.orgSettings, ...patch } })),
+      updateOrgSettings: (patch) =>
+        set((s) => {
+          const updatedSettings = { ...s.orgSettings, ...patch };
+          const updatedOrgs = s.organizations.map((o, idx) =>
+            idx === 0
+              ? {
+                  ...o,
+                  name: patch.name || o.name,
+                  legal_name: patch.legal_name || o.legal_name,
+                  currency: patch.currency || o.currency,
+                  address: patch.address || o.address,
+                  phone: patch.phone || o.phone,
+                  email: patch.email || o.email,
+                  tax_id: patch.tax_id || o.tax_id,
+                }
+              : o
+          );
+          return {
+            orgSettings: updatedSettings,
+            organizations: updatedOrgs,
+          };
+        }),
 
       // Reset
       resetBusinessData: () =>
@@ -928,6 +991,14 @@ export const useDataStore = create<DataStoreState>()(
       name: 'amkas-erp-data-store',
       onRehydrateStorage: () => (state) => {
         if (state) {
+          if (state.organizations) {
+            state.organizations = state.organizations.map((o) =>
+              o.name === 'AMKAS INTERNATIONAL' ? { ...o, name: 'NICE ENTERPRISES' } : o
+            );
+          }
+          if (state.orgSettings?.name === 'AMKAS INTERNATIONAL') {
+            state.orgSettings.name = 'NICE ENTERPRISES';
+          }
           if (state.customers?.some((c) => c.id === 'c1' || c.id === 'c2')) {
             state.customers = state.customers.filter((c) => c.id !== 'c1' && c.id !== 'c2');
           }

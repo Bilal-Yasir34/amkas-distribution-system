@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus, Package, Search, X, Edit, Trash2, Power, Download } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
-import { downloadCSV } from '@/lib/utils';
+import { downloadCSV, nextDocNumber } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
 import type { Product } from '@/lib/types';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
@@ -29,6 +29,7 @@ export function Products() {
   const [salePrice, setSalePrice] = useState('0');
   const [taxRate, setTaxRate] = useState('0');
   const [reorderLevel, setReorderLevel] = useState('0');
+  const [stockQuantity, setStockQuantity] = useState('0');
   const [trackBatches, setTrackBatches] = useState(false);
   const [trackSerials, setTrackSerials] = useState(false);
   const [isActive, setIsActive] = useState(true);
@@ -36,8 +37,9 @@ export function Products() {
   const openCreate = () => {
     setEditingId(null);
     setName('');
-    setSku('');
-    setBarcode('');
+    const autoCode = nextDocNumber('SKU', products.map((p) => p.code), 5);
+    setSku(autoCode);
+    setBarcode(autoCode);
     setCategory('Uncategorized');
     setUnit('pcs');
     setDescription('');
@@ -46,6 +48,7 @@ export function Products() {
     setSalePrice('0');
     setTaxRate('0');
     setReorderLevel('0');
+    setStockQuantity('0');
     setTrackBatches(false);
     setTrackSerials(false);
     setIsActive(true);
@@ -65,6 +68,7 @@ export function Products() {
     setSalePrice(String(p.sale_price || 0));
     setTaxRate(String(p.tax_pct || 0));
     setReorderLevel(String(p.reorder_level || 0));
+    setStockQuantity(String(p.stock_quantity ?? p.opening_balance ?? 0));
     setTrackBatches(p.track_batches);
     setTrackSerials(p.track_serials);
     setIsActive(p.is_active);
@@ -88,6 +92,8 @@ export function Products() {
         sale_price: Number(salePrice) || 0,
         tax_pct: Number(taxRate) || 0,
         reorder_level: Number(reorderLevel) || 0,
+        stock_quantity: Number(stockQuantity) || 0,
+        opening_balance: Number(stockQuantity) || 0,
         track_batches: trackBatches,
         track_serials: trackSerials,
         barcode_value: barcode || code,
@@ -107,6 +113,8 @@ export function Products() {
         sale_price: Number(salePrice) || 0,
         tax_pct: Number(taxRate) || 0,
         reorder_level: Number(reorderLevel) || 0,
+        stock_quantity: Number(stockQuantity) || 0,
+        opening_balance: Number(stockQuantity) || 0,
         track_batches: trackBatches,
         track_serials: trackSerials,
         barcode_value: barcode || code,
@@ -146,7 +154,7 @@ export function Products() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">NICE ENTERPRISES</p>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Products</h1>
       </div>
 
@@ -187,7 +195,7 @@ export function Products() {
             <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
               <tr>
                 <th className="px-4 py-3">Product</th>
-                <th className="px-4 py-3">SKU / Barcode</th>
+                <th className="px-4 py-3">SKU</th>
                 <th className="px-4 py-3">Category</th>
                 <th className="px-4 py-3">Average Cost</th>
                 <th className="px-4 py-3">Sale Price</th>
@@ -253,7 +261,7 @@ export function Products() {
                           </button>
                           <button
                             onClick={() => openEdit(p)}
-                            className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white"
+                            className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-slate-700 dark:hover:text-white"
                           >
                             <Edit className="h-3.5 w-3.5" /> Edit
                           </button>
@@ -306,27 +314,16 @@ export function Products() {
                 />
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-400">SKU</label>
-                  <input
-                    type="text"
-                    value={sku}
-                    onChange={(e) => setSku(e.target.value)}
-                    placeholder="e.g. SKU-00001"
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-400">Barcode / QR value</label>
-                  <input
-                    type="text"
-                    value={barcode}
-                    onChange={(e) => setBarcode(e.target.value)}
-                    placeholder="Auto or code"
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
-                  />
-                </div>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-400">SKU (Auto-Generated)</label>
+                <input
+                  type="text"
+                  value={sku}
+                  readOnly
+                  disabled
+                  placeholder="Auto-generated SKU"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-800/60 p-2 text-xs font-mono font-bold text-amber-600 dark:text-amber-400 cursor-not-allowed outline-none"
+                />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -346,13 +343,29 @@ export function Products() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-400">Unit</label>
-                  <input
-                    type="text"
+                  <label className="text-[11px] font-semibold text-slate-400">Unit of Measurement</label>
+                  <select
                     value={unit}
                     onChange={(e) => setUnit(e.target.value)}
                     className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
-                  />
+                  >
+                    <option value="pcs">pcs (Pieces)</option>
+                    <option value="box">box (Box / Carton)</option>
+                    <option value="pack">pack (Pack / Packet)</option>
+                    <option value="kg">kg (Kilogram)</option>
+                    <option value="g">g (Gram)</option>
+                    <option value="ltr">ltr (Liter)</option>
+                    <option value="ml">ml (Milliliter)</option>
+                    <option value="m">m (Meter)</option>
+                    <option value="ft">ft (Feet)</option>
+                    <option value="doz">doz (Dozen)</option>
+                    <option value="set">set (Set)</option>
+                    <option value="unit">unit (Unit)</option>
+                    <option value="bag">bag (Bag)</option>
+                    <option value="roll">roll (Roll)</option>
+                    <option value="pair">pair (Pair)</option>
+                    <option value="ctn">ctn (Carton)</option>
+                  </select>
                 </div>
               </div>
 
@@ -398,14 +411,26 @@ export function Products() {
                 </div>
               </div>
 
-              <div>
-                <label className="text-[11px] font-semibold text-slate-400">Reorder level</label>
-                <input
-                  type="number"
-                  value={reorderLevel}
-                  onChange={(e) => setReorderLevel(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
-                />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-400">Opening / Initial Stock ({unit})</label>
+                  <input
+                    type="number"
+                    value={stockQuantity}
+                    onChange={(e) => setStockQuantity(e.target.value)}
+                    placeholder={`e.g. 100 ${unit}`}
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-400">Reorder level ({unit})</label>
+                  <input
+                    type="number"
+                    value={reorderLevel}
+                    onChange={(e) => setReorderLevel(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2 pt-1">

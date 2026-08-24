@@ -130,7 +130,7 @@ export function Dashboard() {
       {/* Header Bar */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">AMKAS INTERNATIONAL</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">NICE ENTERPRISES</p>
           <h1 className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100">Enterprise Dashboard</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">

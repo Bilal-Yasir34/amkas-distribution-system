@@ -95,7 +95,7 @@ export function ChartOfAccounts() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">AMKAS INTERNATIONAL</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">NICE ENTERPRISES</p>
         <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Chart of Accounts</h1>
       </div>
 
@@ -178,7 +178,7 @@ export function ChartOfAccounts() {
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-right">
-                      {isAdmin && (
+                      {isAdmin ? (
                         <div className="flex justify-end gap-1">
                           <button
                             onClick={() => openEdit(coa)}
@@ -195,6 +195,8 @@ export function ChartOfAccounts() {
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-slate-400">View Only</span>
                       )}
                     </td>
                   </tr>
