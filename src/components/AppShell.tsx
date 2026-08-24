@@ -84,10 +84,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const role = profile?.role ?? 'super_admin';
-  const { rolePermissions } = useDataStore();
+  const { rolePermissions, organizations, orgSettings, companyLogo, branches, isMaintenanceMode } = useDataStore();
   const allowed = Array.from(new Set([...(ROLE_MODULES[role] || ROLE_MODULES.super_admin), ...(rolePermissions[role] || [])]));
   const currentLabel = MODULE_LABELS[activeModule as ModuleKey] ?? 'Dashboard';
   const roleLabel = ROLES.find((r) => r.id === role)?.label ?? 'Super Admin';
+
+  const activeOrgName =
+    organizations.find((o) => o.name === selectedOrg)?.name ||
+    organizations[0]?.name ||
+    orgSettings?.name ||
+    'NICE ENTERPRISES';
+
+  useEffect(() => {
+    if (selectedOrg === 'AMKAS INTERNATIONAL' || (organizations.length > 0 && !organizations.some((o) => o.name === selectedOrg))) {
+      setSelectedOrg(activeOrgName);
+    }
+  }, [organizations, selectedOrg, activeOrgName, setSelectedOrg]);
 
   useEffect(() => {
     if (allowed && allowed.length > 0 && !allowed.includes(activeModule as ModuleKey)) {
@@ -144,7 +156,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
   ];
 
-  const { companyLogo, organizations, branches, isMaintenanceMode } = useDataStore();
   const [moduleLoading, setModuleLoading] = useState(false);
 
   const handleNavModuleClick = (m: ModuleKey) => {
@@ -196,7 +207,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Mobile Workspace Card */}
         <div className="mx-3 mt-3.5 rounded-2xl bg-amber-500/10 p-3 border border-amber-500/20 shadow-sm backdrop-blur-md">
           <p className="text-[9px] uppercase font-extrabold text-amber-500 tracking-wider">ACTIVE WORKSPACE</p>
-          <p className="mt-0.5 text-xs font-bold text-slate-900 dark:text-amber-300 truncate">{selectedOrg}</p>
+          <p className="mt-0.5 text-xs font-bold text-slate-900 dark:text-amber-300 truncate">{activeOrgName}</p>
         </div>
 
         {/* Mobile Nav Links */}
@@ -266,7 +277,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Workspace Card */}
         <div className="mx-3 mt-3.5 rounded-2xl bg-amber-500/10 p-3 border border-amber-500/20 shadow-sm backdrop-blur-md">
           <p className="text-[9px] uppercase font-extrabold text-amber-500 tracking-wider">ACTIVE WORKSPACE</p>
-          <p className="mt-0.5 text-xs font-bold text-slate-900 dark:text-amber-300 truncate">{selectedOrg}</p>
+          <p className="mt-0.5 text-xs font-bold text-slate-900 dark:text-amber-300 truncate">{activeOrgName}</p>
         </div>
 
         {/* Nav Links */}
@@ -307,7 +318,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="border-t border-slate-200/80 dark:border-amber-500/20 p-3.5">
           <div className="flex items-center gap-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800/80 p-2.5 border border-slate-200 dark:border-slate-700/60 shadow-sm">
             <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 font-extrabold text-slate-950 text-xs shadow-sm">
-              A
+              N
             </div>
             <div className="flex-1 truncate">
               <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">{profile?.full_name || 'admin'}</p>
@@ -332,7 +343,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
             <div className="flex items-center gap-1 sm:gap-2 text-xs min-w-0">
               <select
-                value={selectedOrg}
+                value={activeOrgName}
                 onChange={(e) => setSelectedOrg(e.target.value)}
                 className="max-w-[100px] sm:max-w-[160px] md:max-w-none truncate rounded-2xl border border-slate-300/80 bg-white px-2.5 sm:px-3.5 py-1.5 text-xs font-bold text-slate-800 dark:border-amber-500/30 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 dark:focus:shadow-[0_0_15px_rgba(245,158,11,0.25)] transition"
               >

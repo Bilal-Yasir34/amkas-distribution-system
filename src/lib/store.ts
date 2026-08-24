@@ -24,6 +24,13 @@ export const useAppStore = create<AppState>()(
       setSelectedOrg: (org) => set({ selectedOrg: org }),
       setSelectedBranch: (branch) => set({ selectedBranch: branch }),
     }),
-    { name: 'amkas-erp-ui' }
+    {
+      name: 'amkas-erp-ui',
+      onRehydrateStorage: () => (state) => {
+        if (state && state.selectedOrg === 'AMKAS INTERNATIONAL') {
+          state.selectedOrg = 'NICE ENTERPRISES';
+        }
+      },
+    }
   )
 );
