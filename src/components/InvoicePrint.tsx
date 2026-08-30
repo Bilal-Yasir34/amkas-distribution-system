@@ -21,6 +21,7 @@ export function InvoicePrint({ invoice, onClose }: Props) {
   const customer = customers.find((c) => c.id === invoice.customer_id);
   const warehouse = warehouses.find((w) => w.id === invoice.warehouse_id);
   const productName = (id: string | null) => products.find((p) => p.id === id)?.name ?? '—';
+  const productArticle = (id: string | null) => products.find((p) => p.id === id)?.article_name;
 
   useEffect(() => {
     document.body.classList.add('overflow-hidden');
@@ -99,7 +100,7 @@ export function InvoicePrint({ invoice, onClose }: Props) {
           <thead>
             <tr className="border-y border-slate-300 bg-slate-100 text-left">
               <th className="px-3 py-2 font-semibold">#</th>
-              <th className="px-3 py-2 font-semibold">Description</th>
+              <th className="px-3 py-2 font-semibold">Description / Article</th>
               <th className="px-3 py-2 text-right font-semibold">Qty</th>
               <th className="px-3 py-2 text-right font-semibold">Rate</th>
               {mode === 'invoice' && <th className="px-3 py-2 text-right font-semibold">Disc</th>}
@@ -111,7 +112,12 @@ export function InvoicePrint({ invoice, onClose }: Props) {
             {items.map((it, idx) => (
               <tr key={it.id} className="border-b border-slate-200">
                 <td className="px-3 py-2">{idx + 1}</td>
-                <td className="px-3 py-2">{it.description || productName(it.product_id)}</td>
+                <td className="px-3 py-2">
+                  <span className="font-semibold">{it.description || productName(it.product_id)}</span>
+                  {productArticle(it.product_id) && (
+                    <span className="block text-xs font-medium text-amber-700">Article: {productArticle(it.product_id)}</span>
+                  )}
+                </td>
                 <td className="px-3 py-2 text-right">{it.qty}</td>
                 <td className="px-3 py-2 text-right">{Number(it.rate).toFixed(2)}</td>
                 {mode === 'invoice' && <td className="px-3 py-2 text-right">{Number(it.discount).toFixed(0)}</td>}

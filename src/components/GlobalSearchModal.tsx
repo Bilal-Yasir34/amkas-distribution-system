@@ -49,7 +49,7 @@ export function GlobalSearchModal({ isOpen, onClose }: Props) {
     : [];
 
   const filteredProducts = (category === 'all' || category === 'products') && q && allowed.includes('products')
-    ? products.filter((p) => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q) || (p.category && p.category.toLowerCase().includes(q)))
+    ? products.filter((p) => p.name.toLowerCase().includes(q) || (p.article_name && p.article_name.toLowerCase().includes(q)) || p.code.toLowerCase().includes(q) || (p.category && p.category.toLowerCase().includes(q)))
     : [];
 
   const filteredCustomers = (category === 'all' || category === 'customers') && q && allowed.includes('customers')
@@ -247,7 +247,7 @@ export function GlobalSearchModal({ isOpen, onClose }: Props) {
                           {p.name}
                         </p>
                         <p className="text-[11px] font-mono text-slate-400">
-                          Code: {p.code} • Category: {p.category || 'General'}
+                          Code: {p.code} • Category: {p.category || 'General'}{p.article_name ? ` • Article: ${p.article_name}` : ''}
                         </p>
                       </div>
                     </div>

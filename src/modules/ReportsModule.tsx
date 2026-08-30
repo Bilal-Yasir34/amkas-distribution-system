@@ -98,6 +98,7 @@ export function ReportsModule() {
     return {
       code: p.code,
       name: p.name,
+      article_name: p.article_name,
       qty: batchQty,
       unit_cost: cost,
       total_value: batchQty * cost,
@@ -313,13 +314,29 @@ export function ReportsModule() {
               </div>
               <table className="w-full text-xs text-left">
                 <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
-                  <tr><th className="px-4 py-3">SKU</th><th className="px-4 py-3">Product</th><th className="px-4 py-3 text-right">Qty</th><th className="px-4 py-3 text-right">Avg Cost</th><th className="px-4 py-3 text-right">Total Value</th></tr>
+                  <tr>
+                    <th className="px-4 py-3">SKU</th>
+                    <th className="px-4 py-3">Product</th>
+                    <th className="px-4 py-3">Article Name</th>
+                    <th className="px-4 py-3 text-right">Qty</th>
+                    <th className="px-4 py-3 text-right">Avg Cost</th>
+                    <th className="px-4 py-3 text-right">Total Value</th>
+                  </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {inventoryRows.map((r, i) => (
                     <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                       <td className="px-4 py-2.5 font-mono text-slate-400">{r.code}</td>
                       <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300 font-medium">{r.name}</td>
+                      <td className="px-4 py-2.5">
+                        {r.article_name ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                            {r.article_name}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-2.5 text-right font-mono">{r.qty.toLocaleString()}</td>
                       <td className="px-4 py-2.5 text-right font-mono">{formatCurrency(r.unit_cost)}</td>
                       <td className="px-4 py-2.5 text-right font-mono font-bold text-purple-300">{formatCurrency(r.total_value)}</td>
@@ -328,7 +345,7 @@ export function ReportsModule() {
                 </tbody>
                 <tfoot className="border-t-2 border-purple-500/30 bg-slate-50 dark:bg-slate-800/50">
                   <tr>
-                    <td colSpan={4} className="px-4 py-3 font-bold text-slate-800 dark:text-slate-100 text-right">TOTAL STOCK VALUE</td>
+                    <td colSpan={5} className="px-4 py-3 font-bold text-slate-800 dark:text-slate-100 text-right">TOTAL STOCK VALUE</td>
                     <td className="px-4 py-3 text-right font-mono font-bold text-purple-300">{formatCurrency(inventoryTotal)}</td>
                   </tr>
                 </tfoot>

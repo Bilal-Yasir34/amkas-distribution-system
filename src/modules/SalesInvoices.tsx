@@ -111,7 +111,7 @@ export function SalesInvoices() {
     const p = products.find((x) => x.id === productId);
     updateLine(id, {
       product_id: productId,
-      description: p?.name ?? '',
+      description: p ? (p.article_name ? `${p.name} (${p.article_name})` : p.name) : '',
       rate: p?.sale_price ?? 0,
       length: p?.length ?? 0,
       width: p?.width ?? 0,
@@ -390,8 +390,18 @@ export function SalesInvoices() {
                         <option value="">Select…</option>
                         {products
                           .filter((p) => showZeroStock || true)
-                          .map((p) => <option key={p.id} value={p.id}>{p.code} — {p.name}</option>)}
+                          .map((p) => <option key={p.id} value={p.id}>{p.code} — {p.name}{p.article_name ? ` (Article: ${p.article_name})` : ''}</option>)}
                       </select>
+                      {(() => {
+                        const prod = products.find((x) => x.id === l.product_id);
+                        return prod?.article_name ? (
+                          <div className="mt-0.5">
+                            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1 py-0.5 rounded border border-amber-500/20">
+                              Art: {prod.article_name}
+                            </span>
+                          </div>
+                        ) : null;
+                      })()}
                     </td>
                     <td className="px-3 py-1.5"><input className="input !py-1 !text-xs" value={l.description} onChange={(e) => updateLine(l.id, { description: e.target.value })} /></td>
                     <td className="px-3 py-1.5"><input type="number" className="input !py-1 !text-xs w-20 text-right" value={l.qty} onChange={(e) => updateLine(l.id, { qty: +e.target.value })} /></td>

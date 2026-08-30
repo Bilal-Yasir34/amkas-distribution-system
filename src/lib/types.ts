@@ -129,6 +129,7 @@ export interface Product {
   tax_pct?: number;
   barcode_value?: string;
   description?: string;
+  article_name?: string | null;
   stock_quantity?: number;
 }
 

@@ -548,6 +548,7 @@ export function InventoryModule() {
   const filteredProducts = products.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.article_name && p.article_name.toLowerCase().includes(search.toLowerCase())) ||
       p.code.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -626,6 +627,7 @@ export function InventoryModule() {
               <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
                 <tr>
                   <th className="px-4 py-3">Product</th>
+                  <th className="px-4 py-3">Article Name</th>
                   <th className="px-4 py-3">SKU</th>
                   <th className="px-4 py-3">Warehouse</th>
                   <th className="px-4 py-3">Avg Cost</th>
@@ -641,6 +643,15 @@ export function InventoryModule() {
                   return (
                     <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                       <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">{p.name}</td>
+                      <td className="px-4 py-3">
+                        {p.article_name ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                            {p.article_name}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 font-mono text-slate-400">{p.code}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">Main Warehouse</td>
                       <td className="px-4 py-3 font-mono">Rs. {cost.toFixed(2)}</td>
@@ -715,7 +726,7 @@ export function InventoryModule() {
                   <option value="all">All products</option>
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name}
+                      {p.name}{p.article_name ? ` (Article: ${p.article_name})` : ''}
                     </option>
                   ))}
                 </select>
@@ -1042,7 +1053,7 @@ export function InventoryModule() {
                                 <option value="">Select product</option>
                                 {products.map((p) => (
                                   <option key={p.id} value={p.id}>
-                                    {p.name}
+                                    {p.name}{p.article_name ? ` (Article: ${p.article_name})` : ''} [{p.code}]
                                   </option>
                                 ))}
                               </select>
@@ -1390,7 +1401,7 @@ export function InventoryModule() {
                               <option value="">Select product</option>
                               {products.map((p) => (
                                 <option key={p.id} value={p.id}>
-                                  {p.name}
+                                  {p.name}{p.article_name ? ` (Article: ${p.article_name})` : ''} [{p.code}]
                                 </option>
                               ))}
                             </select>
@@ -1590,7 +1601,7 @@ export function InventoryModule() {
                   >
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} ({p.code})
+                        {p.name}{p.article_name ? ` (${p.article_name})` : ''} ({p.code})
                       </option>
                     ))}
                   </select>
@@ -1775,7 +1786,14 @@ export function InventoryModule() {
                       const barcodeVal = p.barcode_value || `890${Math.floor(100000000 + Math.random() * 900000000)}`;
                       return (
                         <tr key={p.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
-                          <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-100">{p.name}</td>
+                          <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-100">
+                            {p.name}
+                            {p.article_name && (
+                              <span className="block text-xs font-normal text-amber-600 dark:text-amber-400">
+                                Article: {p.article_name}
+                              </span>
+                            )}
+                          </td>
                           <td className="px-4 py-3.5 font-mono font-semibold text-slate-500 dark:text-slate-400">{p.code}</td>
                           <td className="px-4 py-3.5 font-mono">
                             {p.barcode_value ? (
@@ -1872,7 +1890,7 @@ export function InventoryModule() {
               <div>
                 <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Product</label>
                 <select value={serialProdId} onChange={(e) => setSerialProdId(e.target.value)} className="input text-xs mt-1">
-                  {products.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
+                  {products.map((p) => (<option key={p.id} value={p.id}>{p.name}{p.article_name ? ` (Article: ${p.article_name})` : ''} [{p.code}]</option>))}
                 </select>
               </div>
             </div>
@@ -1905,7 +1923,7 @@ export function InventoryModule() {
               <div>
                 <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Product</label>
                 <select value={batchProdId} onChange={(e) => setBatchProdId(e.target.value)} className="input text-xs mt-1">
-                  {products.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
+                  {products.map((p) => (<option key={p.id} value={p.id}>{p.name}{p.article_name ? ` (Article: ${p.article_name})` : ''} [{p.code}]</option>))}
                 </select>
               </div>
             </div>

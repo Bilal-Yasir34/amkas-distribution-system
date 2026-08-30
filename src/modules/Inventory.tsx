@@ -12,6 +12,7 @@ export function Inventory() {
   const [whFilter, setWhFilter] = useState('ALL');
 
   const productName = (id: string) => products.find((p) => p.id === id)?.name ?? id.slice(0, 8);
+  const productArticle = (id: string) => products.find((p) => p.id === id)?.article_name ?? '';
   const productCode = (id: string) => products.find((p) => p.id === id)?.code ?? '';
   const whName = (id: string | null) => warehouses.find((w) => w.id === id)?.code ?? '—';
 
@@ -20,8 +21,9 @@ export function Inventory() {
       if (whFilter !== 'ALL' && s.warehouse_id !== whFilter) return false;
       if (search) {
         const name = productName(s.product_id).toLowerCase();
+        const article = productArticle(s.product_id).toLowerCase();
         const code = productCode(s.product_id).toLowerCase();
-        return name.includes(search.toLowerCase()) || code.includes(search.toLowerCase());
+        return name.includes(search.toLowerCase()) || article.includes(search.toLowerCase()) || code.includes(search.toLowerCase());
       }
       return true;
     });
@@ -83,7 +85,14 @@ export function Inventory() {
                   <td className="px-4 py-2.5 text-slate-500">{s.created_at?.slice(0, 10) ?? '—'}</td>
                   <td className="px-4 py-2.5 font-medium text-slate-700 dark:text-slate-200">{s.voucher_no ?? '—'}</td>
                   <td className="px-4 py-2.5"><span className="badge bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">{s.voucher_type ?? '—'}</span></td>
-                  <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">{productCode(s.product_id)} — {productName(s.product_id)}</td>
+                  <td className="px-4 py-2.5 text-slate-600 dark:text-slate-300">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{productCode(s.product_id)} — {productName(s.product_id)}</span>
+                    {productArticle(s.product_id) && (
+                      <span className="block text-xs font-normal text-amber-600 dark:text-amber-400">
+                        Article: {productArticle(s.product_id)}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5 text-slate-500">{whName(s.warehouse_id)}</td>
                   <td className="px-4 py-2.5 text-right text-amber-500 dark:text-amber-400">{s.qty_in ? `+${formatNumber(s.qty_in)}` : '—'}</td>
                   <td className="px-4 py-2.5 text-right text-rose-600 dark:text-rose-400">{s.qty_out ? `-${formatNumber(s.qty_out)}` : '—'}</td>

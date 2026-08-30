@@ -85,7 +85,7 @@ export function LabelPrint({
       open
       onClose={onClose}
       title="Product Label & Barcode Printer"
-      subtitle={`${activeProduct.code} — ${activeProduct.name}`}
+      subtitle={`${activeProduct.code} — ${activeProduct.name}${activeProduct.article_name ? ` (${activeProduct.article_name})` : ''}`}
       size="md"
       footer={
         <>
@@ -105,6 +105,9 @@ export function LabelPrint({
               <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">NICE Enterprises</p>
             )}
             <p className="text-xs font-bold text-slate-900 line-clamp-1">{activeProduct.name}</p>
+            {activeProduct.article_name && (
+              <p className="text-[10px] font-semibold text-amber-600 line-clamp-1">Art: {activeProduct.article_name}</p>
+            )}
             <div className="my-1.5 flex justify-center">
               <ScannableBarcodeBars value={labelCode} />
             </div>

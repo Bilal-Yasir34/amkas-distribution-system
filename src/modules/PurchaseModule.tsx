@@ -179,7 +179,7 @@ export function PurchaseModule() {
           if (patch.product_id) {
             const p = products.find((x) => x.id === patch.product_id);
             if (p) {
-              updated.description = p.name;
+              updated.description = p.article_name ? `${p.name} (${p.article_name})` : p.name;
               updated.rate = p.purchase_price || p.cost_price || p.sale_price || 0;
               updated.tax_pct = p.tax_pct || 0;
             }
@@ -353,7 +353,7 @@ export function PurchaseModule() {
           if (patch.product_id) {
             const p = products.find((x) => x.id === patch.product_id);
             if (p) {
-              updated.description = p.name;
+              updated.description = p.article_name ? `${p.name} (${p.article_name})` : p.name;
               updated.rate = p.purchase_price || p.cost_price || p.sale_price || 0;
               updated.tax_pct = p.tax_pct || 0;
             }
@@ -578,7 +578,7 @@ export function PurchaseModule() {
           if (patch.product_id) {
             const p = products.find((x) => x.id === patch.product_id);
             if (p) {
-              updated.description = p.name;
+              updated.description = p.article_name ? `${p.name} (${p.article_name})` : p.name;
               updated.rate = p.purchase_price || p.cost_price || p.sale_price || 0;
               updated.tax_pct = p.tax_pct || 0;
             }
@@ -793,7 +793,7 @@ export function PurchaseModule() {
           if (patch.product_id) {
             const p = products.find((x) => x.id === patch.product_id);
             if (p) {
-              updated.description = p.name;
+              updated.description = p.article_name ? `${p.name} (${p.article_name})` : p.name;
               updated.rate = p.purchase_price || p.cost_price || p.sale_price || 0;
               updated.tax_pct = p.tax_pct || 0;
             }
@@ -996,7 +996,7 @@ export function PurchaseModule() {
           if (patch.product_id) {
             const p = products.find((x) => x.id === patch.product_id);
             if (p) {
-              updated.description = p.name;
+              updated.description = p.article_name ? `${p.name} (${p.article_name})` : p.name;
               updated.rate = p.purchase_price || p.cost_price || p.sale_price || 0;
               updated.tax_pct = p.tax_pct || 0;
             }
@@ -1174,7 +1174,7 @@ export function PurchaseModule() {
           if (patch.product_id) {
             const p = products.find((x) => x.id === patch.product_id);
             if (p) {
-              updated.description = p.name;
+              updated.description = p.article_name ? `${p.name} (${p.article_name})` : p.name;
               updated.rate = p.purchase_price;
             }
           }
@@ -1634,10 +1634,20 @@ export function PurchaseModule() {
                                 <option value="">Select product</option>
                                 {products.map((p) => (
                                   <option key={p.id} value={p.id}>
-                                    {p.name}
+                                    {p.name}{p.article_name ? ` (Article: ${p.article_name})` : ''} [{p.code}]
                                   </option>
                                 ))}
                               </select>
+                              {(() => {
+                                const prod = products.find((x) => x.id === item.product_id);
+                                return prod?.article_name ? (
+                                  <div className="mt-1">
+                                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                      Article: {prod.article_name}
+                                    </span>
+                                  </div>
+                                ) : null;
+                              })()}
                             </td>
                             <td className="px-4 py-3">
                               <input
@@ -1846,7 +1856,7 @@ export function PurchaseModule() {
                       <option value="">Select item / SKU</option>
                       {products.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.name}
+                          {p.name}{p.article_name ? ` (Article: ${p.article_name})` : ''} [{p.code}]
                         </option>
                       ))}
                     </select>

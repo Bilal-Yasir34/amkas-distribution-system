@@ -19,6 +19,7 @@ export function Products() {
 
   // Form State
   const [name, setName] = useState('');
+  const [articleName, setArticleName] = useState('');
   const [sku, setSku] = useState('');
   const [barcode, setBarcode] = useState('');
   const [category, setCategory] = useState('Uncategorized');
@@ -37,6 +38,7 @@ export function Products() {
   const openCreate = () => {
     setEditingId(null);
     setName('');
+    setArticleName('');
     const autoCode = nextDocNumber('SKU', products.map((p) => p.code), 5);
     setSku(autoCode);
     setBarcode(autoCode);
@@ -58,6 +60,7 @@ export function Products() {
   const openEdit = (p: Product) => {
     setEditingId(p.id);
     setName(p.name);
+    setArticleName(p.article_name || '');
     setSku(p.code);
     setBarcode(p.barcode_value || p.code);
     setCategory(p.category || 'Uncategorized');
@@ -84,6 +87,7 @@ export function Products() {
       updateProduct(editingId, {
         code,
         name,
+        article_name: articleName.trim() || null,
         category,
         unit,
         description,
@@ -104,6 +108,7 @@ export function Products() {
       addProduct({
         code,
         name,
+        article_name: articleName.trim() || null,
         category,
         unit,
         length: 0,
@@ -142,6 +147,7 @@ export function Products() {
   const filtered = products.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.article_name && p.article_name.toLowerCase().includes(search.toLowerCase())) ||
       p.code.toLowerCase().includes(search.toLowerCase()) ||
       (p.category || '').toLowerCase().includes(search.toLowerCase())
   );
@@ -195,6 +201,7 @@ export function Products() {
             <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
               <tr>
                 <th className="px-4 py-3">Product</th>
+                <th className="px-4 py-3">Article Name</th>
                 <th className="px-4 py-3">SKU</th>
                 <th className="px-4 py-3">Category</th>
                 <th className="px-4 py-3">Average Cost</th>
@@ -207,7 +214,7 @@ export function Products() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
                     No products found.
                   </td>
                 </tr>
@@ -217,6 +224,15 @@ export function Products() {
                     <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">
                       {p.name}
                       <span className="block text-[10px] text-slate-400">{p.unit || 'pcs'}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {p.article_name ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                          {p.article_name}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 font-mono text-slate-500">{p.code}</td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{p.category || 'Uncategorized'}</td>
@@ -310,7 +326,19 @@ export function Products() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. 50W Solar Panel / Cotton Fabric"
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-400">Article Name</label>
+                <input
+                  type="text"
+                  value={articleName}
+                  onChange={(e) => setArticleName(e.target.value)}
+                  placeholder="e.g. Art-102 / Premium Oxford Cotton"
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none focus:border-amber-500"
                 />
               </div>
 
