@@ -55,8 +55,6 @@ export function Products() {
   const [localArticles, setLocalArticles] = useState<LocalArticle[]>([]);
   const [newArticleName, setNewArticleName] = useState('');
   const [showArticleInput, setShowArticleInput] = useState(false);
-  const [colourInputs, setColourInputs] = useState<Record<string, string>>({});
-  const [expandedArticles, setExpandedArticles] = useState<Record<string, boolean>>({});
 
   const openCreate = () => {
     setEditingId(null);
@@ -79,8 +77,7 @@ export function Products() {
     setLocalArticles([]);
     setNewArticleName('');
     setShowArticleInput(false);
-    setColourInputs({});
-    setExpandedArticles({});
+
     setModalOpen(true);
   };
 
@@ -107,10 +104,7 @@ export function Products() {
     setLocalArticles(existingArticles.map((a) => ({ id: a.id, name: a.name, colours: [...a.colours] })));
     setNewArticleName('');
     setShowArticleInput(false);
-    setColourInputs({});
-    const expanded: Record<string, boolean> = {};
-    existingArticles.forEach((a) => { expanded[a.id] = true; });
-    setExpandedArticles(expanded);
+
     setModalOpen(true);
   };
 
@@ -122,7 +116,6 @@ export function Products() {
     }
     const newId = crypto.randomUUID();
     setLocalArticles((prev) => [...prev, { id: newId, name: trimmed, colours: [], isNew: true }]);
-    setExpandedArticles((prev) => ({ ...prev, [newId]: true }));
     setNewArticleName('');
     setShowArticleInput(false);
   };
@@ -131,39 +124,7 @@ export function Products() {
     setLocalArticles((prev) => prev.filter((a) => a.id !== articleId));
   };
 
-  const handleAddColour = (articleId: string) => {
-    const colourName = (colourInputs[articleId] || '').trim();
-    if (!colourName) return toast.error('Colour name is required');
 
-    setLocalArticles((prev) =>
-      prev.map((a) => {
-        if (a.id === articleId) {
-          if (a.colours.some((c) => c.toLowerCase() === colourName.toLowerCase())) {
-            toast.error('This colour already exists for this article');
-            return a;
-          }
-          return { ...a, colours: [...a.colours, colourName] };
-        }
-        return a;
-      })
-    );
-    setColourInputs((prev) => ({ ...prev, [articleId]: '' }));
-  };
-
-  const handleRemoveColour = (articleId: string, colourIndex: number) => {
-    setLocalArticles((prev) =>
-      prev.map((a) => {
-        if (a.id === articleId) {
-          return { ...a, colours: a.colours.filter((_, i) => i !== colourIndex) };
-        }
-        return a;
-      })
-    );
-  };
-
-  const toggleArticleExpand = (articleId: string) => {
-    setExpandedArticles((prev) => ({ ...prev, [articleId]: !prev[articleId] }));
-  };
 
   const handleSave = () => {
     if (!name.trim()) return toast.error('Product name is required');
@@ -341,7 +302,7 @@ export function Products() {
             <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
               <tr>
                 <th className="px-4 py-3">Product</th>
-                <th className="px-4 py-3">Articles & Colours</th>
+                <th className="px-4 py-3">Articles</th>
                 <th className="px-4 py-3">SKU</th>
                 <th className="px-4 py-3">Category</th>
                 <th className="px-4 py-3">Average Cost</th>
@@ -376,16 +337,7 @@ export function Products() {
                                   <Tag className="h-2.5 w-2.5 mr-1" />
                                   {art.name}
                                 </span>
-                                {art.colours.length > 0 && (
-                                  <div className="flex flex-wrap gap-0.5 mt-0.5 ml-3">
-                                    {art.colours.map((c, ci) => (
-                                      <span key={ci} className="inline-flex items-center px-1.5 py-0 rounded text-[9px] font-medium bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
-                                        <Palette className="h-2 w-2 mr-0.5" />
-                                        {c}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
+
                               </div>
                             ))}
                           </div>
@@ -491,13 +443,13 @@ export function Products() {
                 />
               </div>
 
-              {/* ARTICLES & COLOURS SECTION */}
+              {/* ARTICLES SECTION */}
               <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/30 p-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Tag className="h-3.5 w-3.5 text-amber-500" />
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      Articles & Colour Variations
+                      Articles
                     </span>
                     {localArticles.length > 0 && (
                       <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full">
@@ -550,28 +502,12 @@ export function Products() {
 
                 <div className="space-y-2">
                   {localArticles.map((article) => (
-                    <div
-                      key={article.id}
-                      className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 overflow-hidden transition-all"
-                    >
-                      {/* Article Header */}
-                      <div className="flex items-center justify-between px-3 py-2 bg-slate-50/80 dark:bg-slate-800/80">
-                        <button
-                          type="button"
-                          onClick={() => toggleArticleExpand(article.id)}
-                          className="flex items-center gap-2 flex-1 text-left"
-                        >
-                          {expandedArticles[article.id] ? (
-                            <ChevronUp className="h-3 w-3 text-slate-400" />
-                          ) : (
-                            <ChevronDown className="h-3 w-3 text-slate-400" />
-                          )}
+                    <div key={article.id} className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden dark:border-slate-700/50 dark:bg-slate-800/50">
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <div className="flex flex-1 items-center gap-2">
                           <Tag className="h-3 w-3 text-amber-500" />
                           <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{article.name}</span>
-                          <span className="text-[10px] text-slate-400">
-                            ({article.colours.length} colour{article.colours.length !== 1 ? 's' : ''})
-                          </span>
-                        </button>
+                        </div>
                         <button
                           type="button"
                           onClick={() => handleRemoveArticle(article.id)}
@@ -581,55 +517,6 @@ export function Products() {
                           <Trash2 className="h-3 w-3" />
                         </button>
                       </div>
-
-                      {/* Expanded Colour Section */}
-                      {expandedArticles[article.id] && (
-                        <div className="px-3 py-2.5 space-y-2 border-t border-slate-100 dark:border-slate-700/50">
-                          {/* Colour Tags */}
-                          {article.colours.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5">
-                              {article.colours.map((colour, ci) => (
-                                <span
-                                  key={ci}
-                                  className="group inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 transition hover:border-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                                >
-                                  <Palette className="h-2.5 w-2.5" />
-                                  {colour}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveColour(article.id, ci)}
-                                    className="ml-0.5 opacity-50 group-hover:opacity-100 hover:text-rose-500 transition"
-                                  >
-                                    <X className="h-2.5 w-2.5" />
-                                  </button>
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Add Colour Input */}
-                          <div className="flex items-center gap-2">
-                            <div className="relative flex-1">
-                              <Palette className="absolute left-2 top-2 h-3 w-3 text-violet-400" />
-                              <input
-                                type="text"
-                                value={colourInputs[article.id] || ''}
-                                onChange={(e) => setColourInputs((prev) => ({ ...prev, [article.id]: e.target.value }))}
-                                onKeyDown={(e) => { if (e.key === 'Enter') handleAddColour(article.id); }}
-                                placeholder="Add colour e.g. CLR-1, Red, Navy..."
-                                className="w-full rounded-md border border-violet-200 bg-white pl-7 pr-2 py-1.5 text-[11px] text-slate-800 dark:border-violet-800/50 dark:bg-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-violet-400/40"
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleAddColour(article.id)}
-                              className="rounded-md bg-violet-500/15 border border-violet-500/20 px-2.5 py-1.5 text-[10px] font-bold text-violet-600 dark:text-violet-400 hover:bg-violet-500/25 transition"
-                            >
-                              + Colour
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>

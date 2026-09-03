@@ -107,28 +107,45 @@ export function SalesModule() {
   const [invCustomerId, setInvCustomerId] = useState('');
 
   const availableParties = useMemo<any[]>(() => {
-    const all: any[] = [...customers, ...vendors];
+    const taggedCustomers = customers.map(c => ({ ...c, _origin: 'customer' }));
+    const taggedVendors = vendors.map(v => ({ ...v, _origin: 'vendor' }));
+    const all = [...taggedCustomers, ...taggedVendors];
+    
     if (!invPartyType || invPartyType === 'ALL') return all;
-    const matches = all.filter((c) => {
+    
+    return all.filter((c) => {
       if (c.account_type) {
-        return c.account_type.toLowerCase() === invPartyType.toLowerCase();
+         if (invPartyType.toLowerCase() === 'supplier' || invPartyType.toLowerCase() === 'vendor') {
+           return c.account_type.toLowerCase() === 'supplier' || c.account_type.toLowerCase() === 'vendor';
+         }
+         return c.account_type.toLowerCase() === invPartyType.toLowerCase();
       }
-      if (invPartyType.toLowerCase() === 'customer') return 'credit_limit' in c;
-      if (invPartyType.toLowerCase() === 'supplier' || invPartyType.toLowerCase() === 'vendor') return !('credit_limit' in c);
-      return true;
+      
+      if (invPartyType.toLowerCase() === 'customer') return c._origin === 'customer';
+      if (invPartyType.toLowerCase() === 'supplier' || invPartyType.toLowerCase() === 'vendor') return c._origin === 'vendor';
+      return false;
     });
-    return matches.length > 0 ? matches : all;
   }, [customers, vendors, invPartyType]);
 
   const handlePartyTypeChange = (type: string) => {
     setInvPartyType(type);
-    const filtered = [...customers, ...vendors].filter((c) =>
-      type === 'ALL'
-        ? true
-        : c.account_type
-        ? c.account_type.toLowerCase() === type.toLowerCase()
-        : type.toLowerCase() === 'customer'
-    );
+    
+    const taggedCustomers = customers.map(c => ({ ...c, _origin: 'customer' }));
+    const taggedVendors = vendors.map(v => ({ ...v, _origin: 'vendor' }));
+    const all = [...taggedCustomers, ...taggedVendors];
+    
+    const filtered = type === 'ALL' ? all : all.filter((c) => {
+      if (c.account_type) {
+         if (type.toLowerCase() === 'supplier' || type.toLowerCase() === 'vendor') {
+           return c.account_type.toLowerCase() === 'supplier' || c.account_type.toLowerCase() === 'vendor';
+         }
+         return c.account_type.toLowerCase() === type.toLowerCase();
+      }
+      if (type.toLowerCase() === 'customer') return c._origin === 'customer';
+      if (type.toLowerCase() === 'supplier' || type.toLowerCase() === 'vendor') return c._origin === 'vendor';
+      return false;
+    });
+    
     setInvCustomerId(filtered[0]?.id || '');
   };
 
@@ -227,7 +244,7 @@ export function SalesModule() {
       );
     } else {
       setInvLineItems([
-        { id: safeUUID(), product_id: '', article_id: '', colour: '', description: '', qty: 1, rate: inv.subtotal || inv.total_amount || 0, discount: inv.discount_total || 0, tax_pct: 0 },
+        { id: safeUUID(), product_id: '', article_id: '', colour: '', description: '', unit: 'pcs', base_unit: 'pcs', base_rate: 0, qty: 1, rate: inv.subtotal || inv.total_amount || 0, discount: inv.discount_total || 0, tax_pct: 0 },
       ]);
     }
     setInvoiceViewMode('form');

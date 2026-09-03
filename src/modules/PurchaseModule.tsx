@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, ShoppingCart, DollarSign, FileText, CheckCircle, Clock, X, Trash2, Edit } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
@@ -42,6 +42,19 @@ export function PurchaseModule() {
     updateVendorPayment,
     deleteVendorPayment,
   } = useDataStore();
+
+  const availableVendors = useMemo(() => {
+    const supplierCustomers = customers.filter(
+      (c) => c.account_type?.toLowerCase() === 'supplier' || c.account_type?.toLowerCase() === 'vendor'
+    );
+    return [...vendors, ...supplierCustomers];
+  }, [vendors, customers]);
+
+  const availableCustomers = useMemo(() => {
+    return customers.filter(
+      (c) => c.account_type?.toLowerCase() !== 'supplier' && c.account_type?.toLowerCase() !== 'vendor'
+    );
+  }, [customers]);
 
   const [activeSubTab, setActiveSubTab] = useState<'Purchases' | 'Requests' | 'Purchase Orders' | 'Purchase Invoices' | 'Debit Notes' | 'Payments'>('Purchases');
 
@@ -499,6 +512,8 @@ export function PurchaseModule() {
       {
         id: safeUUID(),
         product_id: products[0]?.id || '',
+        article_id: '',
+        colour: '',
         description: products[0]?.name || '',
         qty: 1,
         rate: products[0]?.purchase_price || products[0]?.cost_price || 0,
@@ -528,6 +543,8 @@ export function PurchaseModule() {
         pi.items.map((i: any) => ({
           id: i.id || safeUUID(),
           product_id: i.product_id || '',
+          article_id: i.article_id || '',
+          colour: i.colour || '',
           description: i.description || '',
           qty: i.qty || 1,
           rate: i.rate || 0,
@@ -540,6 +557,8 @@ export function PurchaseModule() {
         {
           id: safeUUID(),
           product_id: products[0]?.id || '',
+          article_id: '',
+          colour: '',
           description: products[0]?.name || '',
           qty: 1,
           rate: pi.total_amount || 0,
@@ -559,6 +578,8 @@ export function PurchaseModule() {
       {
         id: safeUUID(),
         product_id: defaultProd?.id || '',
+        article_id: '',
+        colour: '',
         description: defaultProd?.name || '',
         qty: 1,
         rate: defaultProd?.purchase_price || defaultProd?.cost_price || 0,
@@ -1165,7 +1186,7 @@ export function PurchaseModule() {
   const addLine = () => {
     setLineItems((prev) => [
       ...prev,
-      { id: safeUUID(), product_id: '', description: '', qty: 1, rate: 0, tax_pct: 0 },
+      { id: safeUUID(), product_id: '', article_id: '', colour: '', description: '', qty: 1, rate: 0, tax_pct: 0 },
     ]);
   };
 
@@ -1504,12 +1525,12 @@ export function PurchaseModule() {
                         >
                           <option value="">Select {piPartyType === 'Vendor' ? 'supplier' : 'customer'}</option>
                           {piPartyType === 'Vendor'
-                            ? vendors.map((v) => (
+                            ? availableVendors.map((v) => (
                                 <option key={v.id} value={v.id}>
                                   {v.name}
                                 </option>
                               ))
-                            : customers.map((c) => (
+                            : availableCustomers.map((c) => (
                                 <option key={c.id} value={c.id}>
                                   {c.name}
                                 </option>
@@ -1804,7 +1825,7 @@ export function PurchaseModule() {
                   onChange={(e) => setGenericVendorId(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
                 >
-                  {vendors.map((v) => (
+                  {availableVendors.map((v) => (
                     <option key={v.id} value={v.id}>{v.name}</option>
                   ))}
                 </select>
@@ -1857,8 +1878,8 @@ export function PurchaseModule() {
                   onChange={(e) => setVendorId(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
                 >
-                  <option value="">Select vendor</option>
-                  {vendors.map((v) => (
+                  <option value="">Select supplier</option>
+                  {availableVendors.map((v) => (
                     <option key={v.id} value={v.id}>
                       {v.name}
                     </option>
