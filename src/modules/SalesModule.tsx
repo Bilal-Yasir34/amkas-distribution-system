@@ -32,6 +32,7 @@ export function SalesModule() {
     vendors = [],
     accountTypes = [],
     products = [],
+    productArticles = [],
     categories = [],
     warehouses = [],
     invoices = [],
@@ -95,8 +96,8 @@ export function SalesModule() {
   const [salesDocNotes, setSalesDocNotes] = useState('');
 
   const [salesDocLineItems, setSalesDocLineItems] = useState<
-    { id: string; product_id: string; description: string; unit: string; base_unit: string; base_rate: number; qty: number; rate: number; discount: number; tax_pct: number }[]
-  >([{ id: '1', product_id: '', description: '', unit: 'pcs', base_unit: 'pcs', base_rate: 0, qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
+    { id: string; product_id: string; article_id: string; colour: string; description: string; unit: string; base_unit: string; base_rate: number; qty: number; rate: number; discount: number; tax_pct: number }[]
+  >([{ id: '1', product_id: '', article_id: '', colour: '', description: '', unit: 'pcs', base_unit: 'pcs', base_rate: 0, qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
 
   // Invoice Form State (matching screenshots)
   const [invoiceViewMode, setInvoiceViewMode] = useState<'list' | 'form'>('list');
@@ -146,8 +147,8 @@ export function SalesModule() {
   const [invReferenceNo, setInvReferenceNo] = useState('');
 
   const [invLineItems, setInvLineItems] = useState<
-    { id: string; product_id: string; description: string; unit: string; base_unit: string; base_rate: number; qty: number; rate: number; discount: number; tax_pct: number }[]
-  >([{ id: '1', product_id: '', description: '', unit: 'pcs', base_unit: 'pcs', base_rate: 0, qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
+    { id: string; product_id: string; article_id: string; colour: string; description: string; unit: string; base_unit: string; base_rate: number; qty: number; rate: number; discount: number; tax_pct: number }[]
+  >([{ id: '1', product_id: '', article_id: '', colour: '', description: '', unit: 'pcs', base_unit: 'pcs', base_rate: 0, qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
 
   const openCreateInvoiceForm = () => {
     setEditingInvoiceId(null);
@@ -170,6 +171,8 @@ export function SalesModule() {
       {
         id: safeUUID(),
         product_id: firstProd?.id || '',
+        article_id: '',
+        colour: '',
         description: firstProd?.name || '',
         unit: firstProd?.unit || 'pcs',
         base_unit: firstProd?.unit || 'pcs',
@@ -209,6 +212,8 @@ export function SalesModule() {
           return {
             id: i.id || safeUUID(),
             product_id: i.product_id || '',
+            article_id: '',
+            colour: '',
             description: i.description || '',
             unit: p?.unit || 'pcs',
             base_unit: p?.unit || 'pcs',
@@ -222,7 +227,7 @@ export function SalesModule() {
       );
     } else {
       setInvLineItems([
-        { id: safeUUID(), product_id: '', description: '', qty: 1, rate: inv.subtotal || inv.total_amount || 0, discount: inv.discount_total || 0, tax_pct: 0 },
+        { id: safeUUID(), product_id: '', article_id: '', colour: '', description: '', qty: 1, rate: inv.subtotal || inv.total_amount || 0, discount: inv.discount_total || 0, tax_pct: 0 },
       ]);
     }
     setInvoiceViewMode('form');
@@ -231,7 +236,7 @@ export function SalesModule() {
   const addInvLineItem = () => {
     setInvLineItems((prev) => [
       ...prev,
-      { id: safeUUID(), product_id: '', description: '', unit: 'pcs', base_unit: 'pcs', base_rate: 0, qty: 1, rate: 0, discount: 0, tax_pct: 0 },
+      { id: safeUUID(), product_id: '', article_id: '', colour: '', description: '', unit: 'pcs', base_unit: 'pcs', base_rate: 0, qty: 1, rate: 0, discount: 0, tax_pct: 0 },
     ]);
   };
 
@@ -250,6 +255,8 @@ export function SalesModule() {
               updated.base_rate = p.sale_price || 0;
               updated.rate = p.sale_price || 0;
               updated.tax_pct = p.tax_pct || 0;
+              updated.article_id = '';
+              updated.colour = '';
             }
           }
 
@@ -398,8 +405,8 @@ export function SalesModule() {
   const [cnTermsConditions, setCnTermsConditions] = useState('');
 
   const [cnLineItems, setCnLineItems] = useState<
-    { id: string; product_id: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
-  >([{ id: '1', product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
+    { id: string; product_id: string; article_id: string; colour: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
+  >([{ id: '1', product_id: '', article_id: '', colour: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
 
   const openCreateCreditNoteForm = () => {
     setEditingCreditNoteId(null);
@@ -413,7 +420,7 @@ export function SalesModule() {
     setCnNotes('');
     setCnTermsConditions('');
     setCnLineItems([
-      { id: safeUUID(), product_id: products[0]?.id || '', description: products[0]?.name || '', qty: 1, rate: products[0]?.sale_price || 0, discount: 0, tax_pct: products[0]?.tax_pct || 0 },
+      { id: safeUUID(), product_id: products[0]?.id || '', article_id: '', colour: '', description: products[0]?.name || '', qty: 1, rate: products[0]?.sale_price || 0, discount: 0, tax_pct: products[0]?.tax_pct || 0 },
     ]);
     setCreditNoteViewMode('form');
   };
@@ -435,6 +442,8 @@ export function SalesModule() {
         cn.items.map((i: CreditNoteItem) => ({
           id: i.id || safeUUID(),
           product_id: i.product_id || '',
+          article_id: '',
+          colour: '',
           description: i.description || '',
           qty: i.qty || 1,
           rate: i.rate || 0,
@@ -444,7 +453,7 @@ export function SalesModule() {
       );
     } else {
       setCnLineItems([
-        { id: safeUUID(), product_id: '', description: '', qty: 1, rate: cn.subtotal || cn.total_amount || 0, discount: cn.discount_total || 0, tax_pct: 0 },
+        { id: safeUUID(), product_id: '', article_id: '', colour: '', description: '', qty: 1, rate: cn.subtotal || cn.total_amount || 0, discount: cn.discount_total || 0, tax_pct: 0 },
       ]);
     }
     setCreditNoteViewMode('form');
@@ -453,7 +462,7 @@ export function SalesModule() {
   const addCnLineItem = () => {
     setCnLineItems((prev) => [
       ...prev,
-      { id: safeUUID(), product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 },
+      { id: safeUUID(), product_id: '', article_id: '', colour: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 },
     ]);
   };
 
@@ -468,6 +477,8 @@ export function SalesModule() {
               updated.description = p.article_name ? `${p.name} (${p.article_name})` : (p.description || p.name);
               updated.rate = p.sale_price;
               updated.tax_pct = p.tax_pct || 0;
+              updated.article_id = '';
+              updated.colour = '';
             }
           }
           return updated;
@@ -697,6 +708,8 @@ export function SalesModule() {
       {
         id: safeUUID(),
         product_id: firstProd?.id || '',
+        article_id: '',
+        colour: '',
         description: firstProd?.name || '',
         unit: firstProd?.unit || 'pcs',
         base_unit: firstProd?.unit || 'pcs',
@@ -732,6 +745,8 @@ export function SalesModule() {
           return {
             id: i.id || safeUUID(),
             product_id: i.product_id || '',
+            article_id: '',
+            colour: '',
             description: i.description || '',
             unit: p?.unit || 'pcs',
             base_unit: p?.unit || 'pcs',
@@ -749,6 +764,8 @@ export function SalesModule() {
         {
           id: safeUUID(),
           product_id: firstProd?.id || '',
+          article_id: '',
+          colour: '',
           description: firstProd?.name || 'Standard Quotation Line',
           unit: firstProd?.unit || 'pcs',
           base_unit: firstProd?.unit || 'pcs',
@@ -782,6 +799,8 @@ export function SalesModule() {
       {
         id: safeUUID(),
         product_id: firstProd?.id || '',
+        article_id: '',
+        colour: '',
         description: firstProd?.name || '',
         unit: firstProd?.unit || 'pcs',
         base_unit: firstProd?.unit || 'pcs',
@@ -817,6 +836,8 @@ export function SalesModule() {
           return {
             id: i.id || safeUUID(),
             product_id: i.product_id || '',
+            article_id: '',
+            colour: '',
             description: i.description || '',
             unit: p?.unit || 'pcs',
             base_unit: p?.unit || 'pcs',
@@ -834,6 +855,8 @@ export function SalesModule() {
         {
           id: safeUUID(),
           product_id: firstProd?.id || '',
+          article_id: '',
+          colour: '',
           description: firstProd?.name || 'Standard Order Line',
           unit: firstProd?.unit || 'pcs',
           base_unit: firstProd?.unit || 'pcs',
@@ -859,7 +882,7 @@ export function SalesModule() {
   const addSalesDocLine = () => {
     setSalesDocLineItems((prev) => [
       ...prev,
-      { id: safeUUID(), product_id: '', description: '', unit: 'pcs', base_unit: 'pcs', base_rate: 0, qty: 1, rate: 0, discount: 0, tax_pct: 0 },
+      { id: safeUUID(), product_id: '', article_id: '', colour: '', description: '', unit: 'pcs', base_unit: 'pcs', base_rate: 0, qty: 1, rate: 0, discount: 0, tax_pct: 0 },
     ]);
   };
 
@@ -1430,14 +1453,60 @@ export function SalesModule() {
                                   ))}
                                 </select>
                                 {(() => {
+                                  const prodArts = productArticles.filter((a) => a.product_id === item.product_id);
                                   const prod = products.find((x) => x.id === item.product_id);
-                                  return prod?.article_name ? (
-                                    <div className="mt-1 flex items-center gap-1">
-                                      <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                                        Article: {prod.article_name}
-                                      </span>
+                                  
+                                  if (prodArts.length === 0) {
+                                    return prod?.article_name ? (
+                                      <div className="mt-1 flex items-center gap-1">
+                                        <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                          Article: {prod.article_name}
+                                        </span>
+                                      </div>
+                                    ) : null;
+                                  }
+
+                                  const selectedArt = prodArts.find((a) => a.id === item.article_id);
+
+                                  return (
+                                    <div className="mt-1 space-y-1">
+                                      <select
+                                        value={item.article_id || ''}
+                                        onChange={(e) => {
+                                          const art = prodArts.find(a => a.id === e.target.value);
+                                          updateInvLineItem(item.id, { 
+                                            article_id: e.target.value,
+                                            colour: '', 
+                                            description: prod && art ? `${prod.name} (${art.name})` : (prod?.description || prod?.name || '')
+                                          });
+                                        }}
+                                        className="w-full rounded-md border border-slate-200 bg-slate-50 p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 outline-none"
+                                      >
+                                        <option value="">Select Article...</option>
+                                        {prodArts.map((a) => (
+                                          <option key={a.id} value={a.id}>{a.name}</option>
+                                        ))}
+                                      </select>
+                                      
+                                      {selectedArt && selectedArt.colours && selectedArt.colours.length > 0 && (
+                                        <select
+                                          value={item.colour || ''}
+                                          onChange={(e) => {
+                                            updateInvLineItem(item.id, { 
+                                              colour: e.target.value,
+                                              description: prod && selectedArt ? `${prod.name} (${selectedArt.name}${e.target.value ? ` - ${e.target.value}` : ''})` : (prod?.description || prod?.name || '')
+                                            });
+                                          }}
+                                          className="w-full rounded-md border border-slate-200 bg-slate-50 p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 outline-none"
+                                        >
+                                          <option value="">Select Colour...</option>
+                                          {selectedArt.colours.map((c) => (
+                                            <option key={c} value={c}>{c}</option>
+                                          ))}
+                                        </select>
+                                      )}
                                     </div>
-                                  ) : null;
+                                  );
                                 })()}
                               </td>
                               <td className="px-3 py-2">
@@ -2107,14 +2176,60 @@ export function SalesModule() {
                               ))}
                             </select>
                             {(() => {
+                              const prodArts = productArticles.filter((a) => a.product_id === item.product_id);
                               const prod = products.find((x) => x.id === item.product_id);
-                              return prod?.article_name ? (
-                                <div className="mt-1 flex items-center gap-1">
-                                  <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                                    Article: {prod.article_name}
-                                  </span>
+                              
+                              if (prodArts.length === 0) {
+                                return prod?.article_name ? (
+                                  <div className="mt-1 flex items-center gap-1">
+                                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                      Article: {prod.article_name}
+                                    </span>
+                                  </div>
+                                ) : null;
+                              }
+
+                              const selectedArt = prodArts.find((a) => a.id === item.article_id);
+
+                              return (
+                                <div className="mt-1 space-y-1">
+                                  <select
+                                    value={item.article_id || ''}
+                                    onChange={(e) => {
+                                      const art = prodArts.find(a => a.id === e.target.value);
+                                      updateCnLineItem(item.id, { 
+                                        article_id: e.target.value,
+                                        colour: '', 
+                                        description: prod && art ? `${prod.name} (${art.name})` : (prod?.description || prod?.name || '')
+                                      });
+                                    }}
+                                    className="w-full rounded-md border border-slate-200 bg-slate-50 p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 outline-none"
+                                  >
+                                    <option value="">Select Article...</option>
+                                    {prodArts.map((a) => (
+                                      <option key={a.id} value={a.id}>{a.name}</option>
+                                    ))}
+                                  </select>
+                                  
+                                  {selectedArt && selectedArt.colours && selectedArt.colours.length > 0 && (
+                                    <select
+                                      value={item.colour || ''}
+                                      onChange={(e) => {
+                                        updateCnLineItem(item.id, { 
+                                          colour: e.target.value,
+                                          description: prod && selectedArt ? `${prod.name} (${selectedArt.name}${e.target.value ? ` - ${e.target.value}` : ''})` : (prod?.description || prod?.name || '')
+                                        });
+                                      }}
+                                      className="w-full rounded-md border border-slate-200 bg-slate-50 p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 outline-none"
+                                    >
+                                      <option value="">Select Colour...</option>
+                                      {selectedArt.colours.map((c) => (
+                                        <option key={c} value={c}>{c}</option>
+                                      ))}
+                                    </select>
+                                  )}
                                 </div>
-                              ) : null;
+                              );
                             })()}
                           </td>
 
@@ -3028,14 +3143,60 @@ export function SalesModule() {
                                     ))}
                                   </select>
                                   {(() => {
+                                    const prodArts = productArticles.filter((a) => a.product_id === item.product_id);
                                     const prod = products.find((x) => x.id === item.product_id);
-                                    return prod?.article_name ? (
-                                      <div className="mt-1 flex items-center gap-1">
-                                        <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                                          Article: {prod.article_name}
-                                        </span>
+                                    
+                                    if (prodArts.length === 0) {
+                                      return prod?.article_name ? (
+                                        <div className="mt-1 flex items-center gap-1">
+                                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                            Article: {prod.article_name}
+                                          </span>
+                                        </div>
+                                      ) : null;
+                                    }
+
+                                    const selectedArt = prodArts.find((a) => a.id === item.article_id);
+
+                                    return (
+                                      <div className="mt-1 space-y-1">
+                                        <select
+                                          value={item.article_id || ''}
+                                          onChange={(e) => {
+                                            const art = prodArts.find(a => a.id === e.target.value);
+                                            updateSalesDocLine(item.id, { 
+                                              article_id: e.target.value,
+                                              colour: '', 
+                                              description: prod && art ? `${prod.name} (${art.name})` : (prod?.description || prod?.name || '')
+                                            });
+                                          }}
+                                          className="w-full rounded-md border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none"
+                                        >
+                                          <option value="">Select Article...</option>
+                                          {prodArts.map((a) => (
+                                            <option key={a.id} value={a.id}>{a.name}</option>
+                                          ))}
+                                        </select>
+                                        
+                                        {selectedArt && selectedArt.colours && selectedArt.colours.length > 0 && (
+                                          <select
+                                            value={item.colour || ''}
+                                            onChange={(e) => {
+                                              updateSalesDocLine(item.id, { 
+                                                colour: e.target.value,
+                                                description: prod && selectedArt ? `${prod.name} (${selectedArt.name}${e.target.value ? ` - ${e.target.value}` : ''})` : (prod?.description || prod?.name || '')
+                                              });
+                                            }}
+                                            className="w-full rounded-md border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none"
+                                          >
+                                            <option value="">Select Colour...</option>
+                                            {selectedArt.colours.map((c) => (
+                                              <option key={c} value={c}>{c}</option>
+                                            ))}
+                                          </select>
+                                        )}
                                       </div>
-                                    ) : null;
+                                    );
                                   })()}
                                 </td>
 

@@ -13,6 +13,7 @@ export function PurchaseModule() {
     vendors = [],
     customers = [],
     products = [],
+    productArticles = [],
     categories = [],
     warehouses = [],
     bankAccounts = [],
@@ -62,7 +63,7 @@ export function PurchaseModule() {
   const [notes, setNotes] = useState('');
 
   const [lineItems, setLineItems] = useState([
-    { id: '1', product_id: '', description: '', qty: 1, rate: 0, tax_pct: 0 },
+    { id: '1', product_id: '', article_id: '', colour: '', description: '', qty: 1, rate: 0, tax_pct: 0 },
   ]);
 
   const openCreateBill = () => {
@@ -74,7 +75,7 @@ export function PurchaseModule() {
     setVendorInvoiceNo('');
     setNotes('');
     setLineItems([
-      { id: safeUUID(), product_id: products[0]?.id || '', description: products[0]?.name || '', qty: 1, rate: products[0]?.purchase_price || 0, tax_pct: 0 },
+      { id: safeUUID(), product_id: products[0]?.id || '', article_id: '', colour: '', description: products[0]?.name || '', qty: 1, rate: products[0]?.purchase_price || 0, tax_pct: 0 },
     ]);
     setNewBillOpen(true);
   };
@@ -477,8 +478,8 @@ export function PurchaseModule() {
   const [piVendorInvoiceNo, setPiVendorInvoiceNo] = useState('');
 
   const [piLineItems, setPiLineItems] = useState<
-    { id: string; product_id: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
-  >([{ id: '1', product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
+    { id: string; product_id: string; article_id: string; colour: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
+  >([{ id: '1', product_id: '', article_id: '', colour: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
 
   const openCreatePIForm = () => {
     setEditingPIId(null);
@@ -569,7 +570,7 @@ export function PurchaseModule() {
 
   const updatePILineItem = (
     id: string,
-    patch: Partial<{ product_id: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }>
+    patch: Partial<{ product_id: string; article_id: string; colour: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }>
   ) => {
     setPiLineItems((prev) =>
       prev.map((item) => {
@@ -581,6 +582,8 @@ export function PurchaseModule() {
               updated.description = p.article_name ? `${p.name} (${p.article_name})` : p.name;
               updated.rate = p.purchase_price || p.cost_price || p.sale_price || 0;
               updated.tax_pct = p.tax_pct || 0;
+              updated.article_id = '';
+              updated.colour = '';
             }
           }
           return updated;
@@ -1176,6 +1179,8 @@ export function PurchaseModule() {
             if (p) {
               updated.description = p.article_name ? `${p.name} (${p.article_name})` : p.name;
               updated.rate = p.purchase_price;
+              updated.article_id = '';
+              updated.colour = '';
             }
           }
           return updated;
@@ -1639,14 +1644,60 @@ export function PurchaseModule() {
                                 ))}
                               </select>
                               {(() => {
+                                const prodArts = productArticles.filter((a) => a.product_id === item.product_id);
                                 const prod = products.find((x) => x.id === item.product_id);
-                                return prod?.article_name ? (
-                                  <div className="mt-1">
-                                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                                      Article: {prod.article_name}
-                                    </span>
+
+                                if (prodArts.length === 0) {
+                                  return prod?.article_name ? (
+                                    <div className="mt-1">
+                                      <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                        Article: {prod.article_name}
+                                      </span>
+                                    </div>
+                                  ) : null;
+                                }
+
+                                const selectedArt = prodArts.find((a) => a.id === item.article_id);
+
+                                return (
+                                  <div className="mt-1 space-y-1">
+                                    <select
+                                      value={item.article_id || ''}
+                                      onChange={(e) => {
+                                        const art = prodArts.find(a => a.id === e.target.value);
+                                        updatePILineItem(item.id, { 
+                                          article_id: e.target.value,
+                                          colour: '', 
+                                          description: prod && art ? `${prod.name} (${art.name})` : (prod?.description || prod?.name || '')
+                                        });
+                                      }}
+                                      className="w-full rounded-md border border-slate-200 bg-slate-50 p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 outline-none"
+                                    >
+                                      <option value="">Select Article...</option>
+                                      {prodArts.map((a) => (
+                                        <option key={a.id} value={a.id}>{a.name}</option>
+                                      ))}
+                                    </select>
+                                    
+                                    {selectedArt && selectedArt.colours && selectedArt.colours.length > 0 && (
+                                      <select
+                                        value={item.colour || ''}
+                                        onChange={(e) => {
+                                          updatePILineItem(item.id, { 
+                                            colour: e.target.value,
+                                            description: prod && selectedArt ? `${prod.name} (${selectedArt.name}${e.target.value ? ` - ${e.target.value}` : ''})` : (prod?.description || prod?.name || '')
+                                          });
+                                        }}
+                                        className="w-full rounded-md border border-slate-200 bg-slate-50 p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 outline-none"
+                                      >
+                                        <option value="">Select Colour...</option>
+                                        {selectedArt.colours.map((c) => (
+                                          <option key={c} value={c}>{c}</option>
+                                        ))}
+                                      </select>
+                                    )}
                                   </div>
-                                ) : null;
+                                );
                               })()}
                             </td>
                             <td className="px-4 py-3">
@@ -1848,18 +1899,68 @@ export function PurchaseModule() {
               <div className="space-y-2">
                 {lineItems.map((line) => (
                   <div key={line.id} className="flex items-center gap-2">
-                    <select
-                      value={line.product_id}
-                      onChange={(e) => updateLine(line.id, { product_id: e.target.value })}
-                      className="flex-1 rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
-                    >
-                      <option value="">Select item / SKU</option>
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}{p.article_name ? ` (Article: ${p.article_name})` : ''} [{p.code}]
-                        </option>
-                      ))}
-                    </select>
+                    {(() => {
+                      const prodArts = productArticles.filter((a) => a.product_id === line.product_id);
+                      const prod = products.find((x) => x.id === line.product_id);
+                      const selectedArt = prodArts.find((a) => a.id === line.article_id);
+
+                      return (
+                        <div className="flex-1 flex flex-col gap-1">
+                          <select
+                            value={line.product_id}
+                            onChange={(e) => updateLine(line.id, { product_id: e.target.value, article_id: '', colour: '' })}
+                            className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                          >
+                            <option value="">Select item / SKU</option>
+                            {products.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name}{p.article_name && prodArts.length === 0 ? ` (Article: ${p.article_name})` : ''} [{p.code}]
+                              </option>
+                            ))}
+                          </select>
+                          
+                          {prodArts.length > 0 && (
+                            <div className="flex gap-1">
+                              <select
+                                value={line.article_id || ''}
+                                onChange={(e) => {
+                                  const art = prodArts.find(a => a.id === e.target.value);
+                                  updateLine(line.id, { 
+                                    article_id: e.target.value,
+                                    colour: '', 
+                                    description: prod && art ? `${prod.name} (${art.name})` : (prod?.description || prod?.name || '')
+                                  });
+                                }}
+                                className="flex-1 rounded-md border border-slate-200 bg-slate-50 p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 outline-none"
+                              >
+                                <option value="">Article...</option>
+                                {prodArts.map((a) => (
+                                  <option key={a.id} value={a.id}>{a.name}</option>
+                                ))}
+                              </select>
+                              
+                              {selectedArt && selectedArt.colours && selectedArt.colours.length > 0 && (
+                                <select
+                                  value={line.colour || ''}
+                                  onChange={(e) => {
+                                    updateLine(line.id, { 
+                                      colour: e.target.value,
+                                      description: prod && selectedArt ? `${prod.name} (${selectedArt.name}${e.target.value ? ` - ${e.target.value}` : ''})` : (prod?.description || prod?.name || '')
+                                    });
+                                  }}
+                                  className="flex-1 rounded-md border border-slate-200 bg-slate-50 p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 outline-none"
+                                >
+                                  <option value="">Colour...</option>
+                                  {selectedArt.colours.map((c) => (
+                                    <option key={c} value={c}>{c}</option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <input
                       type="number"
                       placeholder="Qty"

@@ -799,3 +799,10 @@ export interface Category {
   is_active: boolean;
   created_at: string;
 }
+
+export interface ProductArticle {
+  id: string;
+  product_id: string;
+  name: string;
+  colours: string[];
+}

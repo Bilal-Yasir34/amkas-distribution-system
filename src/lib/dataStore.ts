@@ -41,6 +41,7 @@ import type {
   ApprovalQueueItem,
   ExpenseRecord,
   IncomeRecord,
+  ProductArticle,
 } from './types';
 
 // Initial Seed Data
@@ -104,6 +105,7 @@ interface DataStoreState {
   stockAdjustments: StockAdjustment[];
   batches: ProductBatch[];
   serials: ProductSerial[];
+  productArticles: ProductArticle[];
   bankAccounts: BankAccount[];
   bankStatements: BankStatement[];
   journalEntries: JournalEntry[];
@@ -159,6 +161,11 @@ interface DataStoreState {
   addProduct: (p: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, p: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
+
+  // Product Article Actions
+  addProductArticle: (a: Omit<ProductArticle, 'id'>) => void;
+  updateProductArticle: (id: string, a: Partial<ProductArticle>) => void;
+  deleteProductArticle: (id: string) => void;
 
   // Category Actions
   addCategory: (cat: Omit<Category, 'id'>) => void;
@@ -323,6 +330,7 @@ export const useDataStore = create<DataStoreState>()(
       stockAdjustments: [],
       batches: [],
       serials: [],
+      productArticles: [],
       bankAccounts: [
         { id: 'ba1', account_name: 'Cash in Hand', bank_name: 'Cash', account_number: '1110', iban: null, currency: 'PKR', opening_balance: 0, current_balance: 0, account_type: 'Cash', status: 'Active' },
         { id: 'ba2', account_name: 'Meezan Islamic Main Account', bank_name: 'Meezan Bank', account_number: '0102998877', iban: 'PK36MEZN000102998877', currency: 'PKR', opening_balance: 0, current_balance: 0, account_type: 'Bank', status: 'Active' }
@@ -583,12 +591,18 @@ export const useDataStore = create<DataStoreState>()(
                 item.product_id === id ? { ...item, product_id: null, description: `[Deleted] ${prod?.name || item.description}` } : item
               ),
             })),
-            // Remove from batches and serials
+            // Remove from batches, serials, and product articles
             batches: s.batches.filter((b) => b.product_id !== id),
             serials: s.serials.filter((sr) => sr.product_id !== id),
+            productArticles: s.productArticles.filter((a) => a.product_id !== id),
             auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Products', action: 'Delete', description: `Product deleted: ${prod?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
+
+      // Product Article Actions
+      addProductArticle: (a) => set((s) => ({ productArticles: [{ id: crypto.randomUUID(), ...a }, ...s.productArticles] })),
+      updateProductArticle: (id, patch) => set((s) => ({ productArticles: s.productArticles.map((a) => (a.id === id ? { ...a, ...patch } : a)) })),
+      deleteProductArticle: (id) => set((s) => ({ productArticles: s.productArticles.filter((a) => a.id !== id) })),
 
       // Category Actions
       addCategory: (cat) => set((s) => ({ categories: [{ id: crypto.randomUUID(), ...cat }, ...s.categories] })),
@@ -985,6 +999,7 @@ export const useDataStore = create<DataStoreState>()(
           stockAdjustments: [],
           batches: [],
           serials: [],
+          productArticles: [],
         }),
     }),
     {
