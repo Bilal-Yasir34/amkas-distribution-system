@@ -28,7 +28,7 @@ export function AuditLogs() {
       user: 'admin',
       module: 'Purchases',
       action: vb.status,
-      desc: `Vendor bill ${vb.bill_no} (${vb.vendor_name || 'Vendor'})`,
+      desc: `Vendor bill ${vb.bill_no} (${(vb as any).vendor_name || 'Vendor'})`,
       ip: '127.0.0.1',
       time: vb.created_at?.slice(0, 10) || '2026-07-22',
     })),

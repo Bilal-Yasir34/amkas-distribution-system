@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
-import { todayISO, safeUUID } from '@/lib/utils';
+import { todayISO, safeUUID , formatDate} from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
 import { Plus, Edit, Trash2, X } from 'lucide-react';
 
@@ -18,12 +18,14 @@ export function PurchaseReturnModule() {
     updatePurchaseReturn,
     deletePurchaseReturn,
     updateProduct,
+    productArticles,
+    accountTypes
   } = useDataStore();
 
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [partyType, setPartyType] = useState<'Vendor' | 'Customer'>('Vendor');
+  const [partyType, setPartyType] = useState<string>('Vendor');
   const [vendorId, setVendorId] = useState('');
   const [docDate, setDocDate] = useState(todayISO());
   const [dueDate, setDueDate] = useState(todayISO());
@@ -34,22 +36,25 @@ export function PurchaseReturnModule() {
   const [notes, setNotes] = useState('');
 
   const [lineItems, setLineItems] = useState<
-    { id: string; product_id: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
-  >([{ id: '1', product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
+    { id: string; product_id: string; article_id?: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
+  >([{ id: '1', product_id: '', article_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
 
-  const handlePartyTypeChange = (type: 'Vendor' | 'Customer') => {
+  const handlePartyTypeChange = (type: string) => {
     setPartyType(type);
-    if (type === 'Vendor') {
-      setVendorId(vendors[0]?.id || '');
+    const all = [...customers, ...vendors];
+    const unique = all.filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx);
+    if (!type || type === 'ALL') {
+      setVendorId(unique[0]?.id || '');
     } else {
-      setVendorId(customers[0]?.id || '');
+      const filtered = unique.filter(c => c.account_type?.toLowerCase() === type.toLowerCase());
+      setVendorId(filtered[0]?.id || '');
     }
   };
 
   const openCreateForm = () => {
     setEditingId(null);
-    setPartyType('Vendor');
-    setVendorId(vendors[0]?.id || '');
+    setPartyType(accountTypes[0]?.name || 'ALL');
+    setVendorId(vendors[0]?.id || customers[0]?.id || '');
     setDocDate(todayISO());
     setDueDate(todayISO());
     setWarehouseId(warehouses[0]?.id || 'w1');
@@ -62,7 +67,8 @@ export function PurchaseReturnModule() {
       {
         id: safeUUID(),
         product_id: products[0]?.id || '',
-        description: products[0]?.name || '',
+          article_id: '',
+          description: products[0]?.name || '',
         qty: 1,
         rate: products[0]?.purchase_price || products[0]?.cost_price || 0,
         discount: 0,
@@ -74,9 +80,14 @@ export function PurchaseReturnModule() {
 
   const openEditForm = (pr: any) => {
     setEditingId(pr.id);
-    const isCustomer = customers.some((c) => c.id === pr.vendor_id);
-    setPartyType(isCustomer ? 'Customer' : 'Vendor');
-    setVendorId(pr.vendor_id || (isCustomer ? customers[0]?.id : vendors[0]?.id) || '');
+    const party = customers.find((c) => c.id === pr.vendor_id) || vendors.find((v) => v.id === pr.vendor_id);
+    let pType = 'Vendor';
+    if (party?.account_type) {
+      const matchingType = accountTypes.find(at => at.name.toLowerCase() === party?.account_type?.toLowerCase());
+      if (matchingType) pType = matchingType.name;
+    }
+    setPartyType(pType);
+    setVendorId(pr.vendor_id || '');
     setDocDate(pr.document_date || todayISO());
     setDueDate(pr.due_date || todayISO());
     setWarehouseId(pr.warehouse_id || warehouses[0]?.id || 'w1');
@@ -89,7 +100,8 @@ export function PurchaseReturnModule() {
         pr.items.map((item: any) => ({
           id: item.id || safeUUID(),
           product_id: item.product_id || '',
-          description: item.description || '',
+            article_id: item.article_id || '',
+            description: item.description || '',
           qty: item.qty || 1,
           rate: item.rate || 0,
           discount: item.discount || 0,
@@ -97,7 +109,7 @@ export function PurchaseReturnModule() {
         }))
       );
     } else {
-      setLineItems([{ id: safeUUID(), product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
+      setLineItems([{ id: safeUUID(), product_id: '', article_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
     }
     setViewMode('form');
   };
@@ -108,7 +120,8 @@ export function PurchaseReturnModule() {
       {
         id: safeUUID(),
         product_id: products[0]?.id || '',
-        description: products[0]?.name || '',
+          article_id: '',
+          description: products[0]?.name || '',
         qty: 1,
         rate: products[0]?.purchase_price || products[0]?.cost_price || 0,
         discount: 0,
@@ -173,6 +186,7 @@ export function PurchaseReturnModule() {
       return {
         id: i.id,
         product_id: i.product_id,
+          article_id: i.article_id,
         description: i.description,
         qty: i.qty,
         rate: i.rate,
@@ -272,7 +286,7 @@ export function PurchaseReturnModule() {
                     return (
                       <tr key={pr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                         <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{pr.return_no}</td>
-                        <td className="px-4 py-3 text-slate-400">{pr.document_date}</td>
+                        <td className="px-4 py-3 text-slate-400">{formatDate(pr.document_date)}</td>
                         <td className="px-4 py-3 font-medium text-slate-200">{party?.name || 'Party'}</td>
                         <td className="px-4 py-3 text-slate-400">{wh?.name || 'Main Warehouse'}</td>
                         <td className="px-4 py-3 font-mono font-semibold text-amber-400">
@@ -350,11 +364,13 @@ export function PurchaseReturnModule() {
                     <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Type</label>
                     <select
                       value={partyType}
-                      onChange={(e) => handlePartyTypeChange(e.target.value as 'Vendor' | 'Customer')}
+                      onChange={(e) => handlePartyTypeChange(e.target.value)}
                       className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     >
-                      <option value="Vendor">Vendor</option>
-                      <option value="Customer">Customer</option>
+                      <option value="ALL">All Types</option>
+                      {accountTypes.map((at) => (
+                        <option key={at.id} value={at.name}>{at.name}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -367,18 +383,15 @@ export function PurchaseReturnModule() {
                     onChange={(e) => setVendorId(e.target.value)}
                     className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                   >
-                    <option value="">Select party</option>
-                    {partyType === 'Vendor'
-                      ? vendors.map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {v.name}
-                          </option>
-                        ))
-                      : customers.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
+                    <option value="">Select {partyType === 'ALL' ? 'Party' : partyType}</option>
+                    {(() => {
+                      const all = [...customers, ...vendors.map(v => ({ ...v, _origin: 'vendor' as const }))];
+                      const unique = all.filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx);
+                      if (!partyType || partyType === 'ALL') return unique;
+                      return unique.filter(c => c.account_type?.toLowerCase() === partyType.toLowerCase());
+                    })().map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -533,7 +546,7 @@ export function PurchaseReturnModule() {
                       <td className="px-4 py-3">
                         <select
                           value={item.product_id}
-                          onChange={(e) => updateLineItem(item.id, { product_id: e.target.value })}
+                          onChange={(e) => updateLineItem(item.id, { product_id: e.target.value, article_id: '' })}
                           className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                         >
                           <option value="">Select product</option>
@@ -545,13 +558,39 @@ export function PurchaseReturnModule() {
                         </select>
                         {(() => {
                           const prod = products.find((x) => x.id === item.product_id);
-                          return prod?.article_name ? (
-                            <div className="mt-1">
-                              <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                                Article: {prod.article_name}
-                              </span>
+                          const prodArts = (productArticles || []).filter(a => a.product_id === item.product_id);
+                          const selectedArt = prodArts.find(a => a.id === item.article_id);
+                          
+                          return (
+                            <div className="mt-2 flex flex-col gap-2">
+                              {prodArts.length > 0 && (
+                                <select
+                                  value={item.article_id || ''}
+                                  onChange={(e) => {
+                                    const art = prodArts.find(a => a.id === e.target.value);
+                                    updateLineItem(item.id, { 
+                                      article_id: e.target.value,
+                                      description: prod && art ? `${prod.name} (${(art as any).name || (art as any).article_name || (art as any).article_no || 'Unnamed Article'})` : (prod?.description || prod?.name || '')
+                                    });
+                                  }}
+                                  className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 outline-none focus:border-amber-500"
+                                >
+                                  <option value="">Select Article...</option>
+                                  {prodArts.map((art) => (
+                                    <option key={art.id} value={art.id}>
+                                      {(art as any).name || (art as any).article_name || (art as any).article_no || 'Unnamed Article'}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                              
+                              {!prodArts.length && prod?.article_name ? (
+                                <span className="inline-block text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 w-fit">
+                                  Article: {prod.article_name}
+                                </span>
+                              ) : null}
                             </div>
-                          ) : null;
+                          );
                         })()}
                       </td>
                       <td className="px-4 py-3">

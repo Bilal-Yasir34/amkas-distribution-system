@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Download, Printer, BarChart3, TrendingUp, Scale, ShoppingBag, ReceiptText } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
-import { downloadCSV, todayISO } from '@/lib/utils';
+import { downloadCSV, todayISO , formatDate} from '@/lib/utils';
 import { useToast } from '@/lib/toast';
 
 type ReportTab = 'trial_balance' | 'pnl' | 'balance_sheet' | 'sales_summary' | 'purchases_summary';
@@ -201,7 +201,7 @@ export function Reports() {
               <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-0.5">FINANCIAL REPORT</p>
               <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Trial Balance Statement</h2>
             </div>
-            <span className="text-xs text-slate-400 font-mono">As of {new Date().toLocaleDateString('en-GB')}</span>
+            <span className="text-xs text-slate-400 font-mono">As of {formatDate(new Date())}</span>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
@@ -344,7 +344,7 @@ export function Reports() {
               <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-0.5">FINANCIAL STATEMENT</p>
               <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Balance Sheet</h2>
             </div>
-            <span className="text-xs text-slate-400 font-mono">As of {new Date().toLocaleDateString('en-GB')}</span>
+            <span className="text-xs text-slate-400 font-mono">As of {formatDate(new Date())}</span>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

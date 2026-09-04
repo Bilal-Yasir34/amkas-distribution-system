@@ -20,7 +20,7 @@ import {
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
-import { todayISO, safeUUID, nextDocNumber, STANDARD_UNITS, convertUnitRate } from '@/lib/utils';
+import { todayISO, safeUUID, nextDocNumber, STANDARD_UNITS, convertUnitRate , formatDate} from '@/lib/utils';
 import { InvoicePrint } from '@/components/InvoicePrint';
 import type { SalesInvoice, Customer, Quotation, SalesOrder, QuotationItem, SalesOrderItem, CreditNote, CreditNoteItem, CustomerReceipt } from '@/lib/types';
 
@@ -206,9 +206,16 @@ export function SalesModule() {
   const openEditInvoiceForm = (inv: SalesInvoice) => {
     setEditingInvoiceId(inv.id);
     setInvReferenceNo(inv.invoice_no || '');
-    const isVendor = vendors.some((v) => v.id === inv.customer_id);
-    setInvPartyType(isVendor ? 'Vendor' : 'Customer');
-    setInvCustomerId(inv.customer_id || (isVendor ? vendors[0]?.id : customers[0]?.id) || '');
+    const party = customers.find((c) => c.id === inv.customer_id) || vendors.find((v) => v.id === inv.customer_id);
+    let pType = 'Customer';
+    if (party?.account_type) {
+      const matchingType = accountTypes.find(at => at.name.toLowerCase() === party.account_type?.toLowerCase());
+      if (matchingType) pType = matchingType.name;
+    } else if (vendors.some((v) => v.id === inv.customer_id)) {
+      pType = 'Vendor';
+    }
+    setInvPartyType(pType);
+    setInvCustomerId(inv.customer_id || '');
     setInvDocDate(inv.invoice_date || todayISO());
     setInvDueDate(inv.due_date || todayISO());
     setInvSalesperson(inv.salesperson || 'Unassigned');
@@ -1191,7 +1198,7 @@ export function SalesModule() {
                       return (
                         <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                           <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{inv.invoice_no}</td>
-                          <td className="px-4 py-3 text-slate-400">{inv.invoice_date}</td>
+                          <td className="px-4 py-3 text-slate-400">{formatDate(inv.invoice_date)}</td>
                           <td className="px-4 py-3 font-medium text-slate-200">{party?.name || 'Party'}</td>
                           <td className="px-4 py-3 font-mono font-semibold text-slate-100">
                             {inv.currency || 'Rs.'} {inv.total_amount?.toLocaleString()}
@@ -1504,25 +1511,7 @@ export function SalesModule() {
                                           <option key={a.id} value={a.id}>{a.name}</option>
                                         ))}
                                       </select>
-                                      
-                                      {selectedArt && selectedArt.colours && selectedArt.colours.length > 0 && (
-                                        <select
-                                          value={item.colour || ''}
-                                          onChange={(e) => {
-                                            updateInvLineItem(item.id, { 
-                                              colour: e.target.value,
-                                              description: prod && selectedArt ? `${prod.name} (${selectedArt.name}${e.target.value ? ` - ${e.target.value}` : ''})` : (prod?.description || prod?.name || '')
-                                            });
-                                          }}
-                                          className="w-full rounded-md border border-slate-200 bg-slate-50 p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 outline-none"
-                                        >
-                                          <option value="">Select Colour...</option>
-                                          {selectedArt.colours.map((c) => (
-                                            <option key={c} value={c}>{c}</option>
-                                          ))}
-                                        </select>
-                                      )}
-                                    </div>
+                                      </div>
                                   );
                                 })()}
                               </td>
@@ -1696,7 +1685,7 @@ export function SalesModule() {
                     return (
                       <tr key={q.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                         <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{q.quotation_no}</td>
-                        <td className="px-4 py-3 text-slate-400">{q.document_date || q.quotation_date}</td>
+                        <td className="px-4 py-3 text-slate-400">{formatDate(q.document_date || q.quotation_date)}</td>
                         <td className="px-4 py-3 font-medium text-slate-200">{cust?.name || 'Customer'}</td>
                         <td className="px-4 py-3 text-slate-400">{q.salesperson || 'admin'}</td>
                         <td className="px-4 py-3 font-mono font-semibold text-slate-100">
@@ -1819,7 +1808,7 @@ export function SalesModule() {
                     return (
                       <tr key={so.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                         <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{so.order_no}</td>
-                        <td className="px-4 py-3 text-slate-400">{so.document_date || so.order_date}</td>
+                        <td className="px-4 py-3 text-slate-400">{formatDate(so.document_date || so.order_date)}</td>
                         <td className="px-4 py-3 font-medium text-slate-200">{cust?.name || 'Customer'}</td>
                         <td className="px-4 py-3 text-slate-400">{so.salesperson || 'admin'}</td>
                         <td className="px-4 py-3 font-mono font-semibold text-slate-100">
@@ -1940,7 +1929,7 @@ export function SalesModule() {
                         return (
                           <tr key={cn.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                             <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{cn.credit_note_no}</td>
-                            <td className="px-4 py-3 text-slate-400">{cn.document_date || cn.note_date}</td>
+                            <td className="px-4 py-3 text-slate-400">{formatDate(cn.document_date || cn.note_date)}</td>
                             <td className="px-4 py-3 font-medium text-slate-200">{cust?.name || 'Customer'}</td>
                             <td className="px-4 py-3 font-mono font-semibold text-slate-100">
                               {cn.currency || 'Rs.'} {cn.total_amount?.toLocaleString()}
@@ -2008,7 +1997,7 @@ export function SalesModule() {
                         className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                       >
                         <option value="">Select customer</option>
-                        {customers.map((c) => (
+                        {customers.filter(c => !c.account_type || c.account_type.toLowerCase() === 'customer').map((c) => (
                           <option key={c.id} value={c.id}>
                             {c.name}
                           </option>
@@ -2227,25 +2216,7 @@ export function SalesModule() {
                                       <option key={a.id} value={a.id}>{a.name}</option>
                                     ))}
                                   </select>
-                                  
-                                  {selectedArt && selectedArt.colours && selectedArt.colours.length > 0 && (
-                                    <select
-                                      value={item.colour || ''}
-                                      onChange={(e) => {
-                                        updateCnLineItem(item.id, { 
-                                          colour: e.target.value,
-                                          description: prod && selectedArt ? `${prod.name} (${selectedArt.name}${e.target.value ? ` - ${e.target.value}` : ''})` : (prod?.description || prod?.name || '')
-                                        });
-                                      }}
-                                      className="w-full rounded-md border border-slate-200 bg-slate-50 p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 outline-none"
-                                    >
-                                      <option value="">Select Colour...</option>
-                                      {selectedArt.colours.map((c) => (
-                                        <option key={c} value={c}>{c}</option>
-                                      ))}
-                                    </select>
-                                  )}
-                                </div>
+                                  </div>
                               );
                             })()}
                           </td>
@@ -2434,7 +2405,7 @@ export function SalesModule() {
                         return (
                           <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                             <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{r.receipt_no}</td>
-                            <td className="px-4 py-3 text-slate-400">{r.receipt_date}</td>
+                            <td className="px-4 py-3 text-slate-400">{formatDate(r.receipt_date)}</td>
                             <td className="px-4 py-3 font-medium text-slate-200">{cust?.name || 'Customer'}</td>
                             <td className="px-4 py-3 text-slate-300">{r.deposit_to || r.payment_method}</td>
                             <td className="px-4 py-3 font-mono font-semibold text-amber-400">
@@ -2930,7 +2901,7 @@ export function SalesModule() {
                   ) : (
                     commissions.map((c) => (
                       <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                        <td className="px-4 py-3 text-slate-400">{c.created_at?.slice(0, 10) || todayISO()}</td>
+                        <td className="px-4 py-3 text-slate-400">{formatDate(c.created_at || todayISO())}</td>
                         <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{c.invoice_no}</td>
                         <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-200">{c.customer_name}</td>
                         <td className="px-4 py-3 text-slate-800 dark:text-slate-200">{c.salesperson}</td>
@@ -2976,7 +2947,7 @@ export function SalesModule() {
                   onChange={(e) => setGenericCustId(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
                 >
-                  {customers.map((c) => (
+                  {customers.filter(c => !c.account_type || c.account_type.toLowerCase() === 'customer').map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
@@ -3059,7 +3030,7 @@ export function SalesModule() {
                           className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                         >
                           <option value="">-- Select Customer --</option>
-                          {customers.map((c) => (
+                          {customers.filter(c => !c.account_type || c.account_type.toLowerCase() === 'customer').map((c) => (
                             <option key={c.id} value={c.id}>
                               {c.name} ({c.code})
                             </option>
@@ -3194,24 +3165,6 @@ export function SalesModule() {
                                             <option key={a.id} value={a.id}>{a.name}</option>
                                           ))}
                                         </select>
-                                        
-                                        {selectedArt && selectedArt.colours && selectedArt.colours.length > 0 && (
-                                          <select
-                                            value={item.colour || ''}
-                                            onChange={(e) => {
-                                              updateSalesDocLine(item.id, { 
-                                                colour: e.target.value,
-                                                description: prod && selectedArt ? `${prod.name} (${selectedArt.name}${e.target.value ? ` - ${e.target.value}` : ''})` : (prod?.description || prod?.name || '')
-                                              });
-                                            }}
-                                            className="w-full rounded-md border border-slate-300 bg-white p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none"
-                                          >
-                                            <option value="">Select Colour...</option>
-                                            {selectedArt.colours.map((c) => (
-                                              <option key={c} value={c}>{c}</option>
-                                            ))}
-                                          </select>
-                                        )}
                                       </div>
                                     );
                                   })()}

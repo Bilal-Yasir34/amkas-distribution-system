@@ -3,7 +3,7 @@ import { Plus, ShoppingCart, DollarSign, FileText, CheckCircle, Clock, X, Trash2
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
-import { todayISO, safeUUID, nextDocNumber } from '@/lib/utils';
+import { todayISO, safeUUID, nextDocNumber , formatDate} from '@/lib/utils';
 import type { VendorBill, Vendor } from '@/lib/types';
 
 export function PurchaseModule() {
@@ -41,6 +41,7 @@ export function PurchaseModule() {
     addVendorPayment,
     updateVendorPayment,
     deleteVendorPayment,
+    accountTypes = [],
   } = useDataStore();
 
   const availableVendors = useMemo(() => {
@@ -52,7 +53,7 @@ export function PurchaseModule() {
 
   const availableCustomers = useMemo(() => {
     return customers.filter(
-      (c) => c.account_type?.toLowerCase() !== 'supplier' && c.account_type?.toLowerCase() !== 'vendor'
+      (c) => c.account_type?.toLowerCase() === 'customer' || !c.account_type
     );
   }, [customers]);
 
@@ -468,15 +469,18 @@ export function PurchaseModule() {
   const [piViewMode, setPiViewMode] = useState<'list' | 'form'>('list');
   const [editingPIId, setEditingPIId] = useState<string | null>(null);
 
-  const [piPartyType, setPiPartyType] = useState<'Vendor' | 'Customer'>('Vendor');
+  const [piPartyType, setPiPartyType] = useState<string>('Vendor');
   const [piVendorId, setPiVendorId] = useState('');
 
-  const handlePIPartyTypeChange = (type: 'Vendor' | 'Customer') => {
+  const handlePIPartyTypeChange = (type: string) => {
     setPiPartyType(type);
-    if (type === 'Vendor') {
-      setPiVendorId(vendors[0]?.id || '');
+    const all = [...customers, ...vendors];
+    const unique = all.filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx);
+    if (!type || type === 'ALL') {
+      setPiVendorId(unique[0]?.id || '');
     } else {
-      setPiVendorId(customers[0]?.id || '');
+      const filtered = unique.filter(c => c.account_type?.toLowerCase() === type.toLowerCase());
+      setPiVendorId(filtered[0]?.id || unique[0]?.id || '');
     }
   };
 
@@ -496,8 +500,8 @@ export function PurchaseModule() {
 
   const openCreatePIForm = () => {
     setEditingPIId(null);
-    setPiPartyType('Vendor');
-    setPiVendorId(vendors[0]?.id || '');
+    setPiPartyType(accountTypes[0]?.name || 'ALL');
+    setPiVendorId(vendors[0]?.id || customers[0]?.id || '');
     setPiDocDate(todayISO());
     setPiDueDate(todayISO());
     setPiWarehouseId(warehouses[0]?.id || 'w1');
@@ -527,9 +531,14 @@ export function PurchaseModule() {
   const openEditPIForm = (pi: any) => {
     setEditingPIId(pi.id);
     setPiReferenceNo(pi.invoice_no || pi.grn_no || '');
-    const isCustomer = customers.some((c) => c.id === pi.vendor_id);
-    setPiPartyType(isCustomer ? 'Customer' : 'Vendor');
-    setPiVendorId(pi.vendor_id || (isCustomer ? customers[0]?.id : vendors[0]?.id) || '');
+    const party = customers.find((c) => c.id === pi.vendor_id) || vendors.find((v) => v.id === pi.vendor_id);
+    let pType = 'Vendor';
+    if (party?.account_type) {
+      const matchingType = accountTypes.find((at: any) => at.name.toLowerCase() === party?.account_type?.toLowerCase());
+      if (matchingType) pType = matchingType.name;
+    }
+    setPiPartyType(pType);
+    setPiVendorId(pi.vendor_id || '');
     setPiDocDate(pi.received_date || pi.document_date || todayISO());
     setPiDueDate(pi.due_date || todayISO());
     setPiWarehouseId(pi.warehouse_id || warehouses[0]?.id || 'w1');
@@ -1422,7 +1431,7 @@ export function PurchaseModule() {
                       return (
                         <tr key={pi.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                           <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{pi.grn_no || pi.invoice_no}</td>
-                          <td className="px-4 py-3 text-slate-400">{pi.received_date || pi.document_date}</td>
+                          <td className="px-4 py-3 text-slate-400">{formatDate(pi.received_date || pi.document_date || '')}</td>
                           <td className="px-4 py-3 font-medium text-slate-200">{party?.name || 'Party'}</td>
                           <td className="px-4 py-3 text-slate-400">{wh?.name || 'Main Warehouse'}</td>
                           <td className="px-4 py-3 font-mono font-semibold text-amber-400">
@@ -1506,35 +1515,34 @@ export function PurchaseModule() {
                         <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Type</label>
                         <select
                           value={piPartyType}
-                          onChange={(e) => handlePIPartyTypeChange(e.target.value as 'Vendor' | 'Customer')}
+                          onChange={(e) => handlePIPartyTypeChange(e.target.value)}
                           className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                         >
-                          <option value="Vendor">Supplier</option>
-                          <option value="Customer">Customer</option>
+                          <option value="ALL">All Types</option>
+                          {accountTypes.map((at) => (
+                            <option key={at.id} value={at.name}>{at.name}</option>
+                          ))}
                         </select>
                       </div>
 
                       <div>
                         <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                          Select {piPartyType === 'Vendor' ? 'Supplier' : 'Customer'}
+                          Select {piPartyType}
                         </label>
                         <select
                           value={piVendorId}
                           onChange={(e) => setPiVendorId(e.target.value)}
                           className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                         >
-                          <option value="">Select {piPartyType === 'Vendor' ? 'supplier' : 'customer'}</option>
-                          {piPartyType === 'Vendor'
-                            ? availableVendors.map((v) => (
-                                <option key={v.id} value={v.id}>
-                                  {v.name}
-                                </option>
-                              ))
-                            : availableCustomers.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                  {c.name}
-                                </option>
-                              ))}
+                          <option value="">Select {piPartyType === 'ALL' ? 'Party' : piPartyType}</option>
+                          {(() => {
+                            const all = [...customers, ...vendors.map(v => ({ ...v, _origin: 'vendor' as const }))];
+                            const unique = all.filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx);
+                            if (!piPartyType || piPartyType === 'ALL') return unique;
+                            return unique.filter(c => c.account_type?.toLowerCase() === piPartyType.toLowerCase());
+                          })().map((c) => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
                         </select>
                       </div>
 
@@ -1699,24 +1707,6 @@ export function PurchaseModule() {
                                         <option key={a.id} value={a.id}>{a.name}</option>
                                       ))}
                                     </select>
-                                    
-                                    {selectedArt && selectedArt.colours && selectedArt.colours.length > 0 && (
-                                      <select
-                                        value={item.colour || ''}
-                                        onChange={(e) => {
-                                          updatePILineItem(item.id, { 
-                                            colour: e.target.value,
-                                            description: prod && selectedArt ? `${prod.name} (${selectedArt.name}${e.target.value ? ` - ${e.target.value}` : ''})` : (prod?.description || prod?.name || '')
-                                          });
-                                        }}
-                                        className="w-full rounded-md border border-slate-200 bg-slate-50 p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 outline-none"
-                                      >
-                                        <option value="">Select Colour...</option>
-                                        {selectedArt.colours.map((c) => (
-                                          <option key={c} value={c}>{c}</option>
-                                        ))}
-                                      </select>
-                                    )}
                                   </div>
                                 );
                               })()}
@@ -1960,23 +1950,7 @@ export function PurchaseModule() {
                                 ))}
                               </select>
                               
-                              {selectedArt && selectedArt.colours && selectedArt.colours.length > 0 && (
-                                <select
-                                  value={line.colour || ''}
-                                  onChange={(e) => {
-                                    updateLine(line.id, { 
-                                      colour: e.target.value,
-                                      description: prod && selectedArt ? `${prod.name} (${selectedArt.name}${e.target.value ? ` - ${e.target.value}` : ''})` : (prod?.description || prod?.name || '')
-                                    });
-                                  }}
-                                  className="flex-1 rounded-md border border-slate-200 bg-slate-50 p-1.5 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 outline-none"
-                                >
-                                  <option value="">Colour...</option>
-                                  {selectedArt.colours.map((c) => (
-                                    <option key={c} value={c}>{c}</option>
-                                  ))}
-                                </select>
-                              )}
+                              
                             </div>
                           )}
                         </div>

@@ -2,13 +2,14 @@ import { useState, useMemo } from 'react';
 import { Plus, Trash2, X, Search, Filter, Download, Check, ArrowUpRight, BookOpen, ArrowLeftRight } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
-import { todayISO, downloadCSV } from '@/lib/utils';
+import { todayISO, downloadCSV, formatDate } from '@/lib/utils';
 
 type SubTab =
   | 'Overview'
   | 'Journal Entries'
   | 'General Ledger'
   | 'Party Statements'
+  | 'Aging Summary'
   | 'Receivables'
   | 'Payables'
   | 'Expenses'
@@ -22,12 +23,15 @@ export function AccountingModule() {
   const {
     journalEntries,
     chartOfAccounts,
+    accountTypes,
     customers,
     vendors,
     invoices,
     vendorBills,
     customerReceipts,
     vendorPayments,
+    salesReturns,
+    purchaseReturns,
     expenseRecords,
     incomeRecords,
     addJournalEntry,
@@ -37,12 +41,13 @@ export function AccountingModule() {
   } = useDataStore();
 
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('Overview');
+  const allAccounts = [...customers, ...vendors];
   const [newJvOpen, setNewJvOpen] = useState(false);
   const [entryDate, setEntryDate] = useState(todayISO());
   const [refNo, setRefNo] = useState('');
   const [narration, setNarration] = useState('');
   const [glFilter, setGlFilter] = useState('');
-  const [partyType, setPartyType] = useState<'customer' | 'vendor'>('customer');
+  const [partyType, setPartyType] = useState<string>('Customer');
   const [selectedParty, setSelectedParty] = useState('');
 
   // Record Expense Form View State
@@ -68,25 +73,101 @@ export function AccountingModule() {
   const [incDescription, setIncDescription] = useState('');
 
   // Party Statement State (Matching User Screenshot)
-  const [statementType, setStatementType] = useState<'Customer' | 'Vendor'>('Customer');
+  const [statementType, setStatementType] = useState<string>('ALL');
+  const [agingSummaryType, setAgingSummaryType] = useState<string>('');
   const [statementPartyId, setStatementPartyId] = useState('');
   const [statementFromDate, setStatementFromDate] = useState('2026-07-01');
   const [statementToDate, setStatementToDate] = useState('2026-07-22');
   const [generatedStatementPartyId, setGeneratedStatementPartyId] = useState('');
 
   const activePartyObj = useMemo(() => {
-    if (statementType === 'Customer') {
-      return customers.find((c) => c.id === generatedStatementPartyId);
-    }
-    return vendors.find((v) => v.id === generatedStatementPartyId);
-  }, [statementType, generatedStatementPartyId, customers, vendors]);
+    return allAccounts.find((c) => c.id === generatedStatementPartyId);
+  }, [generatedStatementPartyId, allAccounts]);
+
+  const statementTransactions = useMemo(() => {
+    if (!generatedStatementPartyId) return [];
+    
+    let txs: any[] = [];
+    
+    // Always gather all transaction types for the selected party
+    const custInvs = invoices.filter(i => i.customer_id === generatedStatementPartyId).map(i => ({
+      id: i.id,
+      date: i.invoice_date || i.created_at || todayISO(),
+      number: i.invoice_no,
+      type: 'Sales Invoice',
+      desc: 'Sales Invoice',
+      debit: i.total_amount || 0,
+      credit: 0
+    }));
+    const custRects = customerReceipts.filter(r => r.customer_id === generatedStatementPartyId).map(r => ({
+      id: r.id,
+      date: r.receipt_date || r.created_at || todayISO(),
+      number: r.receipt_no,
+      type: 'Receipt',
+      desc: 'Payment Received',
+      debit: 0,
+      credit: r.amount || 0
+    }));
+    const custReturns = salesReturns.filter(sr => sr.customer_id === generatedStatementPartyId).map(sr => ({
+      id: sr.id,
+      date: sr.document_date || sr.created_at || todayISO(),
+      number: sr.return_no,
+      type: 'Sales Return',
+      desc: 'Sales Return / Credit Note',
+      debit: 0,
+      credit: sr.total_amount || 0
+    }));
+    
+    const vendBills = vendorBills.filter(b => b.vendor_id === generatedStatementPartyId).map(b => ({
+      id: b.id,
+      date: b.bill_date || b.created_at || todayISO(),
+      number: b.bill_no,
+      type: 'Purchase Bill',
+      desc: 'Purchase Bill',
+      debit: 0,
+      credit: b.total_amount || 0
+    }));
+    const vendPays = vendorPayments.filter(p => p.vendor_id === generatedStatementPartyId).map(p => ({
+      id: p.id,
+      date: p.payment_date || p.created_at || todayISO(),
+      number: p.payment_no,
+      type: 'Payment',
+      desc: 'Payment Made',
+      debit: p.amount || 0,
+      credit: 0
+    }));
+    const purchReturns = purchaseReturns.filter(pr => pr.vendor_id === generatedStatementPartyId).map(pr => ({
+      id: pr.id,
+      date: pr.document_date || pr.created_at || todayISO(),
+      number: pr.return_no,
+      type: 'Purchase Return',
+      desc: 'Purchase Return / Debit Note',
+      debit: pr.total_amount || 0,
+      credit: 0
+    }));
+    
+    txs = [...custInvs, ...custRects, ...custReturns, ...vendBills, ...vendPays, ...purchReturns];
+    txs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    let balance = 0;
+    return txs.map(tx => {
+      balance += ((tx.debit || 0) - (tx.credit || 0));
+      return { ...tx, runningBalance: balance };
+    });
+  }, [generatedStatementPartyId, invoices, customerReceipts, salesReturns, vendorBills, vendorPayments, purchaseReturns]);
+
+  const statementPeriodDebit = statementTransactions.reduce((acc, t) => acc + (t.debit || 0), 0);
+  const statementPeriodCredit = statementTransactions.reduce((acc, t) => acc + (t.credit || 0), 0);
+  const statementClosingBalance = statementTransactions.length > 0 
+    ? (statementTransactions[statementTransactions.length - 1]?.runningBalance ?? 0) 
+    : 0;
 
   const handleGenerateStatement = () => {
     if (!statementPartyId) {
-      return toast.error(`Please select a ${statementType.toLowerCase()} first`);
+      return toast.error('Please select a party first');
     }
     setGeneratedStatementPartyId(statementPartyId);
-    toast.success(`Generated ${statementType} statement for ${activePartyObj?.name || 'selected party'}`);
+    toast.success(`Generated statement for ${activePartyObj?.name || 'selected party'}`);
   };
 
   const handlePostExpense = () => {
@@ -95,7 +176,7 @@ export function AccountingModule() {
       return toast.error('Please enter a valid expense amount');
     }
     const targetAcct = chartOfAccounts.find((c) => c.id === expAccountId) || chartOfAccounts.find((c) => c.account_type === 'Expense') || { id: '5000', name: 'Cost of Goods Sold' };
-    const vendorObj = vendors.find((v) => v.id === expVendorId);
+    const vendorObj = allAccounts.find((v) => v.id === expVendorId);
     const num = `EX-${String((expenseRecords?.length || 0) + 1).padStart(5, '0')}`;
 
     addExpenseRecord({
@@ -127,7 +208,7 @@ export function AccountingModule() {
       return toast.error('Please enter a valid income amount');
     }
     const targetAcct = chartOfAccounts.find((c) => c.id === incAccountId) || chartOfAccounts.find((c) => c.account_type === 'Revenue' || c.account_type === 'Income') || { id: '4000', name: 'Other Income' };
-    const customerObj = customers.find((c) => c.id === incCustomerId);
+    const customerObj = allAccounts.find((c) => c.id === incCustomerId);
     const num = `MI-${String((incomeRecords?.length || 0) + 1).padStart(5, '0')}`;
 
     addIncomeRecord({
@@ -365,7 +446,7 @@ export function AccountingModule() {
   const totalEquity = equityAccts.reduce((sum, c) => sum + (c.current_balance || 0), 0) + netProfit;
 
   // Party Statements
-  const partyList = partyType === 'customer' ? customers : vendors;
+  const partyList = allAccounts.filter(c => c.account_type?.toLowerCase() === partyType.toLowerCase());
   const partyInvoices = partyType === 'customer'
     ? invoices.filter((i) => i.customer_id === selectedParty)
     : vendorBills.filter((b) => b.vendor_id === selectedParty);
@@ -378,6 +459,7 @@ export function AccountingModule() {
     'Journal Entries',
     'General Ledger',
     'Party Statements',
+    'Aging Summary',
     'Receivables',
     'Payables',
     'Expenses',
@@ -581,11 +663,11 @@ export function AccountingModule() {
                   journalEntries.map((je) => (
                     <tr key={je.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                       <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{je.entry_no}</td>
-                      <td className="px-4 py-3 text-slate-400">{je.entry_date}</td>
+                      <td className="px-4 py-3 text-slate-400">{formatDate(je.entry_date)}</td>
                       <td className="px-4 py-3 text-slate-400 font-mono">{je.reference_no || '—'}</td>
                       <td className="px-4 py-3 text-slate-300">{je.narration}</td>
-                      <td className="px-4 py-3 font-mono font-semibold text-slate-200">Rs. {je.total_debit.toLocaleString()}</td>
-                      <td className="px-4 py-3 font-mono font-semibold text-slate-200">Rs. {je.total_credit.toLocaleString()}</td>
+                      <td className="px-4 py-3 font-mono font-semibold text-slate-200">Rs. {(je.total_debit || 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 font-mono font-semibold text-slate-200">Rs. {(je.total_credit || 0).toLocaleString()}</td>
                       <td className="px-4 py-3">
                         <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">{je.status}</span>
                       </td>
@@ -727,10 +809,10 @@ export function AccountingModule() {
                         {row.description}
                       </td>
                       <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                        Rs. {row.debit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        Rs. {(row.debit || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                        Rs. {row.credit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        Rs. {(row.credit || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
                   ))
@@ -960,17 +1042,14 @@ export function AccountingModule() {
                     Statement type
                   </label>
                   <select
-                    value={statementType}
-                    onChange={(e) => {
-                      setStatementType(e.target.value as any);
-                      setStatementPartyId('');
-                      setGeneratedStatementPartyId('');
-                    }}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 min-w-[140px]"
-                  >
-                    <option value="Customer">Customer</option>
-                    <option value="Vendor">Vendor</option>
-                  </select>
+                      value={statementType}
+                      onChange={(e) => setStatementType(e.target.value)}
+                      className="rounded-xl border border-slate-300 bg-slate-50 p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 outline-none focus:border-amber-500"
+                    >
+                      {(accountTypes || []).filter(at => at.is_active).map(at => (
+                        <option key={at.id} value={at.name}>{at.name}</option>
+                      ))}
+                    </select>
                 </div>
 
                 {/* Dynamic Party Selector */}
@@ -984,15 +1063,9 @@ export function AccountingModule() {
                     className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 min-w-[240px]"
                   >
                     <option value="">Select party</option>
-                    {statementType === 'Customer'
-                      ? customers.map((c) => (
+                    {allAccounts.filter(c => c.account_type?.toLowerCase() === statementType.toLowerCase()).map((c) => (
                           <option key={c.id} value={c.id}>
-                            {c.code} · {c.name}{c.is_active === false ? ' (Deactivated)' : ''}
-                          </option>
-                        ))
-                      : vendors.map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {v.code} · {v.name}{v.is_active === false ? ' (Deactivated)' : ''}
+                            {c.name}
                           </option>
                         ))}
                   </select>
@@ -1112,26 +1185,23 @@ export function AccountingModule() {
                   <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-purple-400">PERIOD DEBIT</p>
                     <h3 className="mt-1.5 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                      Rs. {(statementType === 'Customer' ? partyInvoices : partyPayments).reduce((s: number, i: any) => s + (i.total_amount || i.amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      Rs. {(statementPeriodDebit || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </h3>
                   </div>
 
                   <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">PERIOD CREDIT</p>
                     <h3 className="mt-1.5 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                      Rs. {(statementType === 'Customer' ? partyPayments : partyInvoices).reduce((s: number, p: any) => s + (p.amount || p.total_amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      Rs. {(statementPeriodCredit || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </h3>
                   </div>
 
                   <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-purple-500">
-                      {statementType === 'Customer' ? 'CLOSING RECEIVABLE' : 'CLOSING PAYABLE'}
+                      CLOSING BALANCE
                     </p>
                     <h3 className="mt-1.5 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                      Rs. {(
-                        (partyInvoices.reduce((s: number, i: any) => s + (i.total_amount || 0), 0) -
-                        partyPayments.reduce((s: number, p: any) => s + (p.amount || 0), 0)) * (statementType === 'Vendor' ? -1 : 1)
-                      ).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      Rs. {(statementClosingBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </h3>
                   </div>
                 </div>
@@ -1164,39 +1234,20 @@ export function AccountingModule() {
                         </td>
                       </tr>
 
-                      {/* Transaction Rows */}
-                      {partyInvoices.map((inv: any) => (
-                        <tr key={inv.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                          <td className="px-4 py-3.5 text-slate-600 dark:text-slate-400">{inv.invoice_date || inv.bill_date || '01 Jul 2026'}</td>
-                          <td className="px-4 py-3.5 font-mono font-bold text-amber-500">{inv.invoice_no || inv.bill_no}</td>
-                          <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{statementType === 'Customer' ? 'Invoice' : 'Bill'}</td>
-                          <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{statementType === 'Customer' ? 'Sales Invoice' : 'Vendor Bill'}</td>
+                      {statementTransactions.map((tx: any) => (
+                        <tr key={tx.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+                          <td className="px-4 py-3.5 text-slate-600 dark:text-slate-400">{formatDate(tx.date)}</td>
+                          <td className="px-4 py-3.5 font-mono font-bold text-slate-600 dark:text-slate-300">{tx.number}</td>
+                          <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{tx.type}</td>
+                          <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{tx.desc}</td>
                           <td className="px-4 py-3.5 text-right font-mono text-slate-900 dark:text-slate-100">
-                            {statementType === 'Customer' ? `Rs. ${(inv.total_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
+                            {tx.debit > 0 ? `Rs. ${(tx.debit || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
                           </td>
                           <td className="px-4 py-3.5 text-right font-mono text-slate-900 dark:text-slate-100">
-                            {statementType === 'Vendor' ? `Rs. ${(inv.total_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
+                            {tx.credit > 0 ? `Rs. ${(tx.credit || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
                           </td>
                           <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
-                            Rs. {(inv.total_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      ))}
-
-                      {partyPayments.map((pmt: any) => (
-                        <tr key={pmt.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                          <td className="px-4 py-3.5 text-slate-600 dark:text-slate-400">{pmt.receipt_date || pmt.payment_date || '01 Jul 2026'}</td>
-                          <td className="px-4 py-3.5 font-mono font-bold text-purple-400">{pmt.receipt_no || pmt.payment_no}</td>
-                          <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{statementType === 'Customer' ? 'Receipt' : 'Payment'}</td>
-                          <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{statementType === 'Customer' ? 'Payment Received' : 'Payment Made'}</td>
-                          <td className="px-4 py-3.5 text-right font-mono text-slate-900 dark:text-slate-100">
-                            {statementType === 'Vendor' ? `Rs. ${(pmt.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-mono text-slate-900 dark:text-slate-100">
-                            {statementType === 'Customer' ? `Rs. ${(pmt.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
-                            Rs. {(pmt.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            Rs. {((tx.runningBalance ?? 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </td>
                         </tr>
                       ))}
@@ -1210,198 +1261,96 @@ export function AccountingModule() {
       )}
 
       {/* RECEIVABLES TAB (Matching Screenshot 1) */}
-      {activeSubTab === 'Receivables' && (
+      
+      {/* AGING SUMMARY TAB */}
+      {activeSubTab === 'Aging Summary' && (
         <div className="space-y-6">
-          {/* Top Row: 4 Metric Cards */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Card 1: TOTAL BILLED */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL BILLED</p>
-              <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                Rs. {invoices.reduce((s, i) => s + (i.total_amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </h3>
-            </div>
-
-            {/* Card 2: COLLECTED / PAID */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">COLLECTED / PAID</p>
-              <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                Rs. {customerReceipts.reduce((s, r) => s + (r.amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </h3>
-            </div>
-
-            {/* Card 3: OUTSTANDING */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">OUTSTANDING</p>
-              <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                Rs. {Math.max(0, invoices.reduce((s, i) => s + (i.total_amount || 0), 0) - customerReceipts.reduce((s, r) => s + (r.amount || 0), 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </h3>
-            </div>
-
-            {/* Card 4: PARTIES */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PARTIES</p>
-              <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                {customers.length}
-              </h3>
+          <div className="flex items-center gap-4 bg-white dark:bg-slate-900/70 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+            <div className="flex-1">
+              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Account Type</label>
+              <select
+                value={agingSummaryType}
+                onChange={(e) => setAgingSummaryType(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 bg-slate-50 p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 outline-none focus:border-amber-500"
+              >
+                <option value="">Select Account Type</option>
+                {(accountTypes || []).filter(at => at.is_active).map(at => (
+                  <option key={at.id} value={at.name}>{at.name}</option>
+                ))}
+              </select>
             </div>
           </div>
 
-          {/* Main Table Card: Customer Aging Summary */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">ACCOUNTS RECEIVABLE</p>
-              <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Customer aging summary</h2>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
-                  <tr>
-                    <th className="px-4 py-3.5">CUSTOMER</th>
-                    <th className="px-4 py-3.5 text-right">BILLED</th>
-                    <th className="px-4 py-3.5 text-right">RECEIVED</th>
-                    <th className="px-4 py-3.5 text-right">OUTSTANDING</th>
-                    <th className="px-4 py-3.5 text-right">OLDEST OPEN DATE</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  {customers.length === 0 ? (
+          {agingSummaryType ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
+              <div>
+                <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 uppercase">{agingSummaryType} Aging Summary</h2>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
                     <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
-                        No customer aging data available.
-                      </td>
+                      <th className="px-4 py-3.5">PARTY</th>
+                      <th className="px-4 py-3.5 text-right">BILLED</th>
+                      <th className="px-4 py-3.5 text-right">RECEIVED / PAID</th>
+                      <th className="px-4 py-3.5 text-right">OUTSTANDING</th>
+                      <th className="px-4 py-3.5 text-right">OLDEST OPEN DATE</th>
                     </tr>
-                  ) : (
-                    customers.map((c) => {
-                      const custInvoices = invoices.filter((i) => i.customer_id === c.id);
-                      const custReceipts = customerReceipts.filter((r) => r.customer_id === c.id);
-                      const billed = custInvoices.reduce((s, i) => s + (i.total_amount || 0), 0);
-                      const received = custReceipts.reduce((s, r) => s + (r.amount || 0), 0);
-                      const outstanding = Math.max(0, billed - received);
-                      const oldestInv = custInvoices[0]?.invoice_date || '—';
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {allAccounts.filter(c => c.account_type?.toLowerCase() === agingSummaryType.toLowerCase()).length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                          No aging data available for {agingSummaryType}.
+                        </td>
+                      </tr>
+                    ) : (
+                      allAccounts.filter(c => c.account_type?.toLowerCase() === agingSummaryType.toLowerCase()).map((c) => {
+                        const custInvoices = invoices.filter((i) => i.customer_id === c.id);
+                        const custReceipts = customerReceipts.filter((r) => r.customer_id === c.id);
+                        const custReturns = salesReturns.filter((sr) => sr.customer_id === c.id);
+                        const vBills = vendorBills.filter((b) => b.vendor_id === c.id);
+                        const vPayments = vendorPayments.filter((p) => p.vendor_id === c.id);
+                        const vReturns = purchaseReturns.filter((pr) => pr.vendor_id === c.id);
+                        
+                        const billed = custInvoices.reduce((s, i) => s + (i.total_amount || 0), 0) + vBills.reduce((s, b) => s + (b.total_amount || 0), 0);
+                        const received = custReceipts.reduce((s, r) => s + (r.amount || 0), 0) + vPayments.reduce((s, p) => s + (p.amount || 0), 0);
+                        const returned = custReturns.reduce((s, sr) => s + (sr.total_amount || 0), 0) + vReturns.reduce((s, pr) => s + (pr.total_amount || 0), 0);
+                        const outstanding = Math.max(0, billed - received - returned);
+                        
+                        const oldestDate = [...custInvoices.map(i => i.invoice_date || i.created_at), ...vBills.map(b => b.bill_date)]
+                            .filter(Boolean)
+                            .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[0];
+                            
+                        const oldestInv = oldestDate ? formatDate(oldestDate) : '--';
 
-                      return (
-                        <tr key={c.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                          <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-slate-100">{c.name}</td>
-                          <td className="px-4 py-3.5 text-right font-mono text-slate-800 dark:text-slate-200">
-                            Rs. {billed.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-mono text-slate-800 dark:text-slate-200">
-                            Rs. {received.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
-                            Rs. {outstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-mono text-slate-400">{oldestInv}</td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                        return (
+                          <tr key={c.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+                            <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-slate-100">{c.name}</td>
+                            <td className="px-4 py-3.5 text-right font-mono text-slate-800 dark:text-slate-200">
+                              Rs. {billed.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-4 py-3.5 text-right font-mono text-slate-800 dark:text-slate-200">
+                              Rs. {received.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
+                              Rs. {outstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-4 py-3.5 text-right font-mono text-slate-400">{oldestInv}</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="py-20 text-center text-slate-400">Please select an account type to view aging summary.</div>
+          )}
         </div>
       )}
 
-      {/* PAYABLES TAB (Matching Screenshot 2) */}
-      {activeSubTab === 'Payables' && (
-        <div className="space-y-6">
-          {/* Top Row: 4 Metric Cards */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Card 1: TOTAL BILLED */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">TOTAL BILLED</p>
-              <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                Rs. {vendorBills.reduce((s, b) => s + (b.total_amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </h3>
-            </div>
-
-            {/* Card 2: COLLECTED / PAID */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">COLLECTED / PAID</p>
-              <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                Rs. {vendorPayments.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </h3>
-            </div>
-
-            {/* Card 3: OUTSTANDING */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">OUTSTANDING</p>
-              <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                Rs. {Math.max(0, vendorBills.reduce((s, b) => s + (b.total_amount || 0), 0) - vendorPayments.reduce((s, p) => s + (p.amount || 0), 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </h3>
-            </div>
-
-            {/* Card 4: PARTIES */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-purple-500">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PARTIES</p>
-              <h3 className="mt-1 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                {vendors.length}
-              </h3>
-            </div>
-          </div>
-
-          {/* Main Table Card: Vendor Aging Summary */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500 mb-1">ACCOUNTS PAYABLE</p>
-              <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Vendor aging summary</h2>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800">
-                  <tr>
-                    <th className="px-4 py-3.5">VENDOR</th>
-                    <th className="px-4 py-3.5 text-right">BILLED</th>
-                    <th className="px-4 py-3.5 text-right">PAID</th>
-                    <th className="px-4 py-3.5 text-right">OUTSTANDING</th>
-                    <th className="px-4 py-3.5 text-right">OLDEST OPEN DATE</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  {vendors.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
-                        No vendor aging data available.
-                      </td>
-                    </tr>
-                  ) : (
-                    vendors.map((v) => {
-                      const vBills = vendorBills.filter((b) => b.vendor_id === v.id);
-                      const vPayments = vendorPayments.filter((p) => p.vendor_id === v.id);
-                      const billed = vBills.reduce((s, b) => s + (b.total_amount || 0), 0);
-                      const paid = vPayments.reduce((s, p) => s + (p.amount || 0), 0);
-                      const outstanding = Math.max(0, billed - paid);
-                      const oldestBill = vBills[0]?.bill_date || '—';
-
-                      return (
-                        <tr key={v.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                          <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-slate-100">{v.name}</td>
-                          <td className="px-4 py-3.5 text-right font-mono text-slate-800 dark:text-slate-200">
-                            Rs. {billed.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-mono text-slate-800 dark:text-slate-200">
-                            Rs. {paid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
-                            Rs. {outstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-mono text-slate-400">{oldestBill}</td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* EXPENSES TAB (Matching Screenshots 3 & 4) */}
       {activeSubTab === 'Expenses' && (
         <div>
           {recordExpenseOpen ? (
@@ -1583,7 +1532,7 @@ export function AccountingModule() {
                           <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{ex.description}</td>
                           <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{ex.cash_bank_account}</td>
                           <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
-                            Rs. {ex.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            Rs. {(ex.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </td>
                           <td className="px-4 py-3.5 text-center">
                             <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-amber-400">
@@ -1691,7 +1640,7 @@ export function AccountingModule() {
                     className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
                   >
                     <option value="">None</option>
-                    {customers.filter((c) => c.is_active).map((c) => (
+                    {allAccounts.filter((c) => c.is_active).map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
@@ -1784,7 +1733,7 @@ export function AccountingModule() {
                           <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{inc.description}</td>
                           <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{inc.cash_bank_account}</td>
                           <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
-                            Rs. {inc.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            Rs. {(inc.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </td>
                           <td className="px-4 py-3.5 text-center">
                             <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-amber-400">

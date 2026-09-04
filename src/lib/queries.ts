@@ -110,6 +110,7 @@ export function useCategories() {
 export function usePostInvoice() {
   const updateInvoice = useDataStore((s) => s.updateInvoice);
   return {
+    isPending: false,
     mutateAsync: async (invoiceId: string) => {
       updateInvoice(invoiceId, { status: 'POSTED' });
     },

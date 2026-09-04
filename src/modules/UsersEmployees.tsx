@@ -4,6 +4,7 @@ import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { ROLES } from '@/lib/rbac';
 import { useAuth } from '@/lib/auth';
+import { formatDate } from '@/lib/utils';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 import type { UserEmployee } from '@/lib/types';
 
@@ -431,7 +432,7 @@ export function UsersEmployees() {
               {/* Login Info */}
               <div className="flex justify-between items-center text-[11px] text-slate-400 pt-1">
                 <span>Last Login: <strong className="text-slate-300">{viewingUser.last_login || 'Never'}</strong></span>
-                <span>Created: <strong className="text-slate-300">{new Date(viewingUser.created_at || Date.now()).toLocaleDateString()}</strong></span>
+                <span>Created: <strong className="text-slate-300">{formatDate(viewingUser.created_at || new Date().toISOString())}</strong></span>
               </div>
             </div>
 

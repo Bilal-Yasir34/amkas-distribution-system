@@ -88,13 +88,13 @@ export function Approvals() {
                     {item.status === 'PENDING' ? (
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => handleApprove(item.id, item.record_no)}
+                          onClick={() => handleApprove(item.id, item.record_no || "")}
                           className="rounded bg-amber-500 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-amber-600"
                         >
                           Approve
                         </button>
                         <button
-                          onClick={() => handleReject(item.id, item.record_no)}
+                          onClick={() => handleReject(item.id, item.record_no || "")}
                           className="rounded bg-rose-600/90 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-rose-700"
                         >
                           Reject

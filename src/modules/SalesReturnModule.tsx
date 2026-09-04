@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
-import { todayISO, safeUUID } from '@/lib/utils';
+import { todayISO, safeUUID , formatDate} from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
 import { Plus, Edit, Trash2, X } from 'lucide-react';
 
@@ -18,12 +18,14 @@ export function SalesReturnModule() {
     updateSalesReturn,
     deleteSalesReturn,
     updateProduct,
+    productArticles,
+    accountTypes
   } = useDataStore();
 
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [partyType, setPartyType] = useState<'Customer' | 'Vendor'>('Customer');
+  const [partyType, setPartyType] = useState<string>('Customer');
   const [customerId, setCustomerId] = useState('');
   const [docDate, setDocDate] = useState(todayISO());
   const [dueDate, setDueDate] = useState(todayISO());
@@ -34,21 +36,24 @@ export function SalesReturnModule() {
   const [notes, setNotes] = useState('');
 
   const [lineItems, setLineItems] = useState<
-    { id: string; product_id: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
-  >([{ id: '1', product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
+    { id: string; product_id: string; article_id?: string; colour?: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
+  >([{ id: '1', product_id: '', article_id: '', colour: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
 
-  const handlePartyTypeChange = (type: 'Customer' | 'Vendor') => {
+  const handlePartyTypeChange = (type: string) => {
     setPartyType(type);
-    if (type === 'Customer') {
-      setCustomerId(customers[0]?.id || '');
+    const all = [...customers, ...vendors];
+    const unique = all.filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx);
+    if (!type || type === 'ALL') {
+      setCustomerId(unique[0]?.id || '');
     } else {
-      setCustomerId(vendors[0]?.id || '');
+      const filtered = unique.filter(c => c.account_type?.toLowerCase() === type.toLowerCase());
+      setCustomerId(filtered[0]?.id || '');
     }
   };
 
   const openCreateForm = () => {
     setEditingId(null);
-    setPartyType('Customer');
+    setPartyType(accountTypes[0]?.name || 'ALL');
     setCustomerId(customers[0]?.id || '');
     setDocDate(todayISO());
     setDueDate(todayISO());
@@ -74,9 +79,14 @@ export function SalesReturnModule() {
 
   const openEditForm = (sr: any) => {
     setEditingId(sr.id);
-    const isVendor = vendors.some((v) => v.id === sr.customer_id);
-    setPartyType(isVendor ? 'Vendor' : 'Customer');
-    setCustomerId(sr.customer_id || (isVendor ? vendors[0]?.id : customers[0]?.id) || '');
+    const party = customers.find((c) => c.id === sr.customer_id) || vendors.find((v) => v.id === sr.customer_id);
+    let pType = 'Customer';
+    if (party?.account_type) {
+      const matchingType = accountTypes.find(at => at.name.toLowerCase() === party?.account_type?.toLowerCase());
+      if (matchingType) pType = matchingType.name;
+    }
+    setPartyType(pType);
+    setCustomerId(sr.customer_id || '');
     setDocDate(sr.document_date || todayISO());
     setDueDate(sr.due_date || todayISO());
     setWarehouseId(sr.warehouse_id || warehouses[0]?.id || 'w1');
@@ -97,7 +107,7 @@ export function SalesReturnModule() {
         }))
       );
     } else {
-      setLineItems([{ id: safeUUID(), product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
+      setLineItems([{ id: safeUUID(), product_id: '', article_id: '', colour: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
     }
     setViewMode('form');
   };
@@ -272,7 +282,7 @@ export function SalesReturnModule() {
                     return (
                       <tr key={sr.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                         <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{sr.return_no}</td>
-                        <td className="px-4 py-3 text-slate-400">{sr.document_date}</td>
+                        <td className="px-4 py-3 text-slate-400">{formatDate(sr.document_date)}</td>
                         <td className="px-4 py-3 font-medium text-slate-200">{party?.name || 'Party'}</td>
                         <td className="px-4 py-3 text-slate-400">{wh?.name || 'Main Warehouse'}</td>
                         <td className="px-4 py-3 font-mono font-semibold text-amber-400">
@@ -350,11 +360,13 @@ export function SalesReturnModule() {
                     <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Type</label>
                     <select
                       value={partyType}
-                      onChange={(e) => handlePartyTypeChange(e.target.value as 'Customer' | 'Vendor')}
+                      onChange={(e) => handlePartyTypeChange(e.target.value)}
                       className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     >
-                      <option value="Customer">Customer</option>
-                      <option value="Supplier">Supplier</option>
+                      <option value="ALL">All Types</option>
+                      {accountTypes.map((at) => (
+                        <option key={at.id} value={at.name}>{at.name}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -367,18 +379,15 @@ export function SalesReturnModule() {
                       onChange={(e) => setCustomerId(e.target.value)}
                       className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                     >
-                      <option value="">Select {partyType.toLowerCase()}</option>
-                      {partyType === 'Customer'
-                        ? customers.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name}
-                            </option>
-                          ))
-                        : vendors.map((v) => (
-                            <option key={v.id} value={v.id}>
-                              {v.name}
-                            </option>
-                          ))}
+                      <option value="">Select {partyType === 'ALL' ? 'Party' : partyType}</option>
+                      {(() => {
+                        const all = [...customers, ...vendors.map(v => ({ ...v, _origin: 'vendor' as const }))];
+                        const unique = all.filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx);
+                        if (!partyType || partyType === 'ALL') return unique;
+                        return unique.filter(c => c.account_type?.toLowerCase() === partyType.toLowerCase());
+                      })().map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -499,6 +508,28 @@ export function SalesReturnModule() {
                           </select>
                           {(() => {
                             const prod = products.find((x) => x.id === item.product_id);
+                            const prodArts = (productArticles || []).filter((a) => a.product_id === item.product_id);
+                            
+                            if (prodArts.length > 0) {
+                              const selectedArt = prodArts.find((a) => a.id === item.article_id);
+                              return (
+                                <div className="mt-2">
+                                  <select
+                                    value={item.article_id || ''}
+                                    onChange={(e) => updateLineItem(item.id, { article_id: e.target.value })}
+                                    className="w-full rounded-lg border border-slate-300 bg-slate-50 p-1.5 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 outline-none focus:border-amber-500"
+                                  >
+                                    <option value="">-- Select Article --</option>
+                                    {prodArts.map((art) => (
+                                      <option key={art.id} value={art.id}>
+                                        {(art as any).name || (art as any).article_name || (art as any).article_no || 'Unnamed Article'}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              );
+                            }
+
                             return prod?.article_name ? (
                               <div className="mt-1">
                                 <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">

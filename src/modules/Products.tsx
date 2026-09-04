@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Package, Search, X, Edit, Trash2, Power, Download, Palette, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Package, Search, X, Edit, Trash2, Power, Download, Palette, Tag, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { downloadCSV, nextDocNumber } from '@/lib/utils';
@@ -55,6 +55,8 @@ export function Products() {
   const [localArticles, setLocalArticles] = useState<LocalArticle[]>([]);
   const [newArticleName, setNewArticleName] = useState('');
   const [showArticleInput, setShowArticleInput] = useState(false);
+  const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
+  const [editingArticleName, setEditingArticleName] = useState('');
 
   const openCreate = () => {
     setEditingId(null);
@@ -77,6 +79,7 @@ export function Products() {
     setLocalArticles([]);
     setNewArticleName('');
     setShowArticleInput(false);
+    setEditingArticleId(null);
 
     setModalOpen(true);
   };
@@ -104,6 +107,7 @@ export function Products() {
     setLocalArticles(existingArticles.map((a) => ({ id: a.id, name: a.name, colours: [...a.colours] })));
     setNewArticleName('');
     setShowArticleInput(false);
+    setEditingArticleId(null);
 
     setModalOpen(true);
   };
@@ -122,6 +126,18 @@ export function Products() {
 
   const handleRemoveArticle = (articleId: string) => {
     setLocalArticles((prev) => prev.filter((a) => a.id !== articleId));
+  };
+
+  const handleSaveArticleEdit = () => {
+    const trimmed = editingArticleName.trim();
+    if (!trimmed) return toast.error('Article name cannot be empty');
+    if (localArticles.some((a) => a.id !== editingArticleId && a.name.toLowerCase() === trimmed.toLowerCase())) {
+      return toast.error('This article name already exists');
+    }
+    setLocalArticles((prev) =>
+      prev.map((a) => (a.id === editingArticleId ? { ...a, name: trimmed } : a))
+    );
+    setEditingArticleId(null);
   };
 
 
@@ -506,16 +522,63 @@ export function Products() {
                       <div className="flex items-center justify-between px-3 py-2">
                         <div className="flex flex-1 items-center gap-2">
                           <Tag className="h-3 w-3 text-amber-500" />
-                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{article.name}</span>
+                          {editingArticleId === article.id ? (
+                            <input
+                              type="text"
+                              value={editingArticleName}
+                              onChange={(e) => setEditingArticleName(e.target.value)}
+                              className="flex-1 text-xs font-bold bg-white border border-slate-300 rounded px-2 py-1 dark:bg-slate-700 dark:border-slate-600 outline-none focus:ring-1 focus:ring-amber-500"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveArticleEdit();
+                                if (e.key === 'Escape') setEditingArticleId(null);
+                              }}
+                            />
+                          ) : (
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{article.name}</span>
+                          )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveArticle(article.id)}
-                          className="rounded p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
-                          title="Remove article"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          {editingArticleId === article.id ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={handleSaveArticleEdit}
+                                className="rounded p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30 transition"
+                                title="Save"
+                              >
+                                <Check className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingArticleId(null)}
+                                className="rounded p-1 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                                title="Cancel"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => { setEditingArticleId(article.id); setEditingArticleName(article.name); }}
+                                className="rounded p-1 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition"
+                                title="Edit article"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveArticle(article.id)}
+                                className="rounded p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
+                                title="Remove article"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}

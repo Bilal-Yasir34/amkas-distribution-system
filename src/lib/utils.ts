@@ -9,9 +9,27 @@ export function formatNumber(amount: number): string {
 
 export function formatDate(date: string | Date | null): string {
   if (!date) return '—';
-  const d = typeof date === 'string' ? new Date(date) : date;
-  if (isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  
+  if (typeof date === 'string') {
+    const isoMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+    }
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '—';
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}/${d.getFullYear()}`;
+  }
+
+  if (date instanceof Date) {
+    if (isNaN(date.getTime())) return '—';
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}/${date.getFullYear()}`;
+  }
+  
+  return '—';
 }
 
 export function todayISO(): string {

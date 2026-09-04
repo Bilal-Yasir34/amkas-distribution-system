@@ -5,7 +5,7 @@ import { Toaster } from '@/components/Toaster';
 import { useAppStore } from '@/lib/store';
 import { useDataStore } from '@/lib/dataStore';
 import { AuthProvider, useAuth } from '@/lib/auth';
-import { ROLE_MODULES, type ModuleKey } from '@/lib/rbac';
+import { ROLE_MODULES, normalizeRole, type ModuleKey } from '@/lib/rbac';
 import { Login } from '@/modules/Login';
 import { Dashboard } from '@/modules/Dashboard';
 import { Approvals } from '@/modules/Approvals';
@@ -86,7 +86,7 @@ function Router() {
   const setActiveModule = useAppStore((s) => s.setActiveModule);
   const { rolePermissions } = useDataStore();
 
-  const role = profile?.role ?? 'super_admin';
+  const role = normalizeRole(profile?.role);
   const allowed = Array.from(new Set([...(ROLE_MODULES[role] || ROLE_MODULES.super_admin), ...(rolePermissions[role] || [])]));
   const effective = allowed.includes(activeModule) ? activeModule : (allowed[0] || 'dashboard');
   const Component = modules[effective] || Dashboard;
@@ -113,7 +113,7 @@ function AppContent() {
 
   // When Maintenance Mode is active, block all unauthenticated visitors and non-admin users
   if (isMaintenanceMode) {
-    const isSuperAdmin = session && (isAdmin || profile?.role === 'super_admin');
+    const isSuperAdmin = session && (isAdmin || normalizeRole(profile?.role) === 'super_admin');
     if (!isSuperAdmin) {
       return <MaintenanceScreen />;
     }

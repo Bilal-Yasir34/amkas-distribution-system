@@ -439,7 +439,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  const isAdmin = profile?.role === 'super_admin';
+  const isAdmin = normalizeRole(profile?.role) === 'super_admin';
 
   return (
     <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, isAdmin, loading, signIn, signOut }}>

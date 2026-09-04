@@ -391,7 +391,7 @@ export interface SalesReturnItem {
 export interface SalesReturn {
   id: string;
   return_no: string;
-  party_type: 'Customer' | 'Vendor';
+  party_type: string;
   customer_id: string | null;
   warehouse_id?: string | null;
   document_date: string;
@@ -422,7 +422,7 @@ export interface PurchaseReturnItem {
 export interface PurchaseReturn {
   id: string;
   return_no: string;
-  party_type: 'Vendor' | 'Customer';
+  party_type: string;
   vendor_id: string | null;
   warehouse_id?: string | null;
   document_date: string;
@@ -695,6 +695,8 @@ export interface JournalEntry {
   total_debit: number;
   total_credit: number;
   status: string;
+  lines?: any[];
+  entry_type?: string;
   created_at: string;
 }
 

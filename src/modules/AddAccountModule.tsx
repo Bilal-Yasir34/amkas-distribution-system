@@ -23,7 +23,7 @@ export function AddAccountModule() {
 
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
-  const [accountType, setAccountType] = useState<string>('Customer');
+  const [accountType, setAccountType] = useState<string>('');
   const [commissionPct, setCommissionPct] = useState<string | number>('');
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
