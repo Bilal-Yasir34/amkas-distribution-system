@@ -106,6 +106,7 @@ interface DataStoreState {
   batches: ProductBatch[];
   serials: ProductSerial[];
   productArticles: ProductArticle[];
+  universalArticles: string[];
   bankAccounts: BankAccount[];
   bankStatements: BankStatement[];
   journalEntries: JournalEntry[];
@@ -158,7 +159,7 @@ interface DataStoreState {
   deleteVendor: (id: string) => void;
 
   // Product Actions
-  addProduct: (p: Omit<Product, 'id'>) => void;
+  addProduct: (p: Omit<Product, 'id'> & { id?: string }) => void;
   updateProduct: (id: string, p: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
 
@@ -166,6 +167,8 @@ interface DataStoreState {
   addProductArticle: (a: Omit<ProductArticle, 'id'>) => void;
   updateProductArticle: (id: string, a: Partial<ProductArticle>) => void;
   deleteProductArticle: (id: string) => void;
+  addUniversalArticle: (name: string) => void;
+  removeUniversalArticle: (name: string) => void;
 
   // Category Actions
   addCategory: (cat: Omit<Category, 'id'>) => void;
@@ -331,6 +334,7 @@ export const useDataStore = create<DataStoreState>()(
       batches: [],
       serials: [],
       productArticles: [],
+      universalArticles: [],
       bankAccounts: [
         { id: 'ba1', account_name: 'Cash in Hand', bank_name: 'Cash', account_number: '1110', iban: null, currency: 'PKR', opening_balance: 0, current_balance: 0, account_type: 'Cash', status: 'Active' },
         { id: 'ba2', account_name: 'Meezan Islamic Main Account', bank_name: 'Meezan Bank', account_number: '0102998877', iban: 'PK36MEZN000102998877', currency: 'PKR', opening_balance: 0, current_balance: 0, account_type: 'Bank', status: 'Active' }
@@ -553,7 +557,11 @@ export const useDataStore = create<DataStoreState>()(
         }),
 
       // Product Actions
-      addProduct: (p) => set((s) => ({ products: [{ id: crypto.randomUUID(), ...p }, ...s.products] })),
+      addProduct: (p) =>
+        set((s) => {
+          const id = (p as any).id || crypto.randomUUID();
+          return { products: [{ ...p, id }, ...s.products] };
+        }),
       updateProduct: (id, patch) =>
         set((s) => ({
           products: s.products.map((p) => (p.id === id ? { ...p, ...patch } : p)),
@@ -600,9 +608,45 @@ export const useDataStore = create<DataStoreState>()(
         }),
 
       // Product Article Actions
-      addProductArticle: (a) => set((s) => ({ productArticles: [{ id: crypto.randomUUID(), ...a }, ...s.productArticles] })),
-      updateProductArticle: (id, patch) => set((s) => ({ productArticles: s.productArticles.map((a) => (a.id === id ? { ...a, ...patch } : a)) })),
+      addProductArticle: (a) =>
+        set((s) => {
+          const trimmed = a.name?.trim();
+          const existingUniversal = s.universalArticles || [];
+          const universalArticles =
+            trimmed && !existingUniversal.some((u) => u.toLowerCase() === trimmed.toLowerCase())
+              ? [...existingUniversal, trimmed]
+              : existingUniversal;
+          return {
+            productArticles: [{ id: crypto.randomUUID(), ...a }, ...s.productArticles],
+            universalArticles,
+          };
+        }),
+      updateProductArticle: (id, patch) =>
+        set((s) => {
+          const trimmed = patch.name?.trim();
+          const existingUniversal = s.universalArticles || [];
+          const universalArticles =
+            trimmed && !existingUniversal.some((u) => u.toLowerCase() === trimmed.toLowerCase())
+              ? [...existingUniversal, trimmed]
+              : existingUniversal;
+          return {
+            productArticles: s.productArticles.map((a) => (a.id === id ? { ...a, ...patch } : a)),
+            universalArticles,
+          };
+        }),
       deleteProductArticle: (id) => set((s) => ({ productArticles: s.productArticles.filter((a) => a.id !== id) })),
+      addUniversalArticle: (name) =>
+        set((s) => {
+          const trimmed = name.trim();
+          if (!trimmed) return s;
+          const current = s.universalArticles || [];
+          if (current.some((u) => u.toLowerCase() === trimmed.toLowerCase())) return s;
+          return { universalArticles: [...current, trimmed] };
+        }),
+      removeUniversalArticle: (name) =>
+        set((s) => ({
+          universalArticles: (s.universalArticles || []).filter((u) => u.toLowerCase() !== name.trim().toLowerCase()),
+        })),
 
       // Category Actions
       addCategory: (cat) => set((s) => ({ categories: [{ id: crypto.randomUUID(), ...cat }, ...s.categories] })),

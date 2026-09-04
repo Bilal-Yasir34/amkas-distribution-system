@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, Package, Search, X, Edit, Trash2, Power, Download, Palette, Tag, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, Package, Search, X, Edit, Trash2, Power, Download, Palette, Tag, ChevronDown, ChevronUp, Check, Sparkles } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { downloadCSV, nextDocNumber } from '@/lib/utils';
@@ -21,12 +21,14 @@ export function Products() {
     products,
     categories,
     productArticles,
+    universalArticles,
     addProduct,
     updateProduct,
     deleteProduct,
     addProductArticle,
     updateProductArticle,
     deleteProductArticle,
+    addUniversalArticle,
   } = useDataStore();
 
   const [search, setSearch] = useState('');
@@ -57,6 +59,57 @@ export function Products() {
   const [showArticleInput, setShowArticleInput] = useState(false);
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
   const [editingArticleName, setEditingArticleName] = useState('');
+  const [existingArticleSearch, setExistingArticleSearch] = useState('');
+
+  // Dynamically collect all unique articles universally registered across the store
+  const allUniversalArticles = useMemo(() => {
+    const articleMap = new Map<string, { name: string; defaultColours: string[] }>();
+
+    // 1. From universalArticles in store
+    (universalArticles || []).forEach((artName) => {
+      const trimmed = artName?.trim();
+      if (trimmed && !articleMap.has(trimmed.toLowerCase())) {
+        articleMap.set(trimmed.toLowerCase(), { name: trimmed, defaultColours: [] });
+      }
+    });
+
+    // 2. From all productArticles in store
+    (productArticles || []).forEach((pa) => {
+      const trimmed = pa.name?.trim();
+      if (trimmed) {
+        const key = trimmed.toLowerCase();
+        const existing = articleMap.get(key);
+        if (!existing) {
+          articleMap.set(key, { name: trimmed, defaultColours: pa.colours || [] });
+        } else if ((!existing.defaultColours || existing.defaultColours.length === 0) && pa.colours?.length) {
+          existing.defaultColours = pa.colours;
+        }
+      }
+    });
+
+    // 3. From products' article_name field
+    (products || []).forEach((p) => {
+      if (p.article_name) {
+        p.article_name.split(',').forEach((seg) => {
+          const trimmed = seg.trim();
+          if (trimmed && !articleMap.has(trimmed.toLowerCase())) {
+            articleMap.set(trimmed.toLowerCase(), { name: trimmed, defaultColours: [] });
+          }
+        });
+      }
+    });
+
+    return Array.from(articleMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+  }, [universalArticles, productArticles, products]);
+
+  const filteredExistingArticles = useMemo(() => {
+    if (!existingArticleSearch.trim()) return allUniversalArticles;
+    return allUniversalArticles.filter((art) =>
+      art.name.toLowerCase().includes(existingArticleSearch.toLowerCase())
+    );
+  }, [allUniversalArticles, existingArticleSearch]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -80,6 +133,7 @@ export function Products() {
     setNewArticleName('');
     setShowArticleInput(false);
     setEditingArticleId(null);
+    setExistingArticleSearch('');
 
     setModalOpen(true);
   };
@@ -108,20 +162,43 @@ export function Products() {
     setNewArticleName('');
     setShowArticleInput(false);
     setEditingArticleId(null);
+    setExistingArticleSearch('');
 
     setModalOpen(true);
+  };
+
+  const handleToggleExistingArticle = (artName: string, defaultColours: string[] = []) => {
+    const trimmed = artName.trim();
+    const existingIndex = localArticles.findIndex((a) => a.name.toLowerCase() === trimmed.toLowerCase());
+    if (existingIndex >= 0) {
+      setLocalArticles((prev) => prev.filter((_, idx) => idx !== existingIndex));
+      toast.info(`Removed article "${trimmed}" from this product`);
+    } else {
+      const newId = crypto.randomUUID();
+      setLocalArticles((prev) => [
+        ...prev,
+        { id: newId, name: trimmed, colours: [...defaultColours], isNew: true },
+      ]);
+      addUniversalArticle(trimmed);
+      toast.success(`Added article "${trimmed}" to this product`);
+    }
   };
 
   const handleAddArticle = () => {
     const trimmed = newArticleName.trim();
     if (!trimmed) return toast.error('Article name is required');
     if (localArticles.some((a) => a.name.toLowerCase() === trimmed.toLowerCase())) {
-      return toast.error('This article name already exists');
+      return toast.error('This article is already added to this product');
     }
+    const existingMaster = allUniversalArticles.find((a) => a.name.toLowerCase() === trimmed.toLowerCase());
+    const colours = existingMaster ? [...existingMaster.defaultColours] : [];
+
     const newId = crypto.randomUUID();
-    setLocalArticles((prev) => [...prev, { id: newId, name: trimmed, colours: [], isNew: true }]);
+    setLocalArticles((prev) => [...prev, { id: newId, name: trimmed, colours, isNew: true }]);
+    addUniversalArticle(trimmed);
     setNewArticleName('');
     setShowArticleInput(false);
+    toast.success(`Added article "${trimmed}"`);
   };
 
   const handleRemoveArticle = (articleId: string) => {
@@ -137,10 +214,9 @@ export function Products() {
     setLocalArticles((prev) =>
       prev.map((a) => (a.id === editingArticleId ? { ...a, name: trimmed } : a))
     );
+    addUniversalArticle(trimmed);
     setEditingArticleId(null);
   };
-
-
 
   const handleSave = () => {
     if (!name.trim()) return toast.error('Product name is required');
@@ -188,6 +264,7 @@ export function Products() {
 
       // Add new or update existing
       localArticles.forEach((la) => {
+        addUniversalArticle(la.name);
         if (la.isNew || !existingArticleIds.includes(la.id)) {
           addProductArticle({ product_id: editingId, name: la.name, colours: la.colours });
         } else {
@@ -199,6 +276,7 @@ export function Products() {
     } else {
       const newProductId = crypto.randomUUID();
       addProduct({
+        id: newProductId,
         code,
         name,
         article_name: articleSummary,
@@ -220,19 +298,10 @@ export function Products() {
         is_active: isActive,
       });
 
-      // Find the product that was just added (it's the newest one with matching code)
-      // Since addProduct prepends, we need to use the store after set — but the product ID
-      // is generated inside the store. So we add articles after finding the product.
-      // We'll use a setTimeout to get the updated state after Zustand updates.
-      setTimeout(() => {
-        const store = useDataStore.getState();
-        const newProd = store.products.find((p) => p.code === code && p.name === name);
-        if (newProd) {
-          localArticles.forEach((la) => {
-            store.addProductArticle({ product_id: newProd.id, name: la.name, colours: la.colours });
-          });
-        }
-      }, 0);
+      localArticles.forEach((la) => {
+        addProductArticle({ product_id: newProductId, name: la.name, colours: la.colours });
+        addUniversalArticle(la.name);
+      });
 
       toast.success(`Product ${name} added`);
     }
@@ -460,16 +529,16 @@ export function Products() {
               </div>
 
               {/* ARTICLES SECTION */}
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/30 p-3 space-y-3">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/30 p-3.5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Tag className="h-3.5 w-3.5 text-amber-500" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                       Articles
                     </span>
                     {localArticles.length > 0 && (
-                      <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full">
-                        {localArticles.length} article{localArticles.length !== 1 ? 's' : ''}
+                      <span className="text-[10px] font-bold text-amber-600 bg-amber-500/15 border border-amber-500/20 px-2 py-0.5 rounded-full dark:text-amber-400">
+                        {localArticles.length} selected
                       </span>
                     )}
                   </div>
@@ -478,11 +547,11 @@ export function Products() {
                     onClick={() => setShowArticleInput(!showArticleInput)}
                     className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:text-amber-500 transition"
                   >
-                    <Plus className="h-3 w-3" /> Add Article
+                    <Plus className="h-3 w-3" /> Add New Article
                   </button>
                 </div>
 
-                {/* Add Article Input */}
+                {/* Add New Article Input */}
                 {showArticleInput && (
                   <div className="flex items-center gap-2 animate-in slide-in-from-top-2 duration-200">
                     <input
@@ -511,14 +580,95 @@ export function Products() {
                   </div>
                 )}
 
-                {/* Article Cards */}
-                {localArticles.length === 0 && !showArticleInput && (
-                  <p className="text-[11px] text-slate-400 italic">No articles added yet. Click "+ Add Article" to get started.</p>
+                {/* Universal / Existing Articles Quick Picker */}
+                {allUniversalArticles.length > 0 && (
+                  <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-xs dark:border-slate-700/60 dark:bg-slate-800/80 space-y-2">
+                    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                          Existing Articles
+                        </span>
+                        <span className="text-[10px] font-medium text-slate-400">
+                          (Click to add or remove)
+                        </span>
+                      </div>
+                      {allUniversalArticles.length > 4 && (
+                        <div className="relative w-full sm:w-44">
+                          <Search className="absolute left-2 top-1.5 h-3 w-3 text-slate-400" />
+                          <input
+                            type="text"
+                            placeholder="Search existing..."
+                            value={existingArticleSearch}
+                            onChange={(e) => setExistingArticleSearch(e.target.value)}
+                            className="w-full rounded-md border border-slate-200 bg-slate-50 pl-6 pr-2 py-1 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none focus:border-amber-400 focus:bg-white dark:focus:bg-slate-800"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto pr-1 pt-1">
+                      {filteredExistingArticles.map((art) => {
+                        const isAdded = localArticles.some(
+                          (la) => la.name.toLowerCase() === art.name.toLowerCase()
+                        );
+                        return (
+                          <button
+                            key={art.name}
+                            type="button"
+                            onClick={() => handleToggleExistingArticle(art.name, art.defaultColours)}
+                            className={`group flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all shadow-xs cursor-pointer ${
+                              isAdded
+                                ? 'bg-amber-500 text-white border border-amber-600 shadow-amber-500/20 hover:bg-amber-600'
+                                : 'bg-slate-100/80 border border-slate-200/80 text-slate-700 hover:border-amber-400 hover:bg-amber-50/70 hover:text-amber-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:border-amber-500/50 dark:hover:text-amber-300'
+                            }`}
+                            title={isAdded ? `Click to remove "${art.name}" from this product` : `Click to add "${art.name}" to this product`}
+                          >
+                            {isAdded ? (
+                              <>
+                                <Check className="h-3 w-3 text-white stroke-[2.5]" />
+                                <span>{art.name}</span>
+                                <span className="text-[9px] bg-white/20 text-white px-1 py-0.2 rounded font-medium">Added</span>
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="h-3 w-3 text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 stroke-[2.5] transition" />
+                                <span>{art.name}</span>
+                              </>
+                            )}
+                          </button>
+                        );
+                      })}
+                      {filteredExistingArticles.length === 0 && (
+                        <p className="text-[11px] text-slate-400 italic py-1">No matching articles found</p>
+                      )}
+                    </div>
+                  </div>
                 )}
 
-                <div className="space-y-2">
+                {/* Header for articles currently attached */}
+                {localArticles.length > 0 && (
+                  <div className="pt-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                      Articles in this product ({localArticles.length})
+                    </p>
+                  </div>
+                )}
+
+                {/* Empty State */}
+                {localArticles.length === 0 && !showArticleInput && (
+                  <div className="rounded-lg border border-dashed border-slate-200 dark:border-slate-700 p-3 text-center">
+                    <p className="text-[11px] text-slate-400">
+                      {allUniversalArticles.length > 0
+                        ? 'Click any existing article above, or click "+ Add New Article" to create a new one.'
+                        : 'No articles added yet. Click "+ Add New Article" to get started.'}
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
                   {localArticles.map((article) => (
-                    <div key={article.id} className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden dark:border-slate-700/50 dark:bg-slate-800/50">
+                    <div key={article.id} className="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden dark:border-slate-700/50 dark:bg-slate-800/80">
                       <div className="flex items-center justify-between px-3 py-2">
                         <div className="flex flex-1 items-center gap-2">
                           <Tag className="h-3 w-3 text-amber-500" />
@@ -544,7 +694,7 @@ export function Products() {
                               <button
                                 type="button"
                                 onClick={handleSaveArticleEdit}
-                                className="rounded p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30 transition"
+                                className="rounded p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30 transition cursor-pointer"
                                 title="Save"
                               >
                                 <Check className="h-3 w-3" />
@@ -552,7 +702,7 @@ export function Products() {
                               <button
                                 type="button"
                                 onClick={() => setEditingArticleId(null)}
-                                className="rounded p-1 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                                className="rounded p-1 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
                                 title="Cancel"
                               >
                                 <X className="h-3 w-3" />
@@ -563,7 +713,7 @@ export function Products() {
                               <button
                                 type="button"
                                 onClick={() => { setEditingArticleId(article.id); setEditingArticleName(article.name); }}
-                                className="rounded p-1 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition"
+                                className="rounded p-1 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition cursor-pointer"
                                 title="Edit article"
                               >
                                 <Edit className="h-3 w-3" />
@@ -571,7 +721,7 @@ export function Products() {
                               <button
                                 type="button"
                                 onClick={() => handleRemoveArticle(article.id)}
-                                className="rounded p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
+                                className="rounded p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer"
                                 title="Remove article"
                               >
                                 <Trash2 className="h-3 w-3" />
