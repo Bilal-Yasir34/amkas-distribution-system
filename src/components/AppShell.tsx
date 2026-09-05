@@ -28,11 +28,15 @@ import {
   ChevronDown,
   Menu,
   X,
+  Cloud,
+  CloudOff,
+  RefreshCw,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useDataStore } from '@/lib/dataStore';
 import { useTheme } from '@/lib/useTheme';
 import { useAuth } from '@/lib/auth';
+import { useCloudSyncStatus } from '@/lib/cloudSync';
 import { ROLE_MODULES, MODULE_LABELS, ROLES, type ModuleKey } from '@/lib/rbac';
 import { useState, useEffect } from 'react';
 import { GlobalSearchModal } from './GlobalSearchModal';
@@ -165,6 +169,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setActiveModule(m);
     setTimeout(() => setModuleLoading(false), 250);
   };
+
+  const { status: syncStatus, triggerManualSync } = useCloudSyncStatus();
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#0f172a]">
@@ -427,6 +433,45 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
               )}
             </div>
+
+            {/* Live Cloud Sync Indicator */}
+            <button
+              onClick={() => {
+                triggerManualSync();
+              }}
+              title={
+                syncStatus === 'syncing'
+                  ? 'Syncing data to cloud...'
+                  : syncStatus === 'synced'
+                  ? 'All devices synchronized live (Click to force sync)'
+                  : syncStatus === 'error'
+                  ? 'Cloud permission warning (Click to retry)'
+                  : 'Offline mode active (Click to connect)'
+              }
+              className={`flex items-center gap-1.5 rounded-2xl px-2.5 sm:px-3 py-1.5 text-xs font-bold transition border backdrop-blur-md shadow-sm ${
+                syncStatus === 'syncing'
+                  ? 'bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400'
+                  : syncStatus === 'synced'
+                  ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30 dark:text-emerald-400 hover:bg-emerald-500/20'
+                  : syncStatus === 'error'
+                  ? 'bg-rose-500/10 text-rose-600 border-rose-500/30 dark:text-rose-400'
+                  : 'bg-slate-500/10 text-slate-500 border-slate-500/30'
+              }`}
+            >
+              {syncStatus === 'syncing' ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-500" />
+              ) : syncStatus === 'synced' ? (
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+              ) : (
+                <CloudOff className="h-3.5 w-3.5 text-slate-400" />
+              )}
+              <span className="hidden md:inline text-[11px]">
+                {syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'synced' ? 'Live Cloud' : 'Offline'}
+              </span>
+            </button>
 
             {/* Theme Toggle */}
             <button

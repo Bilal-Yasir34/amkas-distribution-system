@@ -15,6 +15,7 @@ export function PayPayment() {
     vendorBills = [],
     vendorPayments = [],
     addVendorPayment,
+    addApprovalQueueItem,
     updateVendor,
     updateVendorBill,
   } = useDataStore();
@@ -67,52 +68,44 @@ export function PayPayment() {
     const vendorId = selectedParty?._origin === 'vendor' ? selectedParty.id : '';
     const finalRefNo = refNo.trim() || autoRefNo;
     const paymentNo = finalRefNo;
+    const paymentId = crypto.randomUUID();
 
-    // Auto allocation to oldest vendor bills if paying a vendor
-    if (vendorId) {
-      let remaining = amtNum;
-      const vBills = vendorBills
-        .filter((b) => b.vendor_id === vendorId && b.status !== 'CANCELLED')
-        .sort((a, b) => new Date(a.bill_date).getTime() - new Date(b.bill_date).getTime());
-
-      vBills.forEach((b) => {
-        if (remaining <= 0) return;
-        const due = (b.total_amount || 0) - (b.paid_amount || 0);
-        if (due > 0) {
-          const alloc = Math.min(remaining, due);
-          const newPaid = (b.paid_amount || 0) + alloc;
-          remaining -= alloc;
-          updateVendorBill(b.id, {
-            paid_amount: newPaid,
-            status: newPaid >= (b.total_amount || 0) ? 'POSTED' : b.status,
-          });
-        }
-      });
-
-      const selectedVend = vendors.find((v) => v.id === vendorId);
-      if (selectedVend) {
-        updateVendor(selectedVend.id, {
-          opening_balance: Math.max(0, (selectedVend.opening_balance || 0) - amtNum),
-        });
-      }
-    }
+    const fromAcc = bankAccounts.find(
+      (b) => b.account_name === payFrom || b.id === payFrom
+    );
+    const fromAccId = fromAcc?.id || bankAccounts[0]?.id || 'ba1';
 
     addVendorPayment({
+      id: paymentId,
       payment_no: paymentNo,
       vendor_id: vendorId || selectedParty?.id || vendors[0]?.id || 'v1',
       vendor_bill_id: null,
       payment_date: paymentDate,
       payment_method: payFrom,
-      paid_from_account_id: payFrom,
+      paid_from_account_id: fromAccId,
       amount: amtNum,
       reference_no: finalRefNo,
       notes: notes || null,
-      status: 'POSTED',
-      created_by: 'admin',
+      status: 'PENDING',
+      created_by: 'Cashier / User',
       created_at: new Date().toISOString(),
     });
 
-    toast.success(`Payment ${paymentNo} posted! Rs. ${amtNum.toLocaleString()} paid.`);
+    addApprovalQueueItem({
+      entity_type: 'vendor_payment',
+      module: 'Pay Payment',
+      record_id: paymentId,
+      record_no: paymentNo,
+      party_name: selectedParty?.name || 'Vendor',
+      amount: amtNum,
+      warehouse_id: null,
+      requested_by: 'Cashier / User',
+      status: 'PENDING',
+      created_at: new Date().toISOString(),
+      items_summary: null,
+    });
+
+    toast.success(`Payment ${paymentNo} submitted to Approval Center for review!`);
 
     // Reset Form
     setPaidTo('');

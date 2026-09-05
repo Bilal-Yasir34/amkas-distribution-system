@@ -930,6 +930,7 @@ export const useDataStore = create<DataStoreState>()(
             let newSalesReturns = s.salesReturns;
             let newPurchaseReturns = s.purchaseReturns;
             let newCustomerReceipts = s.customerReceipts;
+            let newVendorPayments = s.vendorPayments;
 
             if (item.entity_type === 'sales_invoice') {
               newInvoices = s.invoices.map((inv) =>
@@ -954,6 +955,10 @@ export const useDataStore = create<DataStoreState>()(
               newCustomerReceipts = (s.customerReceipts || []).map((cr) =>
                 cr.id === item.record_id || cr.receipt_no === item.record_no ? { ...cr, status: targetStatus } : cr
               );
+            } else if (item.entity_type === 'vendor_payment' || item.entity_type === 'payment_voucher') {
+              newVendorPayments = (s.vendorPayments || []).map((vp) =>
+                vp.id === item.record_id || vp.payment_no === item.record_no ? { ...vp, status: targetStatus } : vp
+              );
             }
 
             return {
@@ -964,6 +969,7 @@ export const useDataStore = create<DataStoreState>()(
               salesReturns: newSalesReturns,
               purchaseReturns: newPurchaseReturns,
               customerReceipts: newCustomerReceipts,
+              vendorPayments: newVendorPayments,
             };
           }
 
@@ -975,6 +981,7 @@ export const useDataStore = create<DataStoreState>()(
             let newSalesReturns = s.salesReturns;
             let newPurchaseReturns = s.purchaseReturns;
             let newCustomerReceipts = s.customerReceipts;
+            let newVendorPayments = s.vendorPayments;
             let newBankAccounts = [...s.bankAccounts];
             let newJournalEntries = [...s.journalEntries];
 
@@ -1095,6 +1102,63 @@ export const useDataStore = create<DataStoreState>()(
               }
             }
 
+            // 6. Vendor / Pay Payment Approved -> status POSTED, auto-allocate vendor bills, deduct bank balance, post journal entry
+            else if (item.entity_type === 'vendor_payment' || item.entity_type === 'payment_voucher') {
+              const payment = (s.vendorPayments || []).find((p) => p.id === item.record_id || p.payment_no === item.record_no);
+              if (payment) {
+                newVendorPayments = (s.vendorPayments || []).map((p) =>
+                  p.id === payment.id ? { ...p, status: 'POSTED' } : p
+                );
+
+                // Auto allocate oldest vendor bills if vendor_id is present
+                if (payment.vendor_id) {
+                  let remaining = payment.amount || 0;
+                  newVendorBills = newVendorBills.map((b) => {
+                    if (b.vendor_id === payment.vendor_id && b.status !== 'CANCELLED' && remaining > 0) {
+                      const due = (b.total_amount || 0) - (b.paid_amount || 0);
+                      if (due > 0) {
+                        const alloc = Math.min(remaining, due);
+                        const newPaid = (b.paid_amount || 0) + alloc;
+                        remaining -= alloc;
+                        return {
+                          ...b,
+                          paid_amount: newPaid,
+                          status: newPaid >= (b.total_amount || 0) ? 'POSTED' : b.status,
+                        };
+                      }
+                    }
+                    return b;
+                  });
+                }
+
+                // Deduct from Bank Account balance
+                const bankIdx = newBankAccounts.findIndex(
+                  (b) => b.id === payment.paid_from_account_id || b.account_name === payment.payment_method
+                );
+                if (bankIdx !== -1) {
+                  newBankAccounts[bankIdx] = {
+                    ...newBankAccounts[bankIdx],
+                    current_balance: Math.max(0, (newBankAccounts[bankIdx].current_balance || 0) - (payment.amount || 0)),
+                  };
+                }
+
+                // Add Journal Entry
+                const payFromName = payment.payment_method || newBankAccounts[bankIdx]?.account_name || 'Cash in Hand';
+                newJournalEntries.unshift({
+                  id: crypto.randomUUID(),
+                  entry_no: `JV-${payment.payment_no}`,
+                  entry_date: payment.payment_date,
+                  reference_no: payment.payment_no,
+                  source: 'Vendor Payment',
+                  narration: `Payment ${payment.payment_no} paid from ${payFromName}`,
+                  total_debit: payment.amount,
+                  total_credit: payment.amount,
+                  status: 'POSTED',
+                  created_at: new Date().toISOString(),
+                });
+              }
+            }
+
             return {
               approvalQueue: updatedQueue,
               products: newProducts,
@@ -1104,6 +1168,7 @@ export const useDataStore = create<DataStoreState>()(
               salesReturns: newSalesReturns,
               purchaseReturns: newPurchaseReturns,
               customerReceipts: newCustomerReceipts,
+              vendorPayments: newVendorPayments,
               bankAccounts: newBankAccounts,
               journalEntries: newJournalEntries,
             };

@@ -99,7 +99,7 @@ export function ReceivePayment() {
       requested_by: 'Cashier / User',
       status: 'PENDING',
       created_at: new Date().toISOString(),
-      items_summary: `Payment receipt of Rs. ${amtNum.toLocaleString()} for ${selectedParty?.name || 'Party'} (Deposit to: ${depositTo})`,
+      items_summary: null,
     });
 
     toast.success(`Receipt ${finalRefNo} submitted to Approval Center for review!`);

@@ -500,3 +500,190 @@ export async function pullStateFromSupabase(): Promise<CloudSyncResult> {
     };
   }
 }
+
+// =========================================================================
+// REAL-TIME AUTO CLOUD SYNC ENGINE
+// =========================================================================
+
+export type SyncStatus = 'synced' | 'syncing' | 'offline' | 'error';
+
+interface SyncEngineState {
+  status: SyncStatus;
+  lastSyncedAt: Date | null;
+  lastLocalPushTime: number;
+  isReceivingRemote: boolean;
+  listeners: Set<(status: SyncStatus, lastSyncedAt: Date | null) => void>;
+}
+
+const syncEngine: SyncEngineState = {
+  status: 'synced',
+  lastSyncedAt: null,
+  lastLocalPushTime: 0,
+  isReceivingRemote: false,
+  listeners: new Set(),
+};
+
+function notifySyncListeners() {
+  syncEngine.listeners.forEach((fn) => fn(syncEngine.status, syncEngine.lastSyncedAt));
+}
+
+function setSyncStatus(status: SyncStatus) {
+  syncEngine.status = status;
+  if (status === 'synced') {
+    syncEngine.lastSyncedAt = new Date();
+  }
+  notifySyncListeners();
+}
+
+/**
+ * Hook to subscribe to real-time sync status in React components.
+ */
+import { useEffect, useState } from 'react';
+
+export function useCloudSyncStatus() {
+  const [status, setStatus] = useState<SyncStatus>(syncEngine.status);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(syncEngine.lastSyncedAt);
+
+  useEffect(() => {
+    const handler = (newStatus: SyncStatus, newTime: Date | null) => {
+      setStatus(newStatus);
+      setLastSyncedAt(newTime);
+    };
+    syncEngine.listeners.add(handler);
+    return () => {
+      syncEngine.listeners.delete(handler);
+    };
+  }, []);
+
+  return { status, lastSyncedAt, triggerManualSync: pushStateToSupabase };
+}
+
+let isEngineInitialized = false;
+let pushDebounceTimer: NodeJS.Timeout | null = null;
+
+/**
+ * Initializes continuous automatic real-time cloud synchronization.
+ * - Pushes any local changes to Supabase Cloud automatically (debounced).
+ * - Subscribes to Supabase Realtime so changes made on other devices arrive immediately.
+ * - Pulls latest state on startup, window focus, and periodic interval.
+ */
+export function initAutoCloudSync() {
+  if (isEngineInitialized || typeof window === 'undefined') return;
+  isEngineInitialized = true;
+
+  // 1. Initial Pull on Startup
+  pullStateFromSupabase()
+    .then((res) => {
+      if (res.success) {
+        setSyncStatus('synced');
+      } else {
+        // If snapshot wasn't there yet, push initial store to create it
+        pushStateToSupabase().then(() => setSyncStatus('synced')).catch(() => setSyncStatus('offline'));
+      }
+    })
+    .catch(() => {
+      setSyncStatus('offline');
+    });
+
+  // 2. Real-time Subscription via Supabase Channels (Instant multi-device sync)
+  try {
+    supabase
+      .channel('cloud_sync_realtime_channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cloud_sync_state' },
+        (payload) => {
+          if (payload.new && (payload.new as any).state_json) {
+            const incomingState = (payload.new as any).state_json;
+            const incomingUpdated = new Date((payload.new as any).updated_at || 0).getTime();
+
+            // Only apply if incoming state is newer than our last push (prevents echo loops)
+            if (incomingUpdated > syncEngine.lastLocalPushTime + 500) {
+              syncEngine.isReceivingRemote = true;
+              setSyncStatus('syncing');
+
+              // Apply remote state to local Zustand store
+              useDataStore.setState(incomingState);
+
+              setTimeout(() => {
+                syncEngine.isReceivingRemote = false;
+                setSyncStatus('synced');
+              }, 800);
+            }
+          }
+        }
+      )
+      .subscribe();
+  } catch {
+    // Realtime channel fallback
+  }
+
+  // 3. Auto-Push Local Store Changes to Supabase (Debounced)
+  useDataStore.subscribe((state) => {
+    // Skip auto-push if this mutation came from a remote incoming sync
+    if (syncEngine.isReceivingRemote) return;
+
+    if (pushDebounceTimer) {
+      clearTimeout(pushDebounceTimer);
+    }
+
+    setSyncStatus('syncing');
+
+    pushDebounceTimer = setTimeout(async () => {
+      try {
+        syncEngine.lastLocalPushTime = Date.now();
+        const res = await pushStateToSupabase();
+        if (res.success) {
+          setSyncStatus('synced');
+        } else if (res.isRlsError) {
+          setSyncStatus('error');
+        } else {
+          setSyncStatus('offline');
+        }
+      } catch {
+        setSyncStatus('offline');
+      }
+    }, 1200);
+  });
+
+  // 4. Window Focus & Online Event Sync (Ensures sync when user switches tabs/devices)
+  window.addEventListener('focus', () => {
+    if (!syncEngine.isReceivingRemote) {
+      pullStateFromSupabase().then((res) => {
+        if (res.success) setSyncStatus('synced');
+      });
+    }
+  });
+
+  window.addEventListener('online', () => {
+    setSyncStatus('syncing');
+    pushStateToSupabase().then(() => setSyncStatus('synced')).catch(() => setSyncStatus('offline'));
+  });
+
+  window.addEventListener('offline', () => {
+    setSyncStatus('offline');
+  });
+
+  // 5. Background Heartbeat Poll (Every 30 seconds for guaranteed multi-device consistency)
+  setInterval(async () => {
+    if (!syncEngine.isReceivingRemote && navigator.onLine) {
+      try {
+        const { data } = await supabase
+          .from('cloud_sync_state')
+          .select('updated_at')
+          .eq('id', 'primary_state')
+          .maybeSingle();
+
+        if (data?.updated_at) {
+          const cloudTime = new Date(data.updated_at).getTime();
+          if (cloudTime > syncEngine.lastLocalPushTime + 1000) {
+            const res = await pullStateFromSupabase();
+            if (res.success) setSyncStatus('synced');
+          }
+        }
+      } catch {
+        // Ignore background polling errors
+      }
+    }
+  }, 30000);
+}

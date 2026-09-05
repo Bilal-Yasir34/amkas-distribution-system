@@ -75,6 +75,13 @@ export function Approvals() {
             <CheckSquare className="h-3 w-3" /> Payment Receipt
           </span>
         );
+      case 'vendor_payment':
+      case 'payment_voucher':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-md bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+            <CheckSquare className="h-3 w-3" /> Pay Payment
+          </span>
+        );
       default:
         return (
           <span className="inline-flex items-center gap-1 rounded-md bg-slate-500/10 px-2 py-0.5 text-[10px] font-bold text-slate-400 border border-slate-500/20">
@@ -84,8 +91,21 @@ export function Approvals() {
     }
   };
 
+  const isPaymentDoc = (entityType?: string, moduleName?: string) => {
+    return (
+      entityType === 'customer_receipt' ||
+      entityType === 'payment_receipt' ||
+      entityType === 'vendor_payment' ||
+      entityType === 'payment_voucher' ||
+      moduleName === 'Receive Payment' ||
+      moduleName === 'Pay Payment' ||
+      moduleName === 'Sales / Receipts' ||
+      moduleName === 'Purchase / Payments'
+    );
+  };
+
   const getWarehouseName = (whId?: string | null) => {
-    if (!whId) return 'Main Warehouse';
+    if (!whId) return null;
     const wh = warehouses.find((w) => w.id === whId || w.code === whId);
     return wh ? `${wh.code} - ${wh.name}` : whId;
   };
@@ -206,13 +226,19 @@ export function Approvals() {
                     {item.party_name || '—'}
                   </td>
                   <td className="px-3 py-2 text-slate-400">
-                    <div className="text-[11px] text-slate-300 font-medium truncate max-w-[150px]" title={getWarehouseName(item.warehouse_id)}>
-                      {getWarehouseName(item.warehouse_id)}
-                    </div>
-                    {item.items_summary && (
-                      <div className="text-[10px] text-slate-500 truncate max-w-[150px]" title={item.items_summary}>
-                        {item.items_summary}
-                      </div>
+                    {isPaymentDoc(item.entity_type, item.module) ? (
+                      <span className="text-slate-500 font-mono text-xs">—</span>
+                    ) : (
+                      <>
+                        <div className="text-[11px] text-slate-300 font-medium truncate max-w-[150px]" title={getWarehouseName(item.warehouse_id) || '—'}>
+                          {getWarehouseName(item.warehouse_id) || '—'}
+                        </div>
+                        {item.items_summary && (
+                          <div className="text-[10px] text-slate-500 truncate max-w-[150px]" title={item.items_summary}>
+                            {item.items_summary}
+                          </div>
+                        )}
+                      </>
                     )}
                   </td>
                   <td className="px-3 py-2 text-slate-400 whitespace-nowrap text-[11px]">

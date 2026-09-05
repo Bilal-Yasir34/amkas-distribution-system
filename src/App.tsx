@@ -129,8 +129,13 @@ function AppContent() {
 }
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { initAutoCloudSync } from '@/lib/cloudSync';
 
 export default function App() {
+  useEffect(() => {
+    initAutoCloudSync();
+  }, []);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
