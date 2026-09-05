@@ -899,8 +899,32 @@ export const useDataStore = create<DataStoreState>()(
       // Approvals Action
       addApprovalQueueItem: (item) => {
         const id = crypto.randomUUID();
+        const et = (item.entity_type || '').toLowerCase();
+        const mod = (item.module || '').toLowerCase();
+        const rec = (item.record_no || '').toLowerCase();
+        const isPayment =
+          et.includes('receipt') ||
+          et.includes('payment') ||
+          et.includes('voucher') ||
+          et.includes('receive') ||
+          et.includes('pay') ||
+          mod.includes('receipt') ||
+          mod.includes('payment') ||
+          mod.includes('receive') ||
+          mod.includes('pay') ||
+          rec.startsWith('cr') ||
+          rec.startsWith('cp') ||
+          rec.startsWith('pv') ||
+          rec.startsWith('rv') ||
+          rec.startsWith('pay') ||
+          rec.startsWith('rec');
+
+        const sanitizedItem = isPayment
+          ? { ...item, warehouse_id: null, items_summary: null }
+          : item;
+
         set((s) => ({
-          approvalQueue: [{ id, ...item, created_at: item.created_at || new Date().toISOString() }, ...s.approvalQueue]
+          approvalQueue: [{ id, ...sanitizedItem, created_at: item.created_at || new Date().toISOString() }, ...s.approvalQueue]
         }));
         return id;
       },
@@ -1363,6 +1387,33 @@ export const useDataStore = create<DataStoreState>()(
           }
           if (state.journalEntries?.some((j) => j.id === 'j1')) {
             state.journalEntries = state.journalEntries.filter((j) => j.id !== 'j1');
+          }
+          if (state.approvalQueue) {
+            state.approvalQueue = state.approvalQueue.map((a) => {
+              const et = (a.entity_type || '').toLowerCase();
+              const mod = (a.module || '').toLowerCase();
+              const rec = (a.record_no || '').toLowerCase();
+              const isPayment =
+                et.includes('receipt') ||
+                et.includes('payment') ||
+                et.includes('voucher') ||
+                et.includes('receive') ||
+                et.includes('pay') ||
+                mod.includes('receipt') ||
+                mod.includes('payment') ||
+                mod.includes('receive') ||
+                mod.includes('pay') ||
+                rec.startsWith('cr') ||
+                rec.startsWith('cp') ||
+                rec.startsWith('pv') ||
+                rec.startsWith('rv') ||
+                rec.startsWith('pay') ||
+                rec.startsWith('rec');
+              if (isPayment) {
+                return { ...a, warehouse_id: null, items_summary: null };
+              }
+              return a;
+            });
           }
         }
       },

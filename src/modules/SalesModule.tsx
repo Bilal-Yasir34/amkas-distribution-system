@@ -795,7 +795,7 @@ export function SalesModule() {
         requested_by: 'Cashier / User',
         status: 'PENDING',
         created_at: new Date().toISOString(),
-        items_summary: `Payment receipt of Rs. ${amt.toLocaleString()} for ${party?.name || 'Customer'} (Deposit to: ${receiptDepositTo})`,
+        items_summary: null,
       });
 
       toast.success(`Customer Receipt ${receiptNo} submitted to Approval Center for review!`);

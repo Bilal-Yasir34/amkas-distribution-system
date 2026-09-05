@@ -41,7 +41,40 @@ export function Approvals() {
     });
   }, [approvalQueue, filterStatus, searchTerm]);
 
-  const getEntityBadge = (entityType?: string, moduleName?: string) => {
+  const getEntityBadge = (entityType?: string, moduleName?: string, recordNo?: string) => {
+    const et = (entityType || '').toLowerCase();
+    const mod = (moduleName || '').toLowerCase();
+    const rec = (recordNo || '').toLowerCase();
+
+    if (
+      et === 'customer_receipt' ||
+      et === 'payment_receipt' ||
+      mod === 'receive payment' ||
+      mod === 'sales / receipts' ||
+      rec.startsWith('cr')
+    ) {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+          <CheckSquare className="h-3 w-3" /> Receive Payment
+        </span>
+      );
+    }
+
+    if (
+      et === 'vendor_payment' ||
+      et === 'payment_voucher' ||
+      mod === 'pay payment' ||
+      mod === 'purchase / payments' ||
+      rec.startsWith('cp') ||
+      rec.startsWith('pay-')
+    ) {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-md bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+          <CheckSquare className="h-3 w-3" /> Pay Payment
+        </span>
+      );
+    }
+
     switch (entityType) {
       case 'sales_invoice':
         return (
@@ -68,20 +101,6 @@ export function Approvals() {
             <ArrowUpRight className="h-3 w-3" /> Purchase Return
           </span>
         );
-      case 'customer_receipt':
-      case 'payment_receipt':
-        return (
-          <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-            <CheckSquare className="h-3 w-3" /> Payment Receipt
-          </span>
-        );
-      case 'vendor_payment':
-      case 'payment_voucher':
-        return (
-          <span className="inline-flex items-center gap-1 rounded-md bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
-            <CheckSquare className="h-3 w-3" /> Pay Payment
-          </span>
-        );
       default:
         return (
           <span className="inline-flex items-center gap-1 rounded-md bg-slate-500/10 px-2 py-0.5 text-[10px] font-bold text-slate-400 border border-slate-500/20">
@@ -91,16 +110,27 @@ export function Approvals() {
     }
   };
 
-  const isPaymentDoc = (entityType?: string, moduleName?: string) => {
+  const isPaymentDoc = (entityType?: string, moduleName?: string, recordNo?: string) => {
+    const et = (entityType || '').toLowerCase();
+    const mod = (moduleName || '').toLowerCase();
+    const rec = (recordNo || '').toLowerCase();
     return (
-      entityType === 'customer_receipt' ||
-      entityType === 'payment_receipt' ||
-      entityType === 'vendor_payment' ||
-      entityType === 'payment_voucher' ||
-      moduleName === 'Receive Payment' ||
-      moduleName === 'Pay Payment' ||
-      moduleName === 'Sales / Receipts' ||
-      moduleName === 'Purchase / Payments'
+      et.includes('receipt') ||
+      et.includes('payment') ||
+      et.includes('voucher') ||
+      et.includes('receive') ||
+      et.includes('pay') ||
+      mod.includes('receipt') ||
+      mod.includes('payment') ||
+      mod.includes('receive') ||
+      mod.includes('pay') ||
+      rec.startsWith('cr') ||
+      rec.startsWith('cp') ||
+      rec.startsWith('pv') ||
+      rec.startsWith('rv') ||
+      rec.startsWith('pay') ||
+      rec.startsWith('rec') ||
+      rec.startsWith('pmt')
     );
   };
 
@@ -217,7 +247,7 @@ export function Approvals() {
               filtered.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
                   <td className="px-3 py-2 whitespace-nowrap font-medium">
-                    {getEntityBadge(item.entity_type, item.module)}
+                    {getEntityBadge(item.entity_type, item.module, item.record_no)}
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap font-mono font-bold text-amber-500">
                     {item.record_no || '—'}
@@ -226,17 +256,22 @@ export function Approvals() {
                     {item.party_name || '—'}
                   </td>
                   <td className="px-3 py-2 text-slate-400">
-                    {isPaymentDoc(item.entity_type, item.module) ? (
-                      <span className="text-slate-500 font-mono text-xs">—</span>
+                    {isPaymentDoc(item.entity_type, item.module, item.record_no) ? (
+                      <span className="text-slate-600 dark:text-slate-600 font-mono text-xs">—</span>
                     ) : (
                       <>
-                        <div className="text-[11px] text-slate-300 font-medium truncate max-w-[150px]" title={getWarehouseName(item.warehouse_id) || '—'}>
-                          {getWarehouseName(item.warehouse_id) || '—'}
-                        </div>
+                        {item.warehouse_id && (
+                          <div className="text-[11px] text-slate-300 font-medium truncate max-w-[150px]" title={getWarehouseName(item.warehouse_id) || '—'}>
+                            {getWarehouseName(item.warehouse_id)}
+                          </div>
+                        )}
                         {item.items_summary && (
                           <div className="text-[10px] text-slate-500 truncate max-w-[150px]" title={item.items_summary}>
                             {item.items_summary}
                           </div>
+                        )}
+                        {!item.warehouse_id && !item.items_summary && (
+                          <span className="text-slate-600 dark:text-slate-600 font-mono text-xs">—</span>
                         )}
                       </>
                     )}
