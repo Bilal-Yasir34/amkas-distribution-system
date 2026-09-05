@@ -181,60 +181,60 @@ interface DataStoreState {
   deleteWarehouse: (id: string) => void;
 
   // Invoice & Sales Actions
-  addInvoice: (inv: Omit<SalesInvoice, 'id'>) => void;
+  addInvoice: (inv: Omit<SalesInvoice, 'id'> & { id?: string }) => void;
   updateInvoice: (id: string, inv: Partial<SalesInvoice>) => void;
   deleteInvoice: (id: string) => void;
 
-  addQuotation: (q: Omit<Quotation, 'id'>) => void;
+  addQuotation: (q: Omit<Quotation, 'id'> & { id?: string }) => void;
   updateQuotation: (id: string, q: Partial<Quotation>) => void;
   deleteQuotation: (id: string) => void;
 
-  addSalesOrder: (so: Omit<SalesOrder, 'id'>) => void;
+  addSalesOrder: (so: Omit<SalesOrder, 'id'> & { id?: string }) => void;
   updateSalesOrder: (id: string, so: Partial<SalesOrder>) => void;
   deleteSalesOrder: (id: string) => void;
 
-  addCreditNote: (cn: Omit<CreditNote, 'id'>) => void;
+  addCreditNote: (cn: Omit<CreditNote, 'id'> & { id?: string }) => void;
   updateCreditNote: (id: string, cn: Partial<CreditNote>) => void;
   deleteCreditNote: (id: string) => void;
 
-  addCustomerReceipt: (r: Omit<CustomerReceipt, 'id'>) => void;
+  addCustomerReceipt: (r: Omit<CustomerReceipt, 'id'> & { id?: string }) => void;
   updateCustomerReceipt: (id: string, r: Partial<CustomerReceipt>) => void;
   deleteCustomerReceipt: (id: string) => void;
 
-  addCommission: (c: Omit<SalesCommission, 'id'>) => void;
+  addCommission: (c: Omit<SalesCommission, 'id'> & { id?: string }) => void;
   updateCommission: (id: string, c: Partial<SalesCommission>) => void;
   deleteCommission: (id: string) => void;
 
   // Purchase Actions
-  addPurchaseRequest: (pr: Omit<PurchaseRequest, 'id'>) => void;
+  addPurchaseRequest: (pr: Omit<PurchaseRequest, 'id'> & { id?: string }) => void;
   updatePurchaseRequest: (id: string, pr: Partial<PurchaseRequest>) => void;
   deletePurchaseRequest: (id: string) => void;
 
-  addPurchaseOrder: (po: Omit<PurchaseOrder, 'id'>) => void;
+  addPurchaseOrder: (po: Omit<PurchaseOrder, 'id'> & { id?: string }) => void;
   updatePurchaseOrder: (id: string, po: Partial<PurchaseOrder>) => void;
   deletePurchaseOrder: (id: string) => void;
 
-  addPurchaseInvoice: (pi: Omit<PurchaseInvoice, 'id'>) => void;
+  addPurchaseInvoice: (pi: Omit<PurchaseInvoice, 'id'> & { id?: string }) => void;
   updatePurchaseInvoice: (id: string, pi: Partial<PurchaseInvoice>) => void;
   deletePurchaseInvoice: (id: string) => void;
 
-  addVendorBill: (vb: Omit<VendorBill, 'id'>) => void;
+  addVendorBill: (vb: Omit<VendorBill, 'id'> & { id?: string }) => void;
   updateVendorBill: (id: string, vb: Partial<VendorBill>) => void;
   deleteVendorBill: (id: string) => void;
 
-  addDebitNote: (dn: Omit<DebitNote, 'id'>) => void;
+  addDebitNote: (dn: Omit<DebitNote, 'id'> & { id?: string }) => void;
   updateDebitNote: (id: string, dn: Partial<DebitNote>) => void;
   deleteDebitNote: (id: string) => void;
 
-  addSalesReturn: (sr: Omit<SalesReturn, 'id'>) => void;
+  addSalesReturn: (sr: Omit<SalesReturn, 'id'> & { id?: string }) => void;
   updateSalesReturn: (id: string, patch: Partial<SalesReturn>) => void;
   deleteSalesReturn: (id: string) => void;
 
-  addPurchaseReturn: (pr: Omit<PurchaseReturn, 'id'>) => void;
+  addPurchaseReturn: (pr: Omit<PurchaseReturn, 'id'> & { id?: string }) => void;
   updatePurchaseReturn: (id: string, patch: Partial<PurchaseReturn>) => void;
   deletePurchaseReturn: (id: string) => void;
 
-  addVendorPayment: (vp: Omit<VendorPayment, 'id'>) => void;
+  addVendorPayment: (vp: Omit<VendorPayment, 'id'> & { id?: string }) => void;
   updateVendorPayment: (id: string, vp: Partial<VendorPayment>) => void;
   deleteVendorPayment: (id: string) => void;
 
@@ -269,8 +269,9 @@ interface DataStoreState {
   updateCOAccount: (id: string, coa: Partial<ChartOfAccount>) => void;
   deleteCOAccount: (id: string) => void;
 
-  addFinancialYear: (fy: Omit<FinancialYear, 'id'>) => void;
+  addFinancialYear: (fy: Omit<FinancialYear, 'id'> & { id?: string }) => void;
   updateFinancialYear: (id: string, fy: Partial<FinancialYear>) => void;
+  deleteFinancialYear: (id: string) => void;
 
   // Approvals Action
   addApprovalQueueItem: (item: Omit<ApprovalQueueItem, 'id'>) => string;
@@ -699,7 +700,7 @@ export const useDataStore = create<DataStoreState>()(
       // Invoice Actions
       addInvoice: (inv) =>
         set((s) => {
-          const newInv = { id: crypto.randomUUID(), ...inv };
+          const newInv = { id: (inv as any).id || crypto.randomUUID(), ...inv };
           const newInvoices = [newInv, ...s.invoices];
           let newCommissions = [...s.commissions];
           let newJournalEntries = [...s.journalEntries];
@@ -753,7 +754,7 @@ export const useDataStore = create<DataStoreState>()(
 
       addCreditNote: (cn) =>
         set((s) => {
-          const newCn = { id: crypto.randomUUID(), ...cn };
+          const newCn = { id: (cn as any).id || crypto.randomUUID(), ...cn };
           const newCreditNotes = [newCn, ...(s.creditNotes || [])];
           let newJournalEntries = [...(s.journalEntries || [])];
 
@@ -825,35 +826,35 @@ export const useDataStore = create<DataStoreState>()(
       deleteCustomerReceipt: (id) => set((s) => ({ customerReceipts: (s.customerReceipts || []).filter((r) => r.id !== id) })),
 
       // Purchase Actions
-      addPurchaseRequest: (pr) => set((s) => ({ purchaseRequests: [{ id: crypto.randomUUID(), ...pr }, ...s.purchaseRequests] })),
+      addPurchaseRequest: (pr) => set((s) => ({ purchaseRequests: [{ id: (pr as any).id || crypto.randomUUID(), ...pr }, ...s.purchaseRequests] })),
       updatePurchaseRequest: (id, patch) => set((s) => ({ purchaseRequests: s.purchaseRequests.map((pr) => (pr.id === id ? { ...pr, ...patch } : pr)) })),
       deletePurchaseRequest: (id) => set((s) => ({ purchaseRequests: s.purchaseRequests.filter((pr) => pr.id !== id) })),
 
-      addPurchaseOrder: (po) => set((s) => ({ purchaseOrders: [{ id: crypto.randomUUID(), ...po }, ...s.purchaseOrders] })),
+      addPurchaseOrder: (po) => set((s) => ({ purchaseOrders: [{ id: (po as any).id || crypto.randomUUID(), ...po }, ...s.purchaseOrders] })),
       updatePurchaseOrder: (id, patch) => set((s) => ({ purchaseOrders: s.purchaseOrders.map((po) => (po.id === id ? { ...po, ...patch } : po)) })),
       deletePurchaseOrder: (id) => set((s) => ({ purchaseOrders: s.purchaseOrders.filter((po) => po.id !== id) })),
 
-      addPurchaseInvoice: (pi) => set((s) => ({ purchaseInvoices: [{ id: crypto.randomUUID(), ...pi }, ...s.purchaseInvoices] })),
+      addPurchaseInvoice: (pi) => set((s) => ({ purchaseInvoices: [{ id: (pi as any).id || crypto.randomUUID(), ...pi }, ...s.purchaseInvoices] })),
       updatePurchaseInvoice: (id, patch) => set((s) => ({ purchaseInvoices: s.purchaseInvoices.map((pi) => (pi.id === id ? { ...pi, ...patch } : pi)) })),
       deletePurchaseInvoice: (id) => set((s) => ({ purchaseInvoices: s.purchaseInvoices.filter((pi) => pi.id !== id) })),
 
-      addVendorBill: (vb) => set((s) => ({ vendorBills: [{ id: crypto.randomUUID(), ...vb }, ...s.vendorBills] })),
+      addVendorBill: (vb) => set((s) => ({ vendorBills: [{ id: (vb as any).id || crypto.randomUUID(), ...vb }, ...s.vendorBills] })),
       updateVendorBill: (id, patch) => set((s) => ({ vendorBills: s.vendorBills.map((vb) => (vb.id === id ? { ...vb, ...patch } : vb)) })),
       deleteVendorBill: (id) => set((s) => ({ vendorBills: s.vendorBills.filter((vb) => vb.id !== id) })),
 
-      addDebitNote: (dn) => set((s) => ({ debitNotes: [{ id: crypto.randomUUID(), ...dn }, ...s.debitNotes] })),
+      addDebitNote: (dn) => set((s) => ({ debitNotes: [{ id: (dn as any).id || crypto.randomUUID(), ...dn }, ...s.debitNotes] })),
       updateDebitNote: (id, patch) => set((s) => ({ debitNotes: s.debitNotes.map((dn) => (dn.id === id ? { ...dn, ...patch } : dn)) })),
       deleteDebitNote: (id) => set((s) => ({ debitNotes: s.debitNotes.filter((dn) => dn.id !== id) })),
 
-      addSalesReturn: (sr) => set((s) => ({ salesReturns: [{ id: crypto.randomUUID(), ...sr }, ...s.salesReturns] })),
+      addSalesReturn: (sr) => set((s) => ({ salesReturns: [{ id: (sr as any).id || crypto.randomUUID(), ...sr }, ...s.salesReturns] })),
       updateSalesReturn: (id, patch) => set((s) => ({ salesReturns: s.salesReturns.map((sr) => (sr.id === id ? { ...sr, ...patch } : sr)) })),
       deleteSalesReturn: (id) => set((s) => ({ salesReturns: s.salesReturns.filter((sr) => sr.id !== id) })),
 
-      addPurchaseReturn: (pr) => set((s) => ({ purchaseReturns: [{ id: crypto.randomUUID(), ...pr }, ...s.purchaseReturns] })),
+      addPurchaseReturn: (pr) => set((s) => ({ purchaseReturns: [{ id: (pr as any).id || crypto.randomUUID(), ...pr }, ...s.purchaseReturns] })),
       updatePurchaseReturn: (id, patch) => set((s) => ({ purchaseReturns: s.purchaseReturns.map((pr) => (pr.id === id ? { ...pr, ...patch } : pr)) })),
       deletePurchaseReturn: (id) => set((s) => ({ purchaseReturns: s.purchaseReturns.filter((pr) => pr.id !== id) })),
 
-      addVendorPayment: (vp) => set((s) => ({ vendorPayments: [{ id: crypto.randomUUID(), ...vp }, ...s.vendorPayments] })),
+      addVendorPayment: (vp) => set((s) => ({ vendorPayments: [{ id: (vp as any).id || crypto.randomUUID(), ...vp }, ...s.vendorPayments] })),
       updateVendorPayment: (id, patch) => set((s) => ({ vendorPayments: s.vendorPayments.map((vp) => (vp.id === id ? { ...vp, ...patch } : vp)) })),
       deleteVendorPayment: (id) => set((s) => ({ vendorPayments: s.vendorPayments.filter((vp) => vp.id !== id) })),
 
@@ -888,8 +889,9 @@ export const useDataStore = create<DataStoreState>()(
       updateCOAccount: (id, patch) => set((s) => ({ chartOfAccounts: s.chartOfAccounts.map((c) => (c.id === id ? { ...c, ...patch } : c)) })),
       deleteCOAccount: (id) => set((s) => ({ chartOfAccounts: s.chartOfAccounts.filter((c) => c.id !== id) })),
 
-      addFinancialYear: (fy) => set((s) => ({ financialYears: [{ id: crypto.randomUUID(), ...fy }, ...s.financialYears] })),
+      addFinancialYear: (fy) => set((s) => ({ financialYears: [{ id: (fy as any).id || crypto.randomUUID(), ...fy }, ...s.financialYears] })),
       updateFinancialYear: (id, patch) => set((s) => ({ financialYears: s.financialYears.map((fy) => (fy.id === id ? { ...fy, ...patch } : fy)) })),
+      deleteFinancialYear: (id) => set((s) => ({ financialYears: s.financialYears.filter((fy) => fy.id !== id) })),
 
       // Approvals Action
       addApprovalQueueItem: (item) => {

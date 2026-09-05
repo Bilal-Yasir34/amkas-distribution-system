@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { downloadCSV, formatCurrency, formatDate, getCustomerName, getVendorName } from '@/lib/utils';
+import { DateInput } from '@/components/DateInput';
 
 interface ReportTile {
   code: string;
@@ -239,14 +240,16 @@ export function ReportsModule() {
           {/* Filter Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/70">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs dark:border-slate-700 dark:bg-slate-800">
-                <span className="text-slate-400">From</span>
-                <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="bg-transparent font-medium outline-none text-slate-700 dark:text-slate-200" />
-              </div>
-              <div className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs dark:border-slate-700 dark:bg-slate-800">
-                <span className="text-slate-400">To</span>
-                <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="bg-transparent font-medium outline-none text-slate-700 dark:text-slate-200" />
-              </div>
+              <DateInput
+                prefix="From:"
+                value={fromDate}
+                onChange={(val) => setFromDate(val)}
+              />
+              <DateInput
+                prefix="To:"
+                value={toDate}
+                onChange={(val) => setToDate(val)}
+              />
               <button className="btn-primary">Apply</button>
             </div>
             <div className="flex flex-wrap items-center gap-2">

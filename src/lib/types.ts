@@ -358,6 +358,7 @@ export interface CreditNote {
   party_name?: string | null;
   sales_invoice_id: string | null;
   invoice_id?: string | null;
+  warehouse_id?: string | null;
   note_date: string;
   document_date?: string;
   due_date?: string | null;

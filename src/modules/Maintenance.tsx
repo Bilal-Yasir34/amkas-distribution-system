@@ -19,11 +19,14 @@ import {
   DownloadCloud,
   ClipboardPaste,
   FileCode,
+  Copy,
+  Check,
+  ExternalLink,
   X,
 } from 'lucide-react';
 import { useToast } from '@/lib/toast';
 import { useDataStore } from '@/lib/dataStore';
-import { pushStateToSupabase, pullStateFromSupabase } from '@/lib/cloudSync';
+import { pushStateToSupabase, pullStateFromSupabase, SUPABASE_FIX_SQL } from '@/lib/cloudSync';
 
 export function Maintenance() {
   const toast = useToast();
@@ -34,6 +37,9 @@ export function Maintenance() {
   // Cloud Sync state
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [isRlsBlocked, setIsRlsBlocked] = useState(false);
+  const [showSqlModal, setShowSqlModal] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
 
   // File upload ref for JSON import
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -46,6 +52,13 @@ export function Maintenance() {
   const [showTurnOffModal, setShowTurnOffModal] = useState(false);
   const [turnOffPassword, setTurnOffPassword] = useState('');
   const [turnOffError, setTurnOffError] = useState<string | null>(null);
+
+  const handleCopySql = () => {
+    navigator.clipboard.writeText(SUPABASE_FIX_SQL);
+    setCopiedSql(true);
+    toast.success('Supabase SQL fix script copied to clipboard!');
+    setTimeout(() => setCopiedSql(false), 3000);
+  };
 
   const handleEnableMode = () => {
     enableMaintenanceMode();
@@ -68,15 +81,21 @@ export function Maintenance() {
 
   const handlePushToCloud = async () => {
     setSyncing(true);
+    setIsRlsBlocked(false);
     setSyncMessage('Pushing current store to Supabase Cloud Database...');
     const res = await pushStateToSupabase();
     setSyncing(false);
     if (res.success) {
       toast.success(res.message);
       setSyncMessage(res.message);
+      setIsRlsBlocked(false);
     } else {
       toast.error(res.message);
       setSyncMessage(res.message);
+      if (res.isRlsError) {
+        setIsRlsBlocked(true);
+        setShowSqlModal(true);
+      }
     }
   };
 
@@ -280,8 +299,13 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-500">CLOUD DATABASE SYNC</span>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
-                  Supabase Ready
+                  Supabase Connected
                 </span>
+                {isRlsBlocked && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-rose-500/20 text-rose-500 border border-rose-500/30 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> Action Required (RLS)
+                  </span>
+                )}
               </div>
               <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 font-heading mt-1">
                 Synchronize Localhost & Live Domain Data
@@ -294,9 +318,16 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <button
+              onClick={() => setShowSqlModal(true)}
+              className="btn border border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 px-3.5 py-2.5 text-xs font-bold flex items-center gap-1.5"
+            >
+              <FileCode className="h-4 w-4 text-amber-500" />
+              Fix Cloud Permissions (SQL)
+            </button>
+            <button
               onClick={handlePushToCloud}
               disabled={syncing}
-              className="btn-primary px-4 py-2.5 text-xs font-bold flex items-center gap-2"
+              className="btn-primary px-4 py-2.5 text-xs font-bold flex items-center gap-2 shadow-lg shadow-amber-500/20"
             >
               <UploadCloud className="h-4 w-4" />
               {syncing ? 'Pushing...' : 'Push to Cloud (Supabase)'}
@@ -313,11 +344,111 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
         </div>
 
         {syncMessage && (
-          <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-3 text-xs font-semibold text-amber-800 dark:text-amber-200">
-            {syncMessage}
+          <div className={`rounded-xl border p-3.5 text-xs font-semibold flex items-center justify-between gap-3 ${
+            isRlsBlocked
+              ? 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300'
+              : 'bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-200'
+          }`}>
+            <div className="flex items-center gap-2">
+              {isRlsBlocked ? <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" /> : <CheckCircle2 className="h-4 w-4 shrink-0 text-amber-500" />}
+              <span>{syncMessage}</span>
+            </div>
+            {isRlsBlocked && (
+              <button
+                onClick={() => setShowSqlModal(true)}
+                className="btn-primary px-3 py-1.5 text-[11px] shrink-0 font-bold"
+              >
+                Open SQL Fix
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {/* SUPABASE SQL FIX MODAL */}
+      {showSqlModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-2xl card p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-amber-500">SUPABASE PERMISSIONS CONFIGURATION</p>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 font-heading flex items-center gap-2 mt-0.5">
+                  <FileCode className="h-5 w-5 text-amber-500" /> Enable Bidirectional Cloud Sync Permissions
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowSqlModal(false)}
+                className="text-slate-400 hover:text-slate-200 font-bold text-lg p-1"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-600 dark:text-slate-300 space-y-2">
+              <p>
+                Supabase Postgres tables enforce <strong>Row-Level Security (RLS)</strong> by default. To allow your Localhost and Live URL environments to push & pull records freely, run the SQL script below once in your Supabase project:
+              </p>
+              <div className="grid sm:grid-cols-3 gap-2 py-1">
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-2.5 text-center">
+                  <span className="text-[10px] font-extrabold text-amber-500 uppercase block">Step 1</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Copy SQL Script</span>
+                </div>
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-2.5 text-center">
+                  <span className="text-[10px] font-extrabold text-amber-500 uppercase block">Step 2</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Paste in Supabase SQL Editor</span>
+                </div>
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-2.5 text-center">
+                  <span className="text-[10px] font-extrabold text-amber-500 uppercase block">Step 3</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Click 'Run' & Return Here</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative flex-1 min-h-[180px] overflow-hidden rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-900">
+              <pre className="h-full max-h-[260px] overflow-y-auto p-4 text-[11px] font-mono text-emerald-400 leading-relaxed">
+                {SUPABASE_FIX_SQL}
+              </pre>
+              <button
+                onClick={handleCopySql}
+                className="absolute top-3 right-3 btn-primary px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 shadow-lg"
+              >
+                {copiedSql ? <Check className="h-3.5 w-3.5 text-emerald-300" /> : <Copy className="h-3.5 w-3.5" />}
+                {copiedSql ? 'Copied to Clipboard!' : 'Copy SQL'}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <a
+                href="https://supabase.com/dashboard/project/ilvxznxmhqxjtbieezoa/sql"
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
+              >
+                <ExternalLink className="h-3.5 w-3.5" /> Open Supabase SQL Editor
+              </a>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSqlModal(false)}
+                  className="btn-secondary py-2 px-4 text-xs"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setShowSqlModal(false);
+                    await handlePushToCloud();
+                  }}
+                  className="btn-primary py-2 px-4 text-xs font-bold flex items-center gap-1.5"
+                >
+                  <UploadCloud className="h-3.5 w-3.5" /> Retry Push Now
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* DIRECT PASTE DATA MODAL */}
       {showPasteModal && (

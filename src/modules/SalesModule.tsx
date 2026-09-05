@@ -20,7 +20,8 @@ import {
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
-import { todayISO, safeUUID, nextDocNumber, STANDARD_UNITS, convertUnitRate , formatDate} from '@/lib/utils';
+import { todayISO, safeUUID, nextDocNumber, STANDARD_UNITS, convertUnitRate, formatDate } from '@/lib/utils';
+import { DateInput } from '@/components/DateInput';
 import { InvoicePrint } from '@/components/InvoicePrint';
 import type { SalesInvoice, Customer, Quotation, SalesOrder, QuotationItem, SalesOrderItem, CreditNote, CreditNoteItem, CustomerReceipt } from '@/lib/types';
 import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
@@ -1398,25 +1399,19 @@ export function SalesModule() {
                         </select>
                       </div>
 
-                      <div>
-                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Document date</label>
-                        <input
-                          type="date"
-                          value={invDocDate}
-                          onChange={(e) => setInvDocDate(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                        />
-                      </div>
+                      <DateInput
+                        label="Document date (DD/MM/YY)"
+                        value={invDocDate}
+                        onChange={setInvDocDate}
+                        className="mt-1"
+                      />
 
-                      <div>
-                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Due date</label>
-                        <input
-                          type="date"
-                          value={invDueDate}
-                          onChange={(e) => setInvDueDate(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                        />
-                      </div>
+                      <DateInput
+                        label="Due date (DD/MM/YY)"
+                        value={invDueDate}
+                        onChange={setInvDueDate}
+                        className="mt-1"
+                      />
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -2121,25 +2116,19 @@ export function SalesModule() {
                       </select>
                     </div>
 
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Document date</label>
-                      <input
-                        type="date"
-                        value={cnDocDate}
-                        onChange={(e) => setCnDocDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
+                    <DateInput
+                      label="Document date (DD/MM/YY)"
+                      value={cnDocDate}
+                      onChange={setCnDocDate}
+                      className="mt-1"
+                    />
 
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Due date</label>
-                      <input
-                        type="date"
-                        value={cnDueDate}
-                        onChange={(e) => setCnDueDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
+                    <DateInput
+                      label="Due date (DD/MM/YY)"
+                      value={cnDueDate}
+                      onChange={setCnDueDate}
+                      className="mt-1"
+                    />
                   </div>
 
                   {/* Row 2: Salesperson, Currency, Exchange rate */}
@@ -2624,15 +2613,12 @@ export function SalesModule() {
                       </select>
                     </div>
 
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Date</label>
-                      <input
-                        type="date"
-                        value={receiptDate}
-                        onChange={(e) => setReceiptDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
+                    <DateInput
+                      label="Date (DD/MM/YY)"
+                      value={receiptDate}
+                      onChange={setReceiptDate}
+                      className="mt-1"
+                    />
                   </div>
 
                   {/* Row 2: Deposit to & Amount */}
@@ -2908,25 +2894,17 @@ export function SalesModule() {
           {/* Top Filter Bar matching Screenshot */}
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <div className="flex flex-wrap items-center gap-4">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">From</label>
-                <input
-                  type="date"
-                  value={commFromDate}
-                  onChange={(e) => setCommFromDate(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                />
-              </div>
+              <DateInput
+                label="From Date"
+                value={commFromDate}
+                onChange={setCommFromDate}
+              />
 
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">To</label>
-                <input
-                  type="date"
-                  value={commToDate}
-                  onChange={(e) => setCommToDate(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                />
-              </div>
+              <DateInput
+                label="To Date"
+                value={commToDate}
+                onChange={setCommToDate}
+              />
 
               <div className="flex items-end self-end">
                 <button
@@ -3165,28 +3143,20 @@ export function SalesModule() {
                       </div>
 
                       {/* Document Date */}
-                      <div>
-                        <label className="text-[11px] font-semibold text-slate-400">Document Date *</label>
-                        <input
-                          type="date"
-                          value={salesDocDate}
-                          onChange={(e) => setSalesDocDate(e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                        />
-                      </div>
+                      <DateInput
+                        label="Document Date (DD/MM/YY) *"
+                        value={salesDocDate}
+                        onChange={setSalesDocDate}
+                        className="mt-1"
+                      />
 
                       {/* Valid Until / Delivery Date */}
-                      <div>
-                        <label className="text-[11px] font-semibold text-slate-400">
-                          {salesDocType === 'Quotation' ? 'Valid Until (date)' : 'Delivery Date'}
-                        </label>
-                        <input
-                          type="date"
-                          value={salesDocValidUntil}
-                          onChange={(e) => setSalesDocValidUntil(e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                        />
-                      </div>
+                      <DateInput
+                        label={salesDocType === 'Quotation' ? 'Valid Until (DD/MM/YY)' : 'Delivery Date (DD/MM/YY)'}
+                        value={salesDocValidUntil}
+                        onChange={setSalesDocValidUntil}
+                        className="mt-1"
+                      />
 
                       {/* Salesperson */}
                       <div>

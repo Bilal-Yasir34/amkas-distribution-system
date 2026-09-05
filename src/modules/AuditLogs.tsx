@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { History, Shield, Printer, Download } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
+import { formatDate } from '@/lib/utils';
 
 export function AuditLogs() {
   const [activeTab, setActiveTab] = useState<'Activity log' | 'Login history'>('Activity log');
@@ -119,7 +120,7 @@ export function AuditLogs() {
                       </td>
                       <td className="px-4 py-3 text-slate-700 dark:text-slate-200">{log.desc}</td>
                       <td className="px-4 py-3 font-mono text-slate-400">{log.ip}</td>
-                      <td className="px-4 py-3 text-slate-500">{log.time}</td>
+                      <td className="px-4 py-3 text-slate-500 font-mono">{formatDate(log.time)}</td>
                     </tr>
                   ))
                 )}
@@ -179,7 +180,7 @@ export function AuditLogs() {
                       </td>
                       <td className="px-4 py-3 font-mono text-slate-400">{log.ip}</td>
                       <td className="px-4 py-3 text-slate-500 truncate max-w-xs">{log.device}</td>
-                      <td className="px-4 py-3 text-slate-500">{log.time}</td>
+                      <td className="px-4 py-3 text-slate-500 font-mono">{formatDate(log.time)}</td>
                     </tr>
                   ))
                 )}

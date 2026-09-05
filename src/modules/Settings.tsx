@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Building2, FileText, DollarSign, Shield, Save, Plus, Upload, X, Check, Wrench, KeyRound, Power, AlertCircle } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
+import { DateInput } from '@/components/DateInput';
 
 interface DocSeq {
   document: string;
@@ -57,7 +58,7 @@ export function Settings() {
   const [taxLabel, setTaxLabel] = useState(orgSettings.tax_label || 'GST / NTN');
   const [taxRate, setTaxRate] = useState(String(orgSettings.default_tax_rate || '0.0000'));
   const [defaultPrefix, setDefaultPrefix] = useState(orgSettings.default_invoice_prefix || 'MS-');
-  const [dateFormat, setDateFormat] = useState(orgSettings.date_format || '21 Jun 2026');
+  const [dateFormat, setDateFormat] = useState(orgSettings.date_format || 'DD/MM/YY');
 
   // Exchange rate form
   const [targetCurrency, setTargetCurrency] = useState('AED - UAE Dirham');
@@ -324,8 +325,8 @@ export function Settings() {
                     onChange={(e) => setDateFormat(e.target.value)}
                     className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
                   >
-                    <option value="21 Jun 2026">21 Jun 2026</option>
-                    <option value="2026-06-21">2026-06-21</option>
+                    <option value="DD/MM/YY">DD/MM/YY (e.g. 05/09/26)</option>
+                    <option value="DD/MM/YYYY">DD/MM/YYYY (e.g. 05/09/2026)</option>
                   </select>
                 </div>
               </div>
@@ -449,15 +450,11 @@ export function Settings() {
                 </select>
               </div>
 
-              <div>
-                <label className="text-[11px] font-semibold text-slate-400">Rate date</label>
-                <input
-                  type="date"
-                  value={rateDate}
-                  onChange={(e) => setRateDate(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
-                />
-              </div>
+              <DateInput
+                label="Rate date"
+                value={rateDate}
+                onChange={(val) => setRateDate(val)}
+              />
 
               <div>
                 <label className="text-[11px] font-semibold text-slate-400">Rate to PKR</label>

@@ -16,8 +16,9 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
+import { DateInput } from '@/components/DateInput';
 
 export function Dashboard() {
   const setActiveModule = useAppStore((s) => s.setActiveModule);
@@ -107,19 +108,19 @@ export function Dashboard() {
   const recentActivities = [
     ...auditLogs.slice(0, 4).map((a) => ({
       action: a.description,
-      time: a.timestamp?.slice(0, 10) || 'today',
+      time: formatDate(a.timestamp),
       type: a.module?.toLowerCase() || 'system',
       color: a.action === 'Login' ? 'slate' : 'emerald',
     })),
     ...invoices.slice(0, 2).map((inv) => ({
       action: `Sales invoice ${inv.invoice_no} ${inv.status.toLowerCase()}`,
-      time: inv.created_at?.slice(0, 10) || 'today',
+      time: formatDate(inv.created_at || inv.invoice_date),
       type: 'sales',
       color: 'emerald',
     })),
     ...vendorBills.slice(0, 2).map((b) => ({
       action: `Vendor bill ${b.bill_no} ${b.status.toLowerCase()}`,
-      time: b.created_at?.slice(0, 10) || 'today',
+      time: formatDate(b.created_at || b.bill_date),
       type: 'purchases',
       color: 'amber',
     })),
@@ -134,24 +135,16 @@ export function Dashboard() {
           <h1 className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100">Enterprise Dashboard</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs dark:border-slate-700 dark:bg-slate-800">
-            <span className="text-slate-400">From</span>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="bg-transparent font-medium text-slate-700 dark:text-slate-200 outline-none"
-            />
-          </div>
-          <div className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs dark:border-slate-700 dark:bg-slate-800">
-            <span className="text-slate-400">To</span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="bg-transparent font-medium text-slate-700 dark:text-slate-200 outline-none"
-            />
-          </div>
+          <DateInput
+            prefix="From:"
+            value={fromDate}
+            onChange={(val) => setFromDate(val)}
+          />
+          <DateInput
+            prefix="To:"
+            value={toDate}
+            onChange={(val) => setToDate(val)}
+          />
           <button
             onClick={() => setCustomizeOpen(true)}
             className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"

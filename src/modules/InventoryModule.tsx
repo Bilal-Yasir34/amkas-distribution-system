@@ -16,8 +16,9 @@ import {
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
-import { downloadCSV, todayISO } from '@/lib/utils';
+import { downloadCSV, todayISO, formatDate } from '@/lib/utils';
 import { LabelPrint } from '@/components/LabelPrint';
+import { DateInput } from '@/components/DateInput';
 import type { StockTransfer, StockAdjustment, ProductBatch, ProductSerial } from '@/lib/types';
 import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
 
@@ -783,29 +784,17 @@ export function InventoryModule() {
                 </select>
               </div>
 
-              <div>
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">
-                  From
-                </label>
-                <input
-                  type="date"
-                  value={ledgerFromDate}
-                  onChange={(e) => setLedgerFromDate(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                />
-              </div>
+              <DateInput
+                label="From"
+                value={ledgerFromDate}
+                onChange={(val) => setLedgerFromDate(val)}
+              />
 
-              <div>
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">
-                  To
-                </label>
-                <input
-                  type="date"
-                  value={ledgerToDate}
-                  onChange={(e) => setLedgerToDate(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                />
-              </div>
+              <DateInput
+                label="To"
+                value={ledgerToDate}
+                onChange={(val) => setLedgerToDate(val)}
+              />
 
               <div>
                 <button
@@ -844,7 +833,7 @@ export function InventoryModule() {
                 ) : (
                   filteredLedgerRecords.map((r) => (
                     <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
-                      <td className="px-5 py-3.5 font-medium text-slate-500 dark:text-slate-400">{r.date}</td>
+                      <td className="px-5 py-3.5 font-medium text-slate-500 dark:text-slate-400 font-mono">{formatDate(r.date)}</td>
                       <td className="px-5 py-3.5 font-mono font-bold text-amber-500 dark:text-amber-400">{r.reference}</td>
                       <td className="px-5 py-3.5 font-medium text-slate-800 dark:text-slate-200">
                         {r.product_name} <span className="font-mono text-slate-400">({r.product_code})</span>
@@ -915,7 +904,7 @@ export function InventoryModule() {
                         return (
                           <tr key={st.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                             <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{st.transfer_no}</td>
-                            <td className="px-4 py-3 text-slate-400">{st.transfer_date}</td>
+                            <td className="px-4 py-3 text-slate-400 font-mono">{formatDate(st.transfer_date)}</td>
                             <td className="px-4 py-3 text-slate-300">{fromWhObj?.name || 'Main Warehouse'}</td>
                             <td className="px-4 py-3 text-slate-300">{toWhObj?.name || 'Secondary Location'}</td>
                             <td className="px-4 py-3">
@@ -964,15 +953,11 @@ export function InventoryModule() {
 
                   {/* Row: Transfer date, From warehouse, To warehouse */}
                   <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Transfer date</label>
-                      <input
-                        type="date"
-                        value={transferDate}
-                        onChange={(e) => setTransferDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
+                    <DateInput
+                      label="Transfer date"
+                      value={transferDate}
+                      onChange={(val) => setTransferDate(val)}
+                    />
 
                     <div>
                       <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">From warehouse</label>
@@ -1315,7 +1300,7 @@ export function InventoryModule() {
                       stockAdjustments.map((sa) => (
                         <tr key={sa.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                           <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{sa.adjustment_no}</td>
-                          <td className="px-4 py-3 text-slate-400">{sa.adjustment_date}</td>
+                          <td className="px-4 py-3 text-slate-400 font-mono">{formatDate(sa.adjustment_date)}</td>
                           <td className="px-4 py-3 text-slate-300">{sa.reason}</td>
                           <td className="px-4 py-3">
                             <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
@@ -1362,15 +1347,11 @@ export function InventoryModule() {
 
                   {/* Row 1: Adjustment date, Warehouse */}
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Adjustment date</label>
-                      <input
-                        type="date"
-                        value={adjustmentDate}
-                        onChange={(e) => setAdjustmentDate(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      />
-                    </div>
+                    <DateInput
+                      label="Adjustment date"
+                      value={adjustmentDate}
+                      onChange={(val) => setAdjustmentDate(val)}
+                    />
 
                     <div>
                       <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Warehouse</label>
@@ -1604,7 +1585,7 @@ export function InventoryModule() {
                       <tr key={b.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                         <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{b.batch_number}</td>
                         <td className="px-4 py-3 text-slate-300">{p?.name || 'Cotton Fabric'}</td>
-                        <td className="px-4 py-3 text-slate-400">{b.expiry_date || '—'}</td>
+                        <td className="px-4 py-3 text-slate-400 font-mono">{b.expiry_date ? formatDate(b.expiry_date) : '—'}</td>
                         <td className="px-4 py-3 font-mono font-bold text-slate-200">{b.quantity_on_hand}</td>
                         <td className="px-4 py-3 text-right">
                           <button onClick={() => { deleteBatch(b.id); toast.success('Batch deleted'); }} className="text-xs text-rose-500 hover:underline">

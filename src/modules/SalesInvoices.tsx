@@ -20,6 +20,7 @@ import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 import { useDataStore } from '@/lib/dataStore';
 import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
 import type { SalesInvoice, SalesInvoiceItem } from '@/lib/types';
+import { DateInput } from '@/components/DateInput';
 
 interface DraftLine {
   id: string;
@@ -358,10 +359,11 @@ export function SalesInvoices() {
                 {warehouses.map((w) => <option key={w.id} value={w.id}>{w.code} — {w.name}</option>)}
               </select>
             </div>
-            <div>
-              <label className="label">Date</label>
-              <input type="date" className="input" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
-            </div>
+            <DateInput
+              label="Date"
+              value={invoiceDate}
+              onChange={(val) => setInvoiceDate(val)}
+            />
             <div>
               <label className="label">Salesperson</label>
               <input className="input" value={salesperson} onChange={(e) => setSalesperson(e.target.value)} />

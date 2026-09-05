@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
-import { todayISO, safeUUID , formatDate} from '@/lib/utils';
+import { todayISO, safeUUID, formatDate } from '@/lib/utils';
+import { DateInput } from '@/components/DateInput';
 import { useAuth } from '@/lib/auth';
 import { Plus, Edit, Trash2, X, ShoppingBag, Receipt, Sparkles, CheckCircle2, History, RotateCcw } from 'lucide-react';
 import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
@@ -567,25 +568,19 @@ export function SalesReturnModule() {
                     </select>
                   </div>
 
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Document date</label>
-                    <input
-                      type="date"
-                      value={docDate}
-                      onChange={(e) => setDocDate(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                    />
-                  </div>
+                  <DateInput
+                    label="Document date (DD/MM/YY)"
+                    value={docDate}
+                    onChange={setDocDate}
+                    className="mt-1"
+                  />
 
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Due date</label>
-                    <input
-                      type="date"
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                    />
-                  </div>
+                  <DateInput
+                    label="Due date (DD/MM/YY)"
+                    value={dueDate}
+                    onChange={setDueDate}
+                    className="mt-1"
+                  />
                 </div>
 
                 {/* Row 2: Warehouse */}

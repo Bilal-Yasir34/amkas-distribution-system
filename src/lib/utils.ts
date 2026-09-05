@@ -7,19 +7,12 @@ export function formatNumber(amount: number): string {
   return Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
-export function formatDate(date: string | Date | null | undefined): string {
-  if (!date) return '—';
-  
-  if (typeof date === 'string') {
-    const trimmed = date.trim();
-    if (!trimmed) return '—';
-    const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (isoMatch) {
-      const year = isoMatch[1].slice(-2);
-      return `${isoMatch[3]}/${isoMatch[2]}/${year}`;
-    }
-    const d = new Date(trimmed);
-    if (isNaN(d.getTime())) return trimmed;
+export function formatDate(date: string | Date | number | null | undefined): string {
+  if (!date && date !== 0) return '—';
+
+  if (typeof date === 'number') {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '—';
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = String(d.getFullYear()).slice(-2);
@@ -30,10 +23,44 @@ export function formatDate(date: string | Date | null | undefined): string {
     if (isNaN(date.getTime())) return '—';
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = String(date.getFullYear()).slice(-2);
+    const year = String(d.getFullYear()).slice(-2);
     return `${day}/${month}/${year}`;
   }
-  
+
+  if (typeof date === 'string') {
+    const trimmed = date.trim();
+    if (!trimmed || trimmed === '—' || trimmed === '-' || trimmed === 'null' || trimmed === 'undefined') return '—';
+
+    // Matches YYYY-MM-DD or YYYY/MM/DD (with optional time / ISO timestamp)
+    const ymdMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (ymdMatch) {
+      const year = ymdMatch[1].slice(-2);
+      const month = ymdMatch[2].padStart(2, '0');
+      const day = ymdMatch[3].padStart(2, '0');
+      return `${day}/${month}/${year}`;
+    }
+
+    // Matches DD-MM-YYYY or DD-MM-YY or DD/MM/YYYY or DD/MM/YY
+    const dmyMatch = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+    if (dmyMatch) {
+      const day = dmyMatch[1].padStart(2, '0');
+      const month = dmyMatch[2].padStart(2, '0');
+      const year = dmyMatch[3].slice(-2);
+      return `${day}/${month}/${year}`;
+    }
+
+    // Fallback Date parser
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = String(d.getFullYear()).slice(-2);
+      return `${day}/${month}/${year}`;
+    }
+
+    return trimmed;
+  }
+
   return '—';
 }
 

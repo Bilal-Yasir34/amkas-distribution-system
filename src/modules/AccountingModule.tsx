@@ -3,6 +3,7 @@ import { Plus, Trash2, X, Search, Filter, Download, Check, ArrowUpRight, BookOpe
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { todayISO, downloadCSV, formatDate } from '@/lib/utils';
+import { DateInput } from '@/components/DateInput';
 
 type SubTab =
   | 'Overview'
@@ -1044,30 +1045,18 @@ export function AccountingModule() {
               </div>
 
               {/* From Date */}
-              <div>
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
-                  From
-                </label>
-                <input
-                  type="date"
-                  value={glFromDate}
-                  onChange={(e) => setGlFromDate(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-mono"
-                />
-              </div>
+              <DateInput
+                label="From"
+                value={glFromDate}
+                onChange={(val) => setGlFromDate(val)}
+              />
 
               {/* To Date */}
-              <div>
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
-                  To
-                </label>
-                <input
-                  type="date"
-                  value={glToDate}
-                  onChange={(e) => setGlToDate(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-mono"
-                />
-              </div>
+              <DateInput
+                label="To"
+                value={glToDate}
+                onChange={(val) => setGlToDate(val)}
+              />
 
               {/* Apply Button */}
               <div className="pt-5">
@@ -1415,30 +1404,18 @@ export function AccountingModule() {
                 </div>
 
                 {/* From Date */}
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
-                    From
-                  </label>
-                  <input
-                    type="date"
-                    value={statementFromDate}
-                    onChange={(e) => setStatementFromDate(e.target.value)}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-mono"
-                  />
-                </div>
+                <DateInput
+                  label="From"
+                  value={statementFromDate}
+                  onChange={(val) => setStatementFromDate(val)}
+                />
 
                 {/* To Date */}
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
-                    To
-                  </label>
-                  <input
-                    type="date"
-                    value={statementToDate}
-                    onChange={(e) => setStatementToDate(e.target.value)}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-mono"
-                  />
-                </div>
+                <DateInput
+                  label="To"
+                  value={statementToDate}
+                  onChange={(val) => setStatementToDate(val)}
+                />
 
                 {/* Generate Button */}
                 <div className="pt-5">
@@ -1732,15 +1709,11 @@ export function AccountingModule() {
                 <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mb-2">Record Expense</h2>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Date</label>
-                    <input
-                      type="date"
-                      value={expDate}
-                      onChange={(e) => setExpDate(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none font-mono"
-                    />
-                  </div>
+                  <DateInput
+                    label="Date"
+                    value={expDate}
+                    onChange={(val) => setExpDate(val)}
+                  />
 
                   <div>
                     <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Expense account</label>
@@ -1898,7 +1871,7 @@ export function AccountingModule() {
                       expenseRecords.map((ex) => (
                         <tr key={ex.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
                           <td className="px-4 py-3.5 font-mono font-bold text-slate-900 dark:text-slate-100">{ex.number}</td>
-                          <td className="px-4 py-3.5 text-slate-600 dark:text-slate-400">{ex.date}</td>
+                          <td className="px-4 py-3.5 text-slate-600 dark:text-slate-400 font-mono">{formatDate(ex.date)}</td>
                           <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-200">{ex.account_name}</td>
                           <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{ex.description}</td>
                           <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{ex.cash_bank_account}</td>
@@ -1932,15 +1905,11 @@ export function AccountingModule() {
                 <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mb-2">Record Income</h2>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Date</label>
-                    <input
-                      type="date"
-                      value={incDate}
-                      onChange={(e) => setIncDate(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none font-mono"
-                    />
-                  </div>
+                  <DateInput
+                    label="Date"
+                    value={incDate}
+                    onChange={(val) => setIncDate(val)}
+                  />
 
                   <div>
                     <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Income account</label>
@@ -2099,7 +2068,7 @@ export function AccountingModule() {
                       incomeRecords.map((inc) => (
                         <tr key={inc.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
                           <td className="px-4 py-3.5 font-mono font-bold text-slate-900 dark:text-slate-100">{inc.number}</td>
-                          <td className="px-4 py-3.5 text-slate-600 dark:text-slate-400">{inc.date}</td>
+                          <td className="px-4 py-3.5 text-slate-600 dark:text-slate-400 font-mono">{formatDate(inc.date)}</td>
                           <td className="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-200">{inc.account_name}</td>
                           <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{inc.description}</td>
                           <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">{inc.cash_bank_account}</td>
@@ -2143,10 +2112,11 @@ export function AccountingModule() {
               <button onClick={() => setNewJvOpen(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"><X className="h-4 w-4" /></button>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Entry date</label>
-                <input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} className="input text-xs mt-1" />
-              </div>
+              <DateInput
+                label="Entry date"
+                value={entryDate}
+                onChange={(val) => setEntryDate(val)}
+              />
               <div>
                 <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Reference No</label>
                 <input type="text" value={refNo} onChange={(e) => setRefNo(e.target.value)} placeholder="e.g. REF-1002" className="input text-xs font-mono mt-1" />

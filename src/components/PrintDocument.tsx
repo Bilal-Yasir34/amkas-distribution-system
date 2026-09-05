@@ -86,7 +86,7 @@ export function PrintDocument({
               </p>
             )}
             <p className="text-xs text-slate-600 mt-0.5">
-              Date: <span className="font-semibold">{date}</span>
+              Date: <span className="font-semibold">{formatDate(date)}</span>
             </p>
           </div>
         </div>

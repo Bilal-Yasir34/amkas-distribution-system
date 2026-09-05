@@ -1,76 +1,86 @@
 import { useState } from 'react';
-import { Plus, Calendar, CheckCircle, Lock, X } from 'lucide-react';
+import { Calendar, Plus, CheckCircle, Clock, X, Trash2 } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
+import { formatDate } from '@/lib/utils';
+import { DateInput } from '@/components/DateInput';
+import type { FinancialYear } from '@/lib/types';
 
 export function FinancialYears() {
   const toast = useToast();
-  const { financialYears, addFinancialYear, updateFinancialYear } = useDataStore();
-
+  const { financialYears, addFinancialYear, updateFinancialYear, deleteFinancialYear } = useDataStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState('2026-07-01');
   const [endDate, setEndDate] = useState('2027-06-30');
 
-  const handleSave = () => {
-    if (!name.trim()) return toast.error('Financial year title required');
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return toast.error('Financial Year name is required');
 
     addFinancialYear({
       name,
       start_date: startDate,
       end_date: endDate,
-      is_current: false,
       status: 'Open',
+      is_current: financialYears.length === 0,
     });
 
-    toast.success(`Financial Year ${name} created`);
+    toast.success('Financial year created');
     setModalOpen(false);
+    setName('');
   };
 
-  const handleSetCurrent = (id: string, fyName: string) => {
+  const handleSetCurrent = (id: string, yrName: string) => {
     financialYears.forEach((fy) => {
-      updateFinancialYear(fy.id, { is_current: fy.id === id, status: fy.id === id ? 'Current' : 'Open' });
+      updateFinancialYear(fy.id, { is_current: fy.id === id });
     });
-    toast.success(`${fyName} set as active financial year`);
+    toast.success(`${yrName} set as Current Financial Year`);
   };
 
   return (
     <div className="space-y-5">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">NICE ENTERPRISES</p>
-        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Financial Years</h1>
+        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Financial Years & Periods</h1>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-6">
+        <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PERIOD GOVERNANCE</p>
-            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Financial calendar</h2>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">FISCAL GOVERNANCE</p>
+            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Company accounting periods</h2>
           </div>
           <button
             onClick={() => setModalOpen(true)}
-            className="flex items-center gap-2 btn-primary"
+            className="flex items-center gap-2 btn-primary shadow-sm"
           >
-            <Plus className="h-4 w-4" /> Create financial year
+            <Plus className="h-4 w-4" /> New Financial Year
           </button>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {financialYears.map((fy) => (
             <div
               key={fy.id}
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-3"
+              className={`relative rounded-xl border p-5 transition ${
+                fy.is_current
+                  ? 'border-amber-500 bg-amber-500/5 dark:bg-amber-500/10'
+                  : 'border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/40'
+              }`}
             >
-              <div className="flex justify-between items-start">
+              <div className="flex items-start justify-between">
                 <div>
                   <span
-                    className={`rounded px-2 py-0.5 text-[10px] font-semibold ${
-                      fy.is_current ? 'bg-amber-500/15 text-amber-500' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                      fy.is_current
+                        ? 'bg-amber-500 text-slate-950 font-extrabold'
+                        : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
                     }`}
                   >
-                    {fy.status}
+                    {fy.is_current ? 'ACTIVE CURRENT' : fy.status}
                   </span>
-                  <h3 className="mt-1 font-bold text-slate-800 dark:text-slate-100">{fy.name}</h3>
+                  <h3 className="mt-1.5 font-bold text-slate-800 dark:text-slate-100">{fy.name}</h3>
                 </div>
                 {!fy.is_current && (
                   <button
@@ -82,8 +92,8 @@ export function FinancialYears() {
                 )}
               </div>
 
-              <div className="text-xs text-slate-400">
-                <span>{fy.start_date}</span> — <span>{fy.end_date}</span>
+              <div className="text-xs text-slate-400 mt-2 font-mono">
+                <span>{formatDate(fy.start_date)}</span> — <span>{formatDate(fy.end_date)}</span>
               </div>
             </div>
           ))}
@@ -120,24 +130,16 @@ export function FinancialYears() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Start date</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="input text-xs mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">End date</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="input text-xs mt-1"
-                  />
-                </div>
+                <DateInput
+                  label="Start date"
+                  value={startDate}
+                  onChange={(val) => setStartDate(val)}
+                />
+                <DateInput
+                  label="End date"
+                  value={endDate}
+                  onChange={(val) => setEndDate(val)}
+                />
               </div>
             </div>
 
@@ -148,7 +150,7 @@ export function FinancialYears() {
               >
                 Cancel
               </button>
-              <button onClick={handleSave} className="btn-primary text-xs px-5">
+              <button onClick={handleCreate} className="btn-primary text-xs px-5">
                 Save Financial Year
               </button>
             </div>

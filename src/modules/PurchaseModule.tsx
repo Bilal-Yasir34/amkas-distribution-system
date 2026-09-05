@@ -3,7 +3,8 @@ import { Plus, ShoppingCart, DollarSign, FileText, CheckCircle, Clock, X, Trash2
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
-import { todayISO, safeUUID, nextDocNumber , formatDate} from '@/lib/utils';
+import { todayISO, safeUUID, nextDocNumber, formatDate } from '@/lib/utils';
+import { DateInput } from '@/components/DateInput';
 import type { VendorBill, Vendor } from '@/lib/types';
 import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
 
@@ -1734,25 +1735,19 @@ export function PurchaseModule() {
                         </select>
                       </div>
 
-                      <div>
-                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Document date</label>
-                        <input
-                          type="date"
-                          value={piDocDate}
-                          onChange={(e) => setPiDocDate(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                        />
-                      </div>
+                      <DateInput
+                        label="Document date (DD/MM/YY)"
+                        value={piDocDate}
+                        onChange={setPiDocDate}
+                        className="mt-1"
+                      />
 
-                      <div>
-                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Due date</label>
-                        <input
-                          type="date"
-                          value={piDueDate}
-                          onChange={(e) => setPiDueDate(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                        />
-                      </div>
+                      <DateInput
+                        label="Due date (DD/MM/YY)"
+                        value={piDueDate}
+                        onChange={setPiDueDate}
+                        className="mt-1"
+                      />
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -2074,24 +2069,19 @@ export function PurchaseModule() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="text-[11px] font-semibold text-slate-400">Bill date</label>
-                <input
-                  type="date"
-                  value={billDate}
-                  onChange={(e) => setBillDate(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-slate-400">Due date</label>
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
-                />
-              </div>
+              <DateInput
+                label="Bill date (DD/MM/YY)"
+                value={billDate}
+                onChange={setBillDate}
+                className="mt-1"
+              />
+
+              <DateInput
+                label="Due date (DD/MM/YY)"
+                value={dueDate}
+                onChange={setDueDate}
+                className="mt-1"
+              />
             </div>
 
             {/* Line Items */}

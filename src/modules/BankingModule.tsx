@@ -19,6 +19,7 @@ import { useAuth } from '@/lib/auth';
 import { CashFlowPrint } from '@/components/CashFlowPrint';
 import type { BankAccount } from '@/lib/types';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
+import { DateInput } from '@/components/DateInput';
 
 export function BankingModule() {
   const toast = useToast();
@@ -396,29 +397,17 @@ export function BankingModule() {
           {/* Top Filter & Actions Bar Card */}
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-4">
-              <div>
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
-                  From
-                </label>
-                <input
-                  type="date"
-                  value={cashFlowFromDate}
-                  onChange={(e) => setCashFlowFromDate(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-mono"
-                />
-              </div>
+              <DateInput
+                label="From"
+                value={cashFlowFromDate}
+                onChange={(val) => setCashFlowFromDate(val)}
+              />
 
-              <div>
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
-                  To
-                </label>
-                <input
-                  type="date"
-                  value={cashFlowToDate}
-                  onChange={(e) => setCashFlowToDate(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-mono"
-                />
-              </div>
+              <DateInput
+                label="To"
+                value={cashFlowToDate}
+                onChange={(val) => setCashFlowToDate(val)}
+              />
 
               <div className="pt-5">
                 <button

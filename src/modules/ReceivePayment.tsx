@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { todayISO } from '@/lib/utils';
+import { DateInput } from '@/components/DateInput';
 
 export function ReceivePayment() {
   const toast = useToast();
@@ -127,15 +128,11 @@ export function ReceivePayment() {
               </select>
             </div>
 
-            <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Date</label>
-              <input
-                type="date"
-                value={receiptDate}
-                onChange={(e) => setReceiptDate(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-              />
-            </div>
+            <DateInput
+              label="Date"
+              value={receiptDate}
+              onChange={(val) => setReceiptDate(val)}
+            />
           </div>
 
           {/* Row 2: Deposit to & Amount */}
