@@ -19,6 +19,7 @@ import { useAuth } from '@/lib/auth';
 import { downloadCSV, todayISO } from '@/lib/utils';
 import { LabelPrint } from '@/components/LabelPrint';
 import type { StockTransfer, StockAdjustment, ProductBatch, ProductSerial } from '@/lib/types';
+import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
 
 function ScannableBarcodeSVG({ value, height = 44, showText = true }: { value: string; height?: number; showText?: boolean }) {
   const pattern: number[] = [];
@@ -73,6 +74,8 @@ export function InventoryModule() {
   const { isAdmin } = useAuth();
   const {
     products,
+    productArticles = [],
+    universalArticles = [],
     warehouses,
     stockTransfers,
     stockAdjustments,
@@ -90,6 +93,11 @@ export function InventoryModule() {
     deleteSerial,
     updateProduct,
   } = useDataStore();
+
+  const allArticles = useMemo(
+    () => getAllArticles(universalArticles, products, productArticles),
+    [universalArticles, products, productArticles]
+  );
 
   const [activeSubTab, setActiveSubTab] = useState<
     'Overview' | 'Stock in Hand' | 'Stock Ledger' | 'Transfers' | 'Adjustments' | 'Batches' | 'Serial Numbers' | 'Barcodes & Labels'
@@ -111,8 +119,8 @@ export function InventoryModule() {
   const [transferNotes, setTransferNotes] = useState('');
 
   const [transferLineItems, setTransferLineItems] = useState<
-    { id: string; product_id: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
-  >([{ id: '1', product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
+    { id: string; product_id: string; article_id?: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
+  >([{ id: '1', product_id: '', article_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
 
   const openCreateTransferForm = () => {
     setEditingTransferId(null);
@@ -121,7 +129,7 @@ export function InventoryModule() {
     setTransferToWh(warehouses[1]?.id || warehouses[0]?.id || 'w1');
     setTransferNotes('');
     setTransferLineItems([
-      { id: crypto.randomUUID(), product_id: products[0]?.id || '', description: products[0]?.name || '', qty: 1, rate: products[0]?.purchase_price || 140, discount: 0, tax_pct: 0 },
+      { id: crypto.randomUUID(), product_id: products[0]?.id || '', article_id: '', description: products[0]?.name || '', qty: 1, rate: products[0]?.purchase_price || 140, discount: 0, tax_pct: 0 },
     ]);
     setTransferViewMode('form');
   };
@@ -129,7 +137,7 @@ export function InventoryModule() {
   const addTransferLineItem = () => {
     setTransferLineItems((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), product_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 },
+      { id: crypto.randomUUID(), product_id: '', article_id: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 },
     ]);
   };
 
@@ -143,11 +151,24 @@ export function InventoryModule() {
       prev.map((item) => {
         if (item.id !== id) return item;
         const updated = { ...item, [field]: value };
+        if (field === 'article_id') {
+          const validProds = getProductsForArticle(value, products, productArticles);
+          const stillValid = validProds.some((vp) => vp.id === item.product_id);
+          if (!stillValid) {
+            updated.product_id = '';
+            updated.description = value ? `[${value}]` : '';
+            updated.rate = 0;
+          }
+        }
         if (field === 'product_id') {
           const selectedProd = products.find((p) => p.id === value);
           if (selectedProd) {
-            updated.description = selectedProd.name;
-            updated.rate = selectedProd.purchase_price || 140;
+            const currentArt = updated.article_id || getArticleForProduct(selectedProd.id, products, productArticles);
+            updated.description = currentArt ? `[${currentArt}] ${selectedProd.name}` : selectedProd.name;
+            updated.rate = selectedProd.purchase_price || selectedProd.cost_price || 0;
+            if (!updated.article_id && currentArt) {
+              updated.article_id = currentArt;
+            }
           }
         }
         return updated;
@@ -191,8 +212,8 @@ export function InventoryModule() {
   const [adjustmentReason, setAdjustmentReason] = useState('');
 
   const [adjustmentLineItems, setAdjustmentLineItems] = useState<
-    { id: string; product_id: string; qty: number; unit_cost: number; notes: string }[]
-  >([{ id: '1', product_id: '', qty: 0, unit_cost: 0, notes: '' }]);
+    { id: string; product_id: string; article_id?: string; qty: number; unit_cost: number; notes: string }[]
+  >([{ id: '1', product_id: '', article_id: '', qty: 0, unit_cost: 0, notes: '' }]);
 
   const openCreateAdjustmentForm = () => {
     setEditingAdjustmentId(null);
@@ -200,7 +221,7 @@ export function InventoryModule() {
     setAdjustmentWarehouse(warehouses[0]?.id || 'w1');
     setAdjustmentReason('');
     setAdjustmentLineItems([
-      { id: crypto.randomUUID(), product_id: products[0]?.id || '', qty: 0, unit_cost: products[0]?.purchase_price || 140, notes: '' },
+      { id: crypto.randomUUID(), product_id: products[0]?.id || '', article_id: '', qty: 0, unit_cost: products[0]?.purchase_price || 140, notes: '' },
     ]);
     setAdjustmentViewMode('form');
   };
@@ -208,7 +229,7 @@ export function InventoryModule() {
   const addAdjustmentLineItem = () => {
     setAdjustmentLineItems((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), product_id: '', qty: 0, unit_cost: 0, notes: '' },
+      { id: crypto.randomUUID(), product_id: '', article_id: '', qty: 0, unit_cost: 0, notes: '' },
     ]);
   };
 
@@ -222,10 +243,22 @@ export function InventoryModule() {
       prev.map((item) => {
         if (item.id !== id) return item;
         const updated = { ...item, [field]: value };
+        if (field === 'article_id') {
+          const validProds = getProductsForArticle(value, products, productArticles);
+          const stillValid = validProds.some((vp) => vp.id === item.product_id);
+          if (!stillValid) {
+            updated.product_id = '';
+            updated.unit_cost = 0;
+          }
+        }
         if (field === 'product_id') {
           const selectedProd = products.find((p) => p.id === value);
           if (selectedProd) {
-            updated.unit_cost = selectedProd.purchase_price || 140;
+            const currentArt = updated.article_id || getArticleForProduct(selectedProd.id, products, productArticles);
+            updated.unit_cost = selectedProd.purchase_price || selectedProd.cost_price || 0;
+            if (!updated.article_id && currentArt) {
+              updated.article_id = currentArt;
+            }
           }
         }
         return updated;
@@ -1045,18 +1078,56 @@ export function InventoryModule() {
                         return (
                           <tr key={item.id} className="group">
                             <td className="py-3 pr-2">
-                              <select
-                                value={item.product_id}
-                                onChange={(e) => updateTransferLineItem(item.id, 'product_id', e.target.value)}
-                                className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                              >
-                                <option value="">Select product</option>
-                                {products.map((p) => (
-                                  <option key={p.id} value={p.id}>
-                                    {p.name}{p.article_name ? ` (Article: ${p.article_name})` : ''} [{p.code}]
-                                  </option>
-                                ))}
-                              </select>
+                              {(() => {
+                                const currentArt = item.article_id || getArticleForProduct(item.product_id, products, productArticles);
+                                const availableProds = getProductsForArticle(currentArt, products, productArticles);
+
+                                return (
+                                  <div className="space-y-1.5 min-w-[200px]">
+                                    <div>
+                                      <label className="text-[9px] font-bold uppercase text-amber-600 dark:text-amber-400 block mb-0.5">
+                                        Article (Major Head)
+                                      </label>
+                                      <select
+                                        value={currentArt}
+                                        onChange={(e) => {
+                                          const newArt = e.target.value;
+                                          updateTransferLineItem(item.id, 'article_id', newArt);
+                                        }}
+                                        className="w-full rounded-lg border border-amber-300/80 bg-amber-50/40 p-1.5 text-xs font-semibold text-slate-800 dark:border-amber-600/40 dark:bg-amber-950/20 dark:text-slate-100 outline-none"
+                                      >
+                                        <option value="">-- Select Article --</option>
+                                        {allArticles.map((art) => (
+                                          <option key={art} value={art}>
+                                            {art}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+
+                                    <div>
+                                      <label className="text-[9px] font-bold uppercase text-slate-400 block mb-0.5">
+                                        Product / Option
+                                      </label>
+                                      <select
+                                        value={item.product_id}
+                                        disabled={!currentArt && availableProds.length === 0}
+                                        onChange={(e) => updateTransferLineItem(item.id, 'product_id', e.target.value)}
+                                        className="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 disabled:opacity-50"
+                                      >
+                                        <option value="">
+                                          {currentArt ? '-- Select Product under this Article --' : '-- Select Article first --'}
+                                        </option>
+                                        {availableProds.map((p) => (
+                                          <option key={p.id} value={p.id}>
+                                            {p.name} [{p.code}] — Rs {p.purchase_price || p.cost_price || 0}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </td>
 
                             <td className="py-3 px-2">
@@ -1393,18 +1464,56 @@ export function InventoryModule() {
                       {adjustmentLineItems.map((item) => (
                         <tr key={item.id} className="group">
                           <td className="py-3 pr-2">
-                            <select
-                              value={item.product_id}
-                              onChange={(e) => updateAdjustmentLineItem(item.id, 'product_id', e.target.value)}
-                              className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                            >
-                              <option value="">Select product</option>
-                              {products.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.name}{p.article_name ? ` (Article: ${p.article_name})` : ''} [{p.code}]
-                                </option>
-                              ))}
-                            </select>
+                            {(() => {
+                              const currentArt = item.article_id || getArticleForProduct(item.product_id, products, productArticles);
+                              const availableProds = getProductsForArticle(currentArt, products, productArticles);
+
+                              return (
+                                <div className="space-y-1.5 min-w-[200px]">
+                                  <div>
+                                    <label className="text-[9px] font-bold uppercase text-amber-600 dark:text-amber-400 block mb-0.5">
+                                      Article (Major Head)
+                                    </label>
+                                    <select
+                                      value={currentArt}
+                                      onChange={(e) => {
+                                        const newArt = e.target.value;
+                                        updateAdjustmentLineItem(item.id, 'article_id', newArt);
+                                      }}
+                                      className="w-full rounded-lg border border-amber-300/80 bg-amber-50/40 p-1.5 text-xs font-semibold text-slate-800 dark:border-amber-600/40 dark:bg-amber-950/20 dark:text-slate-100 outline-none"
+                                    >
+                                      <option value="">-- Select Article --</option>
+                                      {allArticles.map((art) => (
+                                        <option key={art} value={art}>
+                                          {art}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+
+                                  <div>
+                                    <label className="text-[9px] font-bold uppercase text-slate-400 block mb-0.5">
+                                      Product / Option
+                                    </label>
+                                    <select
+                                      value={item.product_id}
+                                      disabled={!currentArt && availableProds.length === 0}
+                                      onChange={(e) => updateAdjustmentLineItem(item.id, 'product_id', e.target.value)}
+                                      className="w-full rounded-lg border border-slate-300 bg-white p-1.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 disabled:opacity-50"
+                                    >
+                                      <option value="">
+                                        {currentArt ? '-- Select Product under this Article --' : '-- Select Article first --'}
+                                      </option>
+                                      {availableProds.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                          {p.name} [{p.code}] — Rs {p.purchase_price || p.cost_price || 0}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </td>
 
                           <td className="py-3 px-2">

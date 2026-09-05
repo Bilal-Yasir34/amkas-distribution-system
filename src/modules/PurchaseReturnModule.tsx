@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { todayISO, safeUUID , formatDate} from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
 import { Plus, Edit, Trash2, X } from 'lucide-react';
+import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
 
 export function PurchaseReturnModule() {
   const toast = useToast();
@@ -19,8 +20,14 @@ export function PurchaseReturnModule() {
     deletePurchaseReturn,
     updateProduct,
     productArticles,
+    universalArticles = [],
     accountTypes
   } = useDataStore();
+
+  const allArticles = useMemo(
+    () => getAllArticles(universalArticles, products, productArticles),
+    [universalArticles, products, productArticles]
+  );
 
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -135,12 +142,28 @@ export function PurchaseReturnModule() {
       prev.map((item) => {
         if (item.id !== id) return item;
         const updated = { ...item, ...patch };
+        const p = products.find((prod) => prod.id === (patch.product_id !== undefined ? patch.product_id : item.product_id));
+
+        if (patch.article_id !== undefined && patch.product_id === undefined) {
+          const newArt = patch.article_id;
+          const validProds = getProductsForArticle(newArt, products, productArticles);
+          const stillValid = validProds.some((vp) => vp.id === item.product_id);
+          if (!stillValid) {
+            updated.product_id = '';
+            updated.description = newArt ? `[${newArt}]` : '';
+            updated.rate = 0;
+          }
+        }
+
         if (patch.product_id) {
-          const p = products.find((prod) => prod.id === patch.product_id);
           if (p) {
-            updated.description = p.article_name ? `${p.name} (${p.article_name})` : p.name;
+            const currentArt = updated.article_id || getArticleForProduct(p.id, products, productArticles);
+            updated.description = currentArt ? `[${currentArt}] ${p.name}` : (p.description || p.name);
             updated.rate = p.purchase_price || p.cost_price || 0;
             updated.tax_pct = p.tax_pct || 0;
+            if (!updated.article_id && currentArt) {
+              updated.article_id = currentArt;
+            }
           }
         }
         return updated;
@@ -544,55 +567,67 @@ export function PurchaseReturnModule() {
                   {lineItems.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
                       <td className="px-4 py-3">
-                        <select
-                          value={item.product_id}
-                          onChange={(e) => updateLineItem(item.id, { product_id: e.target.value, article_id: '' })}
-                          className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                        >
-                          <option value="">Select product</option>
-                          {products.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name}{p.article_name ? ` (Article: ${p.article_name})` : ''} [{p.code}]
-                            </option>
-                          ))}
-                        </select>
-                        {(() => {
-                          const prod = products.find((x) => x.id === item.product_id);
-                          const prodArts = (productArticles || []).filter(a => a.product_id === item.product_id);
-                          const selectedArt = prodArts.find(a => a.id === item.article_id);
-                          
-                          return (
-                            <div className="mt-2 flex flex-col gap-2">
-                              {prodArts.length > 0 && (
-                                <select
-                                  value={item.article_id || ''}
-                                  onChange={(e) => {
-                                    const art = prodArts.find(a => a.id === e.target.value);
-                                    updateLineItem(item.id, { 
-                                      article_id: e.target.value,
-                                      description: prod && art ? `${prod.name} (${(art as any).name || (art as any).article_name || (art as any).article_no || 'Unnamed Article'})` : (prod?.description || prod?.name || '')
-                                    });
-                                  }}
-                                  className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 outline-none focus:border-amber-500"
-                                >
-                                  <option value="">Select Article...</option>
-                                  {prodArts.map((art) => (
-                                    <option key={art.id} value={art.id}>
-                                      {(art as any).name || (art as any).article_name || (art as any).article_no || 'Unnamed Article'}
+                          {(() => {
+                            const currentArt = item.article_id || getArticleForProduct(item.product_id, products, productArticles);
+                            const availableProds = getProductsForArticle(currentArt, products, productArticles);
+
+                            return (
+                              <div className="space-y-1.5 min-w-[210px]">
+                                <div>
+                                  <label className="text-[9px] font-bold uppercase text-amber-600 dark:text-amber-400 block mb-0.5">
+                                    Article (Major Head)
+                                  </label>
+                                  <select
+                                    value={currentArt}
+                                    onChange={(e) => {
+                                      const newArt = e.target.value;
+                                      updateLineItem(item.id, {
+                                        article_id: newArt,
+                                        product_id: '',
+                                        description: newArt ? `[${newArt}]` : '',
+                                        rate: 0,
+                                      });
+                                    }}
+                                    className="w-full rounded-xl border border-amber-300/80 bg-amber-50/40 p-2 text-xs font-semibold text-slate-800 dark:border-amber-600/40 dark:bg-amber-950/20 dark:text-slate-100 outline-none"
+                                  >
+                                    <option value="">-- Select Article --</option>
+                                    {allArticles.map((art) => (
+                                      <option key={art} value={art}>
+                                        {art}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="text-[9px] font-bold uppercase text-slate-400 block mb-0.5">
+                                    Product / Option
+                                  </label>
+                                  <select
+                                    value={item.product_id}
+                                    disabled={!currentArt && availableProds.length === 0}
+                                    onChange={(e) =>
+                                      updateLineItem(item.id, {
+                                        product_id: e.target.value,
+                                        article_id: currentArt,
+                                      })
+                                    }
+                                    className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 disabled:opacity-50"
+                                  >
+                                    <option value="">
+                                      {currentArt ? '-- Select Product under this Article --' : '-- Select Article first --'}
                                     </option>
-                                  ))}
-                                </select>
-                              )}
-                              
-                              {!prodArts.length && prod?.article_name ? (
-                                <span className="inline-block text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 w-fit">
-                                  Article: {prod.article_name}
-                                </span>
-                              ) : null}
-                            </div>
-                          );
-                        })()}
-                      </td>
+                                    {availableProds.map((p) => (
+                                      <option key={p.id} value={p.id}>
+                                        {p.name} [{p.code}] — Rs {p.purchase_price || p.cost_price || p.sale_price}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </td>
                       <td className="px-4 py-3">
                         <input
                           type="text"

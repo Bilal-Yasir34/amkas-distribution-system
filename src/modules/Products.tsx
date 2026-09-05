@@ -1,17 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Plus, Package, Search, X, Edit, Trash2, Power, Download, Palette, Tag, ChevronDown, ChevronUp, Check, Sparkles } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Package, Search, X, Edit, Trash2, Power, Download, Tag, Layers, Check, Sparkles, Palette } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { downloadCSV, nextDocNumber } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
-import type { Product, ProductArticle } from '@/lib/types';
+import type { Product } from '@/lib/types';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
+import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
 
-interface LocalArticle {
+interface LocalProductItem {
   id: string;
   name: string;
-  colours: string[];
-  isNew?: boolean;
 }
 
 export function Products() {
@@ -26,18 +25,19 @@ export function Products() {
     updateProduct,
     deleteProduct,
     addProductArticle,
-    updateProductArticle,
-    deleteProductArticle,
     addUniversalArticle,
   } = useDataStore();
 
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingArticleName, setEditingArticleName] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
-  // Form State
-  const [name, setName] = useState('');
+  // Article (Major Head) Filter
+  const [articleFilter, setArticleFilter] = useState('all');
+
+  // Form State: Article is Major Head
+  const [articleName, setArticleName] = useState('');
   const [sku, setSku] = useState('');
   const [barcode, setBarcode] = useState('');
   const [category, setCategory] = useState('Uncategorized');
@@ -53,68 +53,40 @@ export function Products() {
   const [trackSerials, setTrackSerials] = useState(false);
   const [isActive, setIsActive] = useState(true);
 
-  // Article & Colour State
-  const [localArticles, setLocalArticles] = useState<LocalArticle[]>([]);
-  const [newArticleName, setNewArticleName] = useState('');
-  const [showArticleInput, setShowArticleInput] = useState(false);
-  const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
-  const [editingArticleName, setEditingArticleName] = useState('');
-  const [existingArticleSearch, setExistingArticleSearch] = useState('');
+  // Products / Subcategories under this Article
+  const [localProducts, setLocalProducts] = useState<LocalProductItem[]>([]);
+  const [newProductName, setNewProductName] = useState('');
+  const [showProductInput, setShowProductInput] = useState(false);
 
   // Dynamically collect all unique articles universally registered across the store
-  const allUniversalArticles = useMemo(() => {
-    const articleMap = new Map<string, { name: string; defaultColours: string[] }>();
+  const allArticles = useMemo(() => {
+    return getAllArticles(universalArticles, products, productArticles);
+  }, [universalArticles, products, productArticles]);
 
-    // 1. From universalArticles in store
-    (universalArticles || []).forEach((artName) => {
-      const trimmed = artName?.trim();
-      if (trimmed && !articleMap.has(trimmed.toLowerCase())) {
-        articleMap.set(trimmed.toLowerCase(), { name: trimmed, defaultColours: [] });
-      }
+  // Group products by their Article
+  const articleGroups = useMemo(() => {
+    const groups: Record<string, Product[]> = {};
+
+    // First ensure all articles exist as keys
+    allArticles.forEach((art) => {
+      groups[art] = [];
     });
 
-    // 2. From all productArticles in store
-    (productArticles || []).forEach((pa) => {
-      const trimmed = pa.name?.trim();
-      if (trimmed) {
-        const key = trimmed.toLowerCase();
-        const existing = articleMap.get(key);
-        if (!existing) {
-          articleMap.set(key, { name: trimmed, defaultColours: pa.colours || [] });
-        } else if ((!existing.defaultColours || existing.defaultColours.length === 0) && pa.colours?.length) {
-          existing.defaultColours = pa.colours;
-        }
+    products.forEach((p) => {
+      const art = p.article_name || getArticleForProduct(p.id, products, productArticles) || 'Unassigned';
+      if (!groups[art]) {
+        groups[art] = [];
       }
+      groups[art].push(p);
     });
 
-    // 3. From products' article_name field
-    (products || []).forEach((p) => {
-      if (p.article_name) {
-        p.article_name.split(',').forEach((seg) => {
-          const trimmed = seg.trim();
-          if (trimmed && !articleMap.has(trimmed.toLowerCase())) {
-            articleMap.set(trimmed.toLowerCase(), { name: trimmed, defaultColours: [] });
-          }
-        });
-      }
-    });
-
-    return Array.from(articleMap.values()).sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-    );
-  }, [universalArticles, productArticles, products]);
-
-  const filteredExistingArticles = useMemo(() => {
-    if (!existingArticleSearch.trim()) return allUniversalArticles;
-    return allUniversalArticles.filter((art) =>
-      art.name.toLowerCase().includes(existingArticleSearch.toLowerCase())
-    );
-  }, [allUniversalArticles, existingArticleSearch]);
+    return groups;
+  }, [allArticles, products, productArticles]);
 
   const openCreate = () => {
-    setEditingId(null);
-    setName('');
-    const autoCode = nextDocNumber('SKU', products.map((p) => p.code), 5);
+    setEditingArticleName(null);
+    setArticleName('');
+    const autoCode = nextDocNumber('ART', products.map((p) => p.code), 4);
     setSku(autoCode);
     setBarcode(autoCode);
     setCategory('Uncategorized');
@@ -129,239 +101,272 @@ export function Products() {
     setTrackBatches(false);
     setTrackSerials(false);
     setIsActive(true);
-    setLocalArticles([]);
-    setNewArticleName('');
-    setShowArticleInput(false);
-    setEditingArticleId(null);
-    setExistingArticleSearch('');
-
+    setLocalProducts([]);
+    setNewProductName('');
+    setShowProductInput(false);
     setModalOpen(true);
   };
 
-  const openEdit = (p: Product) => {
-    setEditingId(p.id);
-    setName(p.name);
-    setSku(p.code);
-    setBarcode(p.barcode_value || p.code);
-    setCategory(p.category || 'Uncategorized');
-    setUnit(p.unit || 'pcs');
-    setDescription(p.description || '');
-    setPurchasePrice(String(p.purchase_price || 0));
-    setOpeningCost(String(p.opening_average_cost || 0));
-    setSalePrice(String(p.sale_price || 0));
-    setTaxRate(String(p.tax_pct || 0));
-    setReorderLevel(String(p.reorder_level || 0));
-    setStockQuantity(String(p.stock_quantity ?? p.opening_balance ?? 0));
-    setTrackBatches(p.track_batches);
-    setTrackSerials(p.track_serials);
-    setIsActive(p.is_active);
+  const openEdit = (artName: string) => {
+    setEditingArticleName(artName);
+    setArticleName(artName);
 
-    // Load existing articles from store
-    const existingArticles = productArticles.filter((a) => a.product_id === p.id);
-    setLocalArticles(existingArticles.map((a) => ({ id: a.id, name: a.name, colours: [...a.colours] })));
-    setNewArticleName('');
-    setShowArticleInput(false);
-    setEditingArticleId(null);
-    setExistingArticleSearch('');
+    const prodsUnderArt = getProductsForArticle(artName, products, productArticles);
+    const firstP = prodsUnderArt[0];
 
-    setModalOpen(true);
-  };
-
-  const handleToggleExistingArticle = (artName: string, defaultColours: string[] = []) => {
-    const trimmed = artName.trim();
-    const existingIndex = localArticles.findIndex((a) => a.name.toLowerCase() === trimmed.toLowerCase());
-    if (existingIndex >= 0) {
-      setLocalArticles((prev) => prev.filter((_, idx) => idx !== existingIndex));
-      toast.info(`Removed article "${trimmed}" from this product`);
+    if (firstP) {
+      setSku(firstP.code);
+      setBarcode(firstP.barcode_value || firstP.code);
+      setCategory(firstP.category || 'Uncategorized');
+      setUnit(firstP.unit || 'pcs');
+      setDescription(firstP.description || '');
+      setPurchasePrice(String(firstP.purchase_price || 0));
+      setOpeningCost(String(firstP.opening_average_cost || 0));
+      setSalePrice(String(firstP.sale_price || 0));
+      setTaxRate(String(firstP.tax_pct || 0));
+      setReorderLevel(String(firstP.reorder_level || 0));
+      setStockQuantity(String(firstP.stock_quantity ?? firstP.opening_balance ?? 0));
+      setTrackBatches(firstP.track_batches);
+      setTrackSerials(firstP.track_serials);
+      setIsActive(firstP.is_active);
     } else {
-      const newId = crypto.randomUUID();
-      setLocalArticles((prev) => [
-        ...prev,
-        { id: newId, name: trimmed, colours: [...defaultColours], isNew: true },
-      ]);
-      addUniversalArticle(trimmed);
-      toast.success(`Added article "${trimmed}" to this product`);
+      const autoCode = nextDocNumber('ART', products.map((p) => p.code), 4);
+      setSku(autoCode);
+      setBarcode(autoCode);
+      setCategory('Uncategorized');
+      setUnit('pcs');
+      setDescription('');
+      setPurchasePrice('0');
+      setOpeningCost('0');
+      setSalePrice('0');
+      setTaxRate('0');
+      setReorderLevel('0');
+      setStockQuantity('0');
+      setTrackBatches(false);
+      setTrackSerials(false);
+      setIsActive(true);
     }
-  };
 
-  const handleAddArticle = () => {
-    const trimmed = newArticleName.trim();
-    if (!trimmed) return toast.error('Article name is required');
-    if (localArticles.some((a) => a.name.toLowerCase() === trimmed.toLowerCase())) {
-      return toast.error('This article is already added to this product');
-    }
-    const existingMaster = allUniversalArticles.find((a) => a.name.toLowerCase() === trimmed.toLowerCase());
-    const colours = existingMaster ? [...existingMaster.defaultColours] : [];
-
-    const newId = crypto.randomUUID();
-    setLocalArticles((prev) => [...prev, { id: newId, name: trimmed, colours, isNew: true }]);
-    addUniversalArticle(trimmed);
-    setNewArticleName('');
-    setShowArticleInput(false);
-    toast.success(`Added article "${trimmed}"`);
-  };
-
-  const handleRemoveArticle = (articleId: string) => {
-    setLocalArticles((prev) => prev.filter((a) => a.id !== articleId));
-  };
-
-  const handleSaveArticleEdit = () => {
-    const trimmed = editingArticleName.trim();
-    if (!trimmed) return toast.error('Article name cannot be empty');
-    if (localArticles.some((a) => a.id !== editingArticleId && a.name.toLowerCase() === trimmed.toLowerCase())) {
-      return toast.error('This article name already exists');
-    }
-    setLocalArticles((prev) =>
-      prev.map((a) => (a.id === editingArticleId ? { ...a, name: trimmed } : a))
+    setLocalProducts(
+      prodsUnderArt.map((p) => ({
+        id: p.id,
+        name: p.name,
+      }))
     );
-    addUniversalArticle(trimmed);
-    setEditingArticleId(null);
+    setNewProductName('');
+    setShowProductInput(false);
+    setModalOpen(true);
+  };
+
+  const handleAddLocalProduct = () => {
+    const trimmed = newProductName.trim();
+    if (!trimmed) {
+      toast.error('Product / Subcategory name cannot be empty');
+      return;
+    }
+    if (localProducts.some((p) => p.name.toLowerCase() === trimmed.toLowerCase())) {
+      toast.error('This product / subcategory is already added under this article');
+      return;
+    }
+
+    setLocalProducts((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        name: trimmed,
+      },
+    ]);
+    setNewProductName('');
+  };
+
+  const handleRemoveLocalProduct = (id: string) => {
+    setLocalProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
   const handleSave = () => {
-    if (!name.trim()) return toast.error('Product name is required');
-
-    const code = sku.trim() || `SKU-${String(products.length + 1).padStart(5, '0')}`;
-
-    // Build article_name summary for backward compat
-    const articleSummary = localArticles.length > 0
-      ? localArticles.map((a) => a.name).join(', ')
-      : null;
-
-    if (editingId) {
-      updateProduct(editingId, {
-        code,
-        name,
-        article_name: articleSummary,
-        category,
-        unit,
-        description,
-        purchase_price: Number(purchasePrice) || 0,
-        opening_average_cost: Number(openingCost) || 0,
-        sale_price: Number(salePrice) || 0,
-        tax_pct: Number(taxRate) || 0,
-        reorder_level: Number(reorderLevel) || 0,
-        stock_quantity: Number(stockQuantity) || 0,
-        opening_balance: Number(stockQuantity) || 0,
-        track_batches: trackBatches,
-        track_serials: trackSerials,
-        barcode_value: barcode || code,
-        is_active: isActive,
-      });
-
-      // Sync articles: delete removed, update existing, add new
-      const existingArticleIds = productArticles
-        .filter((a) => a.product_id === editingId)
-        .map((a) => a.id);
-      const currentLocalIds = localArticles.map((a) => a.id);
-
-      // Delete removed articles
-      existingArticleIds.forEach((existId) => {
-        if (!currentLocalIds.includes(existId)) {
-          deleteProductArticle(existId);
-        }
-      });
-
-      // Add new or update existing
-      localArticles.forEach((la) => {
-        addUniversalArticle(la.name);
-        if (la.isNew || !existingArticleIds.includes(la.id)) {
-          addProductArticle({ product_id: editingId, name: la.name, colours: la.colours });
-        } else {
-          updateProductArticle(la.id, { name: la.name, colours: la.colours });
-        }
-      });
-
-      toast.success(`Product ${name} updated`);
-    } else {
-      const newProductId = crypto.randomUUID();
-      addProduct({
-        id: newProductId,
-        code,
-        name,
-        article_name: articleSummary,
-        category,
-        unit,
-        length: 0,
-        width: 0,
-        purchase_price: Number(purchasePrice) || 0,
-        opening_average_cost: Number(openingCost) || 0,
-        sale_price: Number(salePrice) || 0,
-        tax_pct: Number(taxRate) || 0,
-        reorder_level: Number(reorderLevel) || 0,
-        stock_quantity: Number(stockQuantity) || 0,
-        opening_balance: Number(stockQuantity) || 0,
-        track_batches: trackBatches,
-        track_serials: trackSerials,
-        barcode_value: barcode || code,
-        description,
-        is_active: isActive,
-      });
-
-      localArticles.forEach((la) => {
-        addProductArticle({ product_id: newProductId, name: la.name, colours: la.colours });
-        addUniversalArticle(la.name);
-      });
-
-      toast.success(`Product ${name} added`);
+    const trimmedArt = articleName.trim();
+    if (!trimmedArt) {
+      toast.error('Article name is required');
+      return;
     }
+
+    // Register single Article universally
+    addUniversalArticle(trimmedArt);
+
+    // Products to create or link under this article
+    const productsToPersist =
+      localProducts.length > 0
+        ? localProducts
+        : [{ id: crypto.randomUUID(), name: trimmedArt }];
+
+    if (editingArticleName) {
+      // Find existing products under previous article name
+      const existingProds = getProductsForArticle(editingArticleName, products, productArticles);
+
+      // Update existing or add new
+      productsToPersist.forEach((pItem, idx) => {
+        const existing = existingProds.find((ep) => ep.id === pItem.id || ep.name.toLowerCase() === pItem.name.toLowerCase());
+        const prodCode = existing?.code || `${sku}-${idx + 1}`;
+
+        if (existing) {
+          updateProduct(existing.id, {
+            name: pItem.name.trim(),
+            article_name: trimmedArt,
+            category,
+            unit,
+            description,
+            purchase_price: Number(purchasePrice) || 0,
+            opening_average_cost: Number(openingCost) || 0,
+            sale_price: Number(salePrice) || 0,
+            tax_pct: Number(taxRate) || 0,
+            reorder_level: Number(reorderLevel) || 0,
+            stock_quantity: Number(stockQuantity) || 0,
+            opening_balance: Number(stockQuantity) || 0,
+            track_batches: trackBatches,
+            track_serials: trackSerials,
+            barcode_value: barcode || prodCode,
+            is_active: isActive,
+          });
+
+          const hasArtRecord = productArticles.some(
+            (pa) => pa.product_id === existing.id && pa.name.toLowerCase() === trimmedArt.toLowerCase()
+          );
+          if (!hasArtRecord) {
+            addProductArticle({ product_id: existing.id, name: trimmedArt, colours: [] });
+          }
+        } else {
+          const newId = crypto.randomUUID();
+          addProduct({
+            id: newId,
+            code: prodCode,
+            name: pItem.name.trim(),
+            article_name: trimmedArt,
+            category,
+            unit,
+            length: 0,
+            width: 0,
+            purchase_price: Number(purchasePrice) || 0,
+            opening_average_cost: Number(openingCost) || 0,
+            sale_price: Number(salePrice) || 0,
+            tax_pct: Number(taxRate) || 0,
+            reorder_level: Number(reorderLevel) || 0,
+            stock_quantity: Number(stockQuantity) || 0,
+            opening_balance: Number(stockQuantity) || 0,
+            track_batches: trackBatches,
+            track_serials: trackSerials,
+            barcode_value: barcode || prodCode,
+            description,
+            is_active: isActive,
+          });
+          addProductArticle({ product_id: newId, name: trimmedArt, colours: [] });
+        }
+      });
+
+      toast.success(`Article "${trimmedArt}" updated successfully!`);
+    } else {
+      // Add new products under the Article
+      productsToPersist.forEach((pItem, idx) => {
+        const newId = crypto.randomUUID();
+        const prodCode = productsToPersist.length === 1 ? sku : `${sku}-${idx + 1}`;
+
+        addProduct({
+          id: newId,
+          code: prodCode,
+          name: pItem.name.trim(),
+          article_name: trimmedArt,
+          category,
+          unit,
+          length: 0,
+          width: 0,
+          purchase_price: Number(purchasePrice) || 0,
+          opening_average_cost: Number(openingCost) || 0,
+          sale_price: Number(salePrice) || 0,
+          tax_pct: Number(taxRate) || 0,
+          reorder_level: Number(reorderLevel) || 0,
+          stock_quantity: Number(stockQuantity) || 0,
+          opening_balance: Number(stockQuantity) || 0,
+          track_batches: trackBatches,
+          track_serials: trackSerials,
+          barcode_value: barcode || prodCode,
+          description,
+          is_active: isActive,
+        });
+
+        addProductArticle({ product_id: newId, name: trimmedArt, colours: [] });
+      });
+
+      toast.success(`Article "${trimmedArt}" created with ${productsToPersist.length} product(s)!`);
+    }
+
     setModalOpen(false);
   };
 
   const handleDeleteConfirm = () => {
     if (deleteTarget) {
       deleteProduct(deleteTarget.id);
-      toast.success(`Product ${deleteTarget.name} deleted`);
+      toast.success(`Item deleted`);
       setDeleteTarget(null);
     }
   };
 
-  const toggleStatus = (p: Product) => {
-    updateProduct(p.id, { is_active: !p.is_active });
-    toast.success(`${p.name} is now ${!p.is_active ? 'Active' : 'Inactive'}`);
+  const toggleArticleStatus = (artName: string, currentActive: boolean) => {
+    const prods = getProductsForArticle(artName, products, productArticles);
+    prods.forEach((p) => {
+      updateProduct(p.id, { is_active: !currentActive });
+    });
+    toast.success(`Article "${artName}" is now ${!currentActive ? 'Active' : 'Inactive'}`);
   };
 
-  const filtered = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.article_name && p.article_name.toLowerCase().includes(search.toLowerCase())) ||
-      p.code.toLowerCase().includes(search.toLowerCase()) ||
-      (p.category || '').toLowerCase().includes(search.toLowerCase())
-  );
+  // Filter articles based on search & filter
+  const displayedArticles = useMemo(() => {
+    return allArticles.filter((art) => {
+      if (articleFilter !== 'all' && art.toLowerCase() !== articleFilter.toLowerCase()) {
+        return false;
+      }
+      if (!search.trim()) return true;
+
+      const q = search.toLowerCase();
+      const prods = getProductsForArticle(art, products, productArticles);
+      const matchesArtName = art.toLowerCase().includes(q);
+      const matchesProdName = prods.some(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.code.toLowerCase().includes(q) ||
+          (p.category || '').toLowerCase().includes(q)
+      );
+
+      return matchesArtName || matchesProdName;
+    });
+  }, [allArticles, articleFilter, search, products, productArticles]);
 
   const handleExportCSV = () => {
-    downloadCSV('products_catalog', products as unknown as Record<string, unknown>[]);
-    toast.success('Product catalog exported to CSV');
-  };
-
-  const getArticleCount = (productId: string) => {
-    return productArticles.filter((a) => a.product_id === productId).length;
-  };
-
-  const getArticleSummary = (productId: string) => {
-    const arts = productArticles.filter((a) => a.product_id === productId);
-    return arts;
+    downloadCSV('articles_catalog', products as unknown as Record<string, unknown>[]);
+    toast.success('Catalog exported to CSV');
   };
 
   return (
     <div className="space-y-5">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-500">NICE ENTERPRISES</p>
-        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Products</h1>
+        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Articles & Products</h1>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Articles are major heads; products are subcategory options under each article.
+        </p>
       </div>
 
       <div className="space-y-4">
+        {/* ACTION BAR */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PRODUCT CATALOG</p>
-            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Products & services</h2>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CATALOG MANAGEMENT</p>
+            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Articles Catalog</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:flex-initial w-full sm:w-auto">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search products..."
+                placeholder="Search articles & products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none sm:w-56"
@@ -374,23 +379,69 @@ export function Products() {
               <Download className="h-3.5 w-3.5" /> Export
             </button>
             <button
-              onClick={openCreate}
-              className="flex items-center gap-1.5 btn-primary"
+              onClick={() => openCreate()}
+              className="flex items-center gap-1.5 btn-primary text-xs"
             >
-              <Plus className="h-4 w-4" /> Add product
+              <Plus className="h-4 w-4" /> Add Article
             </button>
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
+        {/* ARTICLE FILTER PILLS */}
+        {allArticles.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1 shrink-0">
+              <Layers className="h-3 w-3 text-amber-500" /> Article:
+            </span>
+            <button
+              onClick={() => setArticleFilter('all')}
+              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition shrink-0 ${
+                articleFilter === 'all'
+                  ? 'bg-amber-500 text-white shadow-xs'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
+              }`}
+            >
+              All Articles ({allArticles.length})
+            </button>
+            {allArticles.map((art) => {
+              const count = getProductsForArticle(art, products, productArticles).length;
+              return (
+                <button
+                  key={art}
+                  onClick={() => setArticleFilter(art)}
+                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition shrink-0 ${
+                    articleFilter === art
+                      ? 'bg-amber-500 text-white shadow-xs'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <Tag className="h-3 w-3" />
+                  <span>{art}</span>
+                  <span
+                    className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                      articleFilter === art
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ARTICLES TABLE */}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+          <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
+            <thead className="border-b border-slate-100 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
               <tr>
-                <th className="px-4 py-3">Product</th>
-                <th className="px-4 py-3">Articles</th>
-                <th className="px-4 py-3">SKU</th>
+                <th className="px-4 py-3">Article (Major Head)</th>
+                <th className="px-4 py-3">Products / Subcategories</th>
+                <th className="px-4 py-3">Code / SKU</th>
                 <th className="px-4 py-3">Category</th>
-                <th className="px-4 py-3">Average Cost</th>
+                <th className="px-4 py-3">Purchase Price</th>
                 <th className="px-4 py-3">Sale Price</th>
                 <th className="px-4 py-3">Tracking</th>
                 <th className="px-4 py-3">Status</th>
@@ -398,91 +449,115 @@ export function Products() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filtered.length === 0 ? (
+              {displayedArticles.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
-                    No products found.
+                    No articles found. Click "+ Add Article" to create your first article head.
                   </td>
                 </tr>
               ) : (
-                filtered.map((p) => {
-                  const articles = getArticleSummary(p.id);
-                  return (
-                    <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                      <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">
-                        {p.name}
-                        <span className="block text-[10px] text-slate-400">{p.unit || 'pcs'}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {articles.length > 0 ? (
-                          <div className="space-y-1">
-                            {articles.map((art) => (
-                              <div key={art.id}>
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                                  <Tag className="h-2.5 w-2.5 mr-1" />
-                                  {art.name}
-                                </span>
+                displayedArticles.map((artName) => {
+                  const prodsUnderArt = getProductsForArticle(artName, products, productArticles);
+                  const firstP = prodsUnderArt[0];
+                  const isArtActive = prodsUnderArt.some((p) => p.is_active);
 
-                              </div>
+                  return (
+                    <tr key={artName} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-100">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                          <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{artName}</span>
+                        </div>
+                        <span className="block text-[10px] text-slate-400 mt-0.5">
+                          {prodsUnderArt.length} product option{prodsUnderArt.length !== 1 ? 's' : ''}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3">
+                        {prodsUnderArt.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {prodsUnderArt.map((p) => (
+                              <span
+                                key={p.id}
+                                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-100/80 px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                              >
+                                <Package className="h-2.5 w-2.5 text-amber-500" />
+                                {p.name}
+                              </span>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-slate-400">—</span>
+                          <span className="text-slate-400 italic text-[11px]">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 font-mono text-slate-500">{p.code}</td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{p.category || 'Uncategorized'}</td>
+
+                      <td className="px-4 py-3 font-mono font-medium text-slate-500">
+                        {firstP?.code || '—'}
+                      </td>
+
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                        {firstP?.category || 'Uncategorized'}
+                      </td>
+
                       <td className="px-4 py-3 font-mono text-slate-600 dark:text-slate-400">
-                        Rs. {(p.opening_average_cost || p.purchase_price || 0).toFixed(2)}
+                        Rs. {(firstP?.opening_average_cost || firstP?.purchase_price || 0).toFixed(2)}
                       </td>
+
                       <td className="px-4 py-3 font-mono font-semibold text-slate-800 dark:text-slate-200">
-                        Rs. {(p.sale_price || 0).toFixed(2)}
+                        Rs. {(firstP?.sale_price || 0).toFixed(2)}
                       </td>
-                      <td className="px-4 py-3 text-slate-400">
-                        {p.track_batches && p.track_serials
+
+                      <td className="px-4 py-3 text-slate-400 text-[11px]">
+                        {firstP?.track_batches && firstP?.track_serials
                           ? 'Batches & Serials'
-                          : p.track_batches
+                          : firstP?.track_batches
                           ? 'Batches'
-                          : p.track_serials
+                          : firstP?.track_serials
                           ? 'Serials'
                           : '—'}
                       </td>
+
                       <td className="px-4 py-3">
                         <span
                           className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                            p.is_active ? 'bg-amber-500/15 text-amber-500 dark:text-amber-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                            isArtActive
+                              ? 'bg-amber-500/15 text-amber-500 dark:text-amber-400'
+                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                           }`}
                         >
-                          {p.is_active ? 'Active' : 'Deactivated'}
+                          {isArtActive ? 'Active' : 'Deactivated'}
                         </span>
                       </td>
+
                       <td className="px-4 py-3 text-right">
                         {isAdmin ? (
                           <div className="flex items-center justify-end gap-2">
                             <button
                               type="button"
-                              onClick={() => toggleStatus(p)}
+                              onClick={() => toggleArticleStatus(artName, isArtActive)}
                               className={`flex items-center gap-1 text-xs font-bold transition px-2 py-1 rounded-lg border ${
-                                p.is_active
+                                isArtActive
                                   ? 'border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-400'
                                   : 'border-amber-500/30 bg-amber-500/10/50 text-amber-500 hover:bg-amber-500/20 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400'
                               }`}
                             >
                               <Power className="h-3.5 w-3.5" />
-                              {p.is_active ? 'Deactivate' : 'Activate'}
+                              {isArtActive ? 'Deactivate' : 'Activate'}
                             </button>
                             <button
-                              onClick={() => openEdit(p)}
+                              onClick={() => openEdit(artName)}
                               className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-slate-700 dark:hover:text-white"
                             >
                               <Edit className="h-3.5 w-3.5" /> Edit
                             </button>
-                            <button
-                              onClick={() => setDeleteTarget({ id: p.id, name: p.name })}
-                              className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-400"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" /> Delete
-                            </button>
+                            {firstP && (
+                              <button
+                                onClick={() => setDeleteTarget({ id: firstP.id, name: artName })}
+                                className="flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-400"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" /> Delete
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <span className="text-[11px] font-semibold text-slate-400">View Only</span>
@@ -497,15 +572,15 @@ export function Products() {
         </div>
       </div>
 
-      {/* FORM MODAL */}
+      {/* ARTICLE & PRODUCTS MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">PRODUCT CATALOG</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">ARTICLE CATALOG</p>
                 <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {editingId ? 'Edit product' : 'New product'}
+                  {editingArticleName ? 'Edit Article' : 'New Article'}
                 </h3>
               </div>
               <button
@@ -517,62 +592,71 @@ export function Products() {
             </div>
 
             <div className="mt-4 space-y-3">
+              {/* ARTICLE NAME (MAJOR HEAD) - SINGLE NAME FIELD */}
               <div>
-                <label className="text-[11px] font-semibold text-slate-400">Product name</label>
+                <label className="text-[11px] font-semibold text-slate-400">
+                  Article Name (Major Head) <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. 50W Solar Panel / Cotton Fabric"
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                  value={articleName}
+                  onChange={(e) => setArticleName(e.target.value)}
+                  placeholder="e.g. ART-001 / Oxford Fabric / Royal Series"
+                  autoFocus
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none focus:border-amber-500"
                 />
               </div>
 
-              {/* ARTICLES SECTION */}
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/30 p-3.5 space-y-3">
+              {/* PRODUCTS & VARIATIONS UNDER THIS ARTICLE SECTION */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/30 p-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Tag className="h-3.5 w-3.5 text-amber-500" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                      Articles
+                    <Package className="h-3.5 w-3.5 text-amber-500" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Products & Subcategories in this Article
                     </span>
-                    {localArticles.length > 0 && (
-                      <span className="text-[10px] font-bold text-amber-600 bg-amber-500/15 border border-amber-500/20 px-2 py-0.5 rounded-full dark:text-amber-400">
-                        {localArticles.length} selected
+                    {localProducts.length > 0 && (
+                      <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full">
+                        {localProducts.length} product{localProducts.length !== 1 ? 's' : ''}
                       </span>
                     )}
                   </div>
                   <button
                     type="button"
-                    onClick={() => setShowArticleInput(!showArticleInput)}
+                    onClick={() => setShowProductInput(!showProductInput)}
                     className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:text-amber-500 transition"
                   >
-                    <Plus className="h-3 w-3" /> Add New Article
+                    <Plus className="h-3 w-3" /> Add Product
                   </button>
                 </div>
 
-                {/* Add New Article Input */}
-                {showArticleInput && (
+                {/* Add Product Input */}
+                {showProductInput && (
                   <div className="flex items-center gap-2 animate-in slide-in-from-top-2 duration-200">
                     <input
                       type="text"
-                      value={newArticleName}
-                      onChange={(e) => setNewArticleName(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddArticle(); }}
-                      placeholder="e.g. ART-10 / Premium Oxford"
+                      value={newProductName}
+                      onChange={(e) => setNewProductName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAddLocalProduct();
+                      }}
+                      placeholder="e.g. Royal Blue / 50W / Size 42 / Cotton Fabric"
                       autoFocus
                       className="flex-1 rounded-lg border border-amber-300 bg-white p-2 text-xs text-slate-800 dark:border-amber-600/50 dark:bg-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-amber-500/40"
                     />
                     <button
                       type="button"
-                      onClick={handleAddArticle}
+                      onClick={handleAddLocalProduct}
                       className="rounded-lg bg-amber-500 px-3 py-2 text-[11px] font-bold text-white hover:bg-amber-600 transition"
                     >
                       Add
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setShowArticleInput(false); setNewArticleName(''); }}
+                      onClick={() => {
+                        setShowProductInput(false);
+                        setNewProductName('');
+                      }}
                       className="rounded-lg p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -580,173 +664,58 @@ export function Products() {
                   </div>
                 )}
 
-                {/* Universal / Existing Articles Quick Picker */}
-                {allUniversalArticles.length > 0 && (
-                  <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-xs dark:border-slate-700/60 dark:bg-slate-800/80 space-y-2">
-                    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                          Existing Articles
-                        </span>
-                        <span className="text-[10px] font-medium text-slate-400">
-                          (Click to add or remove)
-                        </span>
+                {/* Product Tags / Cards */}
+                {localProducts.length === 0 && !showProductInput ? (
+                  <p className="text-[11px] text-slate-400 italic">
+                    No products added yet. Click "+ Add Product" to add subcategories / options under this article (or a standard product will be created automatically).
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {localProducts.map((p) => (
+                      <div
+                        key={p.id}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200"
+                      >
+                        <Package className="h-3 w-3 text-amber-500" />
+                        <span>{p.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLocalProduct(p.id)}
+                          className="rounded p-0.5 text-amber-500 hover:bg-amber-200/60 dark:hover:bg-amber-800/60 transition"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                       </div>
-                      {allUniversalArticles.length > 4 && (
-                        <div className="relative w-full sm:w-44">
-                          <Search className="absolute left-2 top-1.5 h-3 w-3 text-slate-400" />
-                          <input
-                            type="text"
-                            placeholder="Search existing..."
-                            value={existingArticleSearch}
-                            onChange={(e) => setExistingArticleSearch(e.target.value)}
-                            className="w-full rounded-md border border-slate-200 bg-slate-50 pl-6 pr-2 py-1 text-[11px] text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none focus:border-amber-400 focus:bg-white dark:focus:bg-slate-800"
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto pr-1 pt-1">
-                      {filteredExistingArticles.map((art) => {
-                        const isAdded = localArticles.some(
-                          (la) => la.name.toLowerCase() === art.name.toLowerCase()
-                        );
-                        return (
-                          <button
-                            key={art.name}
-                            type="button"
-                            onClick={() => handleToggleExistingArticle(art.name, art.defaultColours)}
-                            className={`group flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all shadow-xs cursor-pointer ${
-                              isAdded
-                                ? 'bg-amber-500 text-white border border-amber-600 shadow-amber-500/20 hover:bg-amber-600'
-                                : 'bg-slate-100/80 border border-slate-200/80 text-slate-700 hover:border-amber-400 hover:bg-amber-50/70 hover:text-amber-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:border-amber-500/50 dark:hover:text-amber-300'
-                            }`}
-                            title={isAdded ? `Click to remove "${art.name}" from this product` : `Click to add "${art.name}" to this product`}
-                          >
-                            {isAdded ? (
-                              <>
-                                <Check className="h-3 w-3 text-white stroke-[2.5]" />
-                                <span>{art.name}</span>
-                                <span className="text-[9px] bg-white/20 text-white px-1 py-0.2 rounded font-medium">Added</span>
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="h-3 w-3 text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 stroke-[2.5] transition" />
-                                <span>{art.name}</span>
-                              </>
-                            )}
-                          </button>
-                        );
-                      })}
-                      {filteredExistingArticles.length === 0 && (
-                        <p className="text-[11px] text-slate-400 italic py-1">No matching articles found</p>
-                      )}
-                    </div>
+                    ))}
                   </div>
                 )}
+              </div>
 
-                {/* Header for articles currently attached */}
-                {localArticles.length > 0 && (
-                  <div className="pt-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                      Articles in this product ({localArticles.length})
-                    </p>
-                  </div>
-                )}
-
-                {/* Empty State */}
-                {localArticles.length === 0 && !showArticleInput && (
-                  <div className="rounded-lg border border-dashed border-slate-200 dark:border-slate-700 p-3 text-center">
-                    <p className="text-[11px] text-slate-400">
-                      {allUniversalArticles.length > 0
-                        ? 'Click any existing article above, or click "+ Add New Article" to create a new one.'
-                        : 'No articles added yet. Click "+ Add New Article" to get started.'}
-                    </p>
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  {localArticles.map((article) => (
-                    <div key={article.id} className="rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden dark:border-slate-700/50 dark:bg-slate-800/80">
-                      <div className="flex items-center justify-between px-3 py-2">
-                        <div className="flex flex-1 items-center gap-2">
-                          <Tag className="h-3 w-3 text-amber-500" />
-                          {editingArticleId === article.id ? (
-                            <input
-                              type="text"
-                              value={editingArticleName}
-                              onChange={(e) => setEditingArticleName(e.target.value)}
-                              className="flex-1 text-xs font-bold bg-white border border-slate-300 rounded px-2 py-1 dark:bg-slate-700 dark:border-slate-600 outline-none focus:ring-1 focus:ring-amber-500"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveArticleEdit();
-                                if (e.key === 'Escape') setEditingArticleId(null);
-                              }}
-                            />
-                          ) : (
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{article.name}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {editingArticleId === article.id ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={handleSaveArticleEdit}
-                                className="rounded p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30 transition cursor-pointer"
-                                title="Save"
-                              >
-                                <Check className="h-3 w-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setEditingArticleId(null)}
-                                className="rounded p-1 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
-                                title="Cancel"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => { setEditingArticleId(article.id); setEditingArticleName(article.name); }}
-                                className="rounded p-1 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition cursor-pointer"
-                                title="Edit article"
-                              >
-                                <Edit className="h-3 w-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveArticle(article.id)}
-                                className="rounded p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer"
-                                title="Remove article"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              {/* SKU & Barcode */}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-400">SKU / Code</label>
+                  <input
+                    type="text"
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    placeholder="Auto-generated"
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-400">Barcode</label>
+                  <input
+                    type="text"
+                    value={barcode}
+                    onChange={(e) => setBarcode(e.target.value)}
+                    placeholder="Barcode value"
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none"
+                  />
                 </div>
               </div>
 
-              <div>
-                <label className="text-[11px] font-semibold text-slate-400">SKU (Auto-Generated)</label>
-                <input
-                  type="text"
-                  value={sku}
-                  readOnly
-                  disabled
-                  placeholder="Auto-generated SKU"
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-slate-100 dark:border-slate-700 dark:bg-slate-800/60 p-2 text-xs font-mono font-bold text-amber-600 dark:text-amber-400 cursor-not-allowed outline-none"
-                />
-              </div>
-
+              {/* Category & Unit */}
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="text-[11px] font-semibold text-slate-400">Category</label>
@@ -790,6 +759,7 @@ export function Products() {
                 </div>
               </div>
 
+              {/* Purchase & Opening Cost */}
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="text-[11px] font-semibold text-slate-400">Purchase price</label>
@@ -811,6 +781,7 @@ export function Products() {
                 </div>
               </div>
 
+              {/* Sale price & Tax */}
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="text-[11px] font-semibold text-slate-400">Sale price</label>
@@ -832,6 +803,7 @@ export function Products() {
                 </div>
               </div>
 
+              {/* Stock & Reorder */}
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="text-[11px] font-semibold text-slate-400">Opening / Initial Stock ({unit})</label>
@@ -854,6 +826,7 @@ export function Products() {
                 </div>
               </div>
 
+              {/* Tracking */}
               <div className="space-y-2 pt-1">
                 <label className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
                   <span>Track inventory by batch</span>
@@ -875,6 +848,7 @@ export function Products() {
                 </label>
               </div>
 
+              {/* Status */}
               <div className="flex items-center justify-between pt-1">
                 <span className="text-xs text-slate-400">Status</span>
                 <select
@@ -890,16 +864,18 @@ export function Products() {
 
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
               <button
+                type="button"
                 onClick={() => setModalOpen(false)}
                 className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSave}
                 className="btn-primary text-xs px-5"
               >
-                {editingId ? 'Update product' : 'Save product'}
+                {editingArticleName ? 'Update Article' : 'Save Article'}
               </button>
             </div>
           </div>
@@ -912,7 +888,7 @@ export function Products() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
         itemName={deleteTarget?.name}
-        itemType="product"
+        itemType="article"
       />
     </div>
   );

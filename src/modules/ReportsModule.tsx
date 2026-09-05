@@ -65,30 +65,46 @@ export function ReportsModule() {
   } = useDataStore();
 
   // ——— Sales Report Data ———
-  const salesRows = invoices.filter((i) => i.status === 'POSTED').map((inv) => {
-    return {
-      invoice_no: inv.invoice_no,
-      customer: getCustomerName(inv.customer_id, customers),
-      date: inv.invoice_date,
-      total: inv.total_amount || 0,
-      paid: inv.paid_amount || 0,
-      balance: (inv.total_amount || 0) - (inv.paid_amount || 0),
-    };
-  });
+  const salesRows = invoices
+    .filter((i) => {
+      if (i.status !== 'POSTED') return false;
+      const d = (i.invoice_date || i.created_at || '').slice(0, 10);
+      if (fromDate && d && d < fromDate) return false;
+      if (toDate && d && d > toDate) return false;
+      return true;
+    })
+    .map((inv) => {
+      return {
+        invoice_no: inv.invoice_no,
+        customer: getCustomerName(inv.customer_id, customers),
+        date: inv.invoice_date,
+        total: inv.total_amount || 0,
+        paid: inv.paid_amount || 0,
+        balance: (inv.total_amount || 0) - (inv.paid_amount || 0),
+      };
+    });
   const salesTotal = salesRows.reduce((s, r) => s + r.total, 0);
   const salesPaid = salesRows.reduce((s, r) => s + r.paid, 0);
 
   // ——— Purchase Report Data ———
-  const purchaseRows = vendorBills.filter((b) => b.status === 'POSTED').map((b) => {
-    return {
-      bill_no: b.bill_no,
-      vendor: getVendorName(b.vendor_id, vendors),
-      date: b.bill_date,
-      total: b.total_amount || 0,
-      paid: b.paid_amount || 0,
-      balance: (b.total_amount || 0) - (b.paid_amount || 0),
-    };
-  });
+  const purchaseRows = vendorBills
+    .filter((b) => {
+      if (b.status !== 'POSTED') return false;
+      const d = (b.bill_date || b.created_at || '').slice(0, 10);
+      if (fromDate && d && d < fromDate) return false;
+      if (toDate && d && d > toDate) return false;
+      return true;
+    })
+    .map((b) => {
+      return {
+        bill_no: b.bill_no,
+        vendor: getVendorName(b.vendor_id, vendors),
+        date: b.bill_date,
+        total: b.total_amount || 0,
+        paid: b.paid_amount || 0,
+        balance: (b.total_amount || 0) - (b.paid_amount || 0),
+      };
+    });
   const purchaseTotal = purchaseRows.reduce((s, r) => s + r.total, 0);
 
   // ——— Inventory Valuation ———

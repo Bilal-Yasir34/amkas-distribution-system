@@ -79,95 +79,166 @@ export function AccountingModule() {
   const [statementFromDate, setStatementFromDate] = useState('2026-07-01');
   const [statementToDate, setStatementToDate] = useState('2026-07-22');
   const [generatedStatementPartyId, setGeneratedStatementPartyId] = useState('');
+  const [appliedStatementFromDate, setAppliedStatementFromDate] = useState('2026-07-01');
+  const [appliedStatementToDate, setAppliedStatementToDate] = useState('2026-07-22');
 
   const activePartyObj = useMemo(() => {
     return allAccounts.find((c) => c.id === generatedStatementPartyId);
   }, [generatedStatementPartyId, allAccounts]);
 
-  const statementTransactions = useMemo(() => {
-    if (!generatedStatementPartyId) return [];
-    
-    let txs: any[] = [];
-    
-    // Always gather all transaction types for the selected party
-    const custInvs = invoices.filter(i => i.customer_id === generatedStatementPartyId).map(i => ({
-      id: i.id,
-      date: i.invoice_date || i.created_at || todayISO(),
-      number: i.invoice_no,
-      type: 'Sales Invoice',
-      desc: 'Sales Invoice',
-      debit: i.total_amount || 0,
-      credit: 0
-    }));
-    const custRects = customerReceipts.filter(r => r.customer_id === generatedStatementPartyId).map(r => ({
-      id: r.id,
-      date: r.receipt_date || r.created_at || todayISO(),
-      number: r.receipt_no,
-      type: 'Receipt',
-      desc: 'Payment Received',
-      debit: 0,
-      credit: r.amount || 0
-    }));
-    const custReturns = salesReturns.filter(sr => sr.customer_id === generatedStatementPartyId).map(sr => ({
-      id: sr.id,
-      date: sr.document_date || sr.created_at || todayISO(),
-      number: sr.return_no,
-      type: 'Sales Return',
-      desc: 'Sales Return / Credit Note',
-      debit: 0,
-      credit: sr.total_amount || 0
-    }));
-    
-    const vendBills = vendorBills.filter(b => b.vendor_id === generatedStatementPartyId).map(b => ({
-      id: b.id,
-      date: b.bill_date || b.created_at || todayISO(),
-      number: b.bill_no,
-      type: 'Purchase Bill',
-      desc: 'Purchase Bill',
-      debit: 0,
-      credit: b.total_amount || 0
-    }));
-    const vendPays = vendorPayments.filter(p => p.vendor_id === generatedStatementPartyId).map(p => ({
-      id: p.id,
-      date: p.payment_date || p.created_at || todayISO(),
-      number: p.payment_no,
-      type: 'Payment',
-      desc: 'Payment Made',
-      debit: p.amount || 0,
-      credit: 0
-    }));
-    const purchReturns = purchaseReturns.filter(pr => pr.vendor_id === generatedStatementPartyId).map(pr => ({
-      id: pr.id,
-      date: pr.document_date || pr.created_at || todayISO(),
-      number: pr.return_no,
-      type: 'Purchase Return',
-      desc: 'Purchase Return / Debit Note',
-      debit: pr.total_amount || 0,
-      credit: 0
-    }));
-    
-    txs = [...custInvs, ...custRects, ...custReturns, ...vendBills, ...vendPays, ...purchReturns];
-    txs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    
-    let balance = 0;
-    return txs.map(tx => {
-      balance += ((tx.debit || 0) - (tx.credit || 0));
-      return { ...tx, runningBalance: balance };
-    });
-  }, [generatedStatementPartyId, invoices, customerReceipts, salesReturns, vendorBills, vendorPayments, purchaseReturns]);
+  const {
+    statementOpeningBalance,
+    statementTransactions,
+    statementPeriodDebit,
+    statementPeriodCredit,
+    statementClosingBalance,
+  } = useMemo(() => {
+    if (!generatedStatementPartyId) {
+      return {
+        statementOpeningBalance: 0,
+        statementTransactions: [],
+        statementPeriodDebit: 0,
+        statementPeriodCredit: 0,
+        statementClosingBalance: 0,
+      };
+    }
 
-  const statementPeriodDebit = statementTransactions.reduce((acc, t) => acc + (t.debit || 0), 0);
-  const statementPeriodCredit = statementTransactions.reduce((acc, t) => acc + (t.credit || 0), 0);
-  const statementClosingBalance = statementTransactions.length > 0 
-    ? (statementTransactions[statementTransactions.length - 1]?.runningBalance ?? 0) 
-    : 0;
+    const custInvs = (invoices || [])
+      .filter((i) => i.customer_id === generatedStatementPartyId)
+      .map((i) => ({
+        id: `inv-${i.id}`,
+        date: (i.invoice_date || i.created_at || todayISO()).slice(0, 10),
+        number: i.invoice_no,
+        type: 'Sales Invoice',
+        desc: 'Sales Invoice',
+        debit: Number(i.total_amount || 0),
+        credit: 0,
+      }));
+
+    const custRects = (customerReceipts || [])
+      .filter((r) => r.customer_id === generatedStatementPartyId)
+      .map((r) => ({
+        id: `rect-${r.id}`,
+        date: (r.receipt_date || r.created_at || todayISO()).slice(0, 10),
+        number: r.receipt_no,
+        type: 'Receipt',
+        desc: 'Payment Received',
+        debit: 0,
+        credit: Number(r.amount || 0),
+      }));
+
+    const custReturns = (salesReturns || [])
+      .filter((sr) => sr.customer_id === generatedStatementPartyId)
+      .map((sr) => ({
+        id: `sr-${sr.id}`,
+        date: (sr.document_date || sr.created_at || todayISO()).slice(0, 10),
+        number: sr.return_no,
+        type: 'Sales Return',
+        desc: 'Sales Return / Credit Note',
+        debit: 0,
+        credit: Number(sr.total_amount || 0),
+      }));
+
+    const vendBills = (vendorBills || [])
+      .filter((b) => b.vendor_id === generatedStatementPartyId)
+      .map((b) => ({
+        id: `bill-${b.id}`,
+        date: (b.bill_date || b.created_at || todayISO()).slice(0, 10),
+        number: b.bill_no,
+        type: 'Purchase Bill',
+        desc: 'Purchase Bill',
+        debit: 0,
+        credit: Number(b.total_amount || 0),
+      }));
+
+    const vendPays = (vendorPayments || [])
+      .filter((p) => p.vendor_id === generatedStatementPartyId)
+      .map((p) => ({
+        id: `pay-${p.id}`,
+        date: (p.payment_date || p.created_at || todayISO()).slice(0, 10),
+        number: p.payment_no,
+        type: 'Payment',
+        desc: 'Payment Made',
+        debit: Number(p.amount || 0),
+        credit: 0,
+      }));
+
+    const purchReturns = (purchaseReturns || [])
+      .filter((pr) => pr.vendor_id === generatedStatementPartyId)
+      .map((pr) => ({
+        id: `pr-${pr.id}`,
+        date: (pr.document_date || pr.created_at || todayISO()).slice(0, 10),
+        number: pr.return_no,
+        type: 'Purchase Return',
+        desc: 'Purchase Return / Debit Note',
+        debit: Number(pr.total_amount || 0),
+        credit: 0,
+      }));
+
+    const allTxs = [
+      ...custInvs,
+      ...custRects,
+      ...custReturns,
+      ...vendBills,
+      ...vendPays,
+      ...purchReturns,
+    ];
+    allTxs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // 1. Calculate opening balance strictly prior to appliedStatementFromDate
+    const openingTxs = appliedStatementFromDate
+      ? allTxs.filter((tx) => tx.date < appliedStatementFromDate)
+      : [];
+    const openingBalance = openingTxs.reduce(
+      (sum, tx) => sum + (tx.debit - tx.credit),
+      0
+    );
+
+    // 2. Filter transactions strictly within the applied date range
+    const periodTxs = allTxs.filter((tx) => {
+      if (appliedStatementFromDate && tx.date < appliedStatementFromDate) return false;
+      if (appliedStatementToDate && tx.date > appliedStatementToDate) return false;
+      return true;
+    });
+
+    // 3. Compute running balance starting from openingBalance
+    let running = openingBalance;
+    const mappedTxs = periodTxs.map((tx) => {
+      running += (tx.debit - tx.credit);
+      return { ...tx, runningBalance: running };
+    });
+
+    const pDebit = periodTxs.reduce((acc, t) => acc + t.debit, 0);
+    const pCredit = periodTxs.reduce((acc, t) => acc + t.credit, 0);
+
+    return {
+      statementOpeningBalance: openingBalance,
+      statementTransactions: mappedTxs,
+      statementPeriodDebit: pDebit,
+      statementPeriodCredit: pCredit,
+      statementClosingBalance: running,
+    };
+  }, [
+    generatedStatementPartyId,
+    appliedStatementFromDate,
+    appliedStatementToDate,
+    invoices,
+    customerReceipts,
+    salesReturns,
+    vendorBills,
+    vendorPayments,
+    purchaseReturns,
+  ]);
 
   const handleGenerateStatement = () => {
     if (!statementPartyId) {
       return toast.error('Please select a party first');
     }
     setGeneratedStatementPartyId(statementPartyId);
-    toast.success(`Generated statement for ${activePartyObj?.name || 'selected party'}`);
+    setAppliedStatementFromDate(statementFromDate);
+    setAppliedStatementToDate(statementToDate);
+    const party = allAccounts.find((c) => c.id === statementPartyId);
+    toast.success(`Generated statement for ${party?.name || 'selected party'}`);
   };
 
   const handlePostExpense = () => {
@@ -280,10 +351,10 @@ export function AccountingModule() {
   // General Ledger Filters state (Matching User Screenshot)
   const [glAccountFilter, setGlAccountFilter] = useState('all');
   const [glFromDate, setGlFromDate] = useState('2026-07-01');
-  const [glToDate, setGlToDate] = useState('2026-07-22');
+  const [glToDate, setGlToDate] = useState(todayISO());
   const [appliedGlAccountFilter, setAppliedGlAccountFilter] = useState('all');
   const [appliedGlFromDate, setAppliedGlFromDate] = useState('2026-07-01');
-  const [appliedGlToDate, setAppliedGlToDate] = useState('2026-07-22');
+  const [appliedGlToDate, setAppliedGlToDate] = useState(todayISO());
 
   const handleApplyGlFilters = () => {
     setAppliedGlAccountFilter(glAccountFilter);
@@ -309,11 +380,12 @@ export function AccountingModule() {
 
     // 1. Manual Journal Entries
     (journalEntries || []).forEach((je, idx) => {
+      const d = (je.entry_date || je.created_at || todayISO()).slice(0, 10);
       linesArr.push({
         id: `je-dr-${je.id || idx}`,
-        date: je.entry_date || '2026-07-11',
-        formattedDate: '11 Jul 2026',
-        entryNo: je.entry_no || `JV-0000${idx + 1}`,
+        date: d,
+        formattedDate: formatDate(d),
+        entryNo: je.entry_no || `JV-${String(idx + 1).padStart(5, '0')}`,
         entryType: 'Journal Entry',
         accountCodeName: '1110 · Cash in Hand',
         accountId: '1110',
@@ -323,9 +395,9 @@ export function AccountingModule() {
       });
       linesArr.push({
         id: `je-cr-${je.id || idx}`,
-        date: je.entry_date || '2026-07-11',
-        formattedDate: '11 Jul 2026',
-        entryNo: je.entry_no || `JV-0000${idx + 1}`,
+        date: d,
+        formattedDate: formatDate(d),
+        entryNo: je.entry_no || `JV-${String(idx + 1).padStart(5, '0')}`,
         entryType: 'Journal Entry',
         accountCodeName: '1200 · Accounts Receivable',
         accountId: '1200',
@@ -338,12 +410,13 @@ export function AccountingModule() {
     // 2. Customer Receipts
     (customerReceipts || []).forEach((cr, idx) => {
       const amt = cr.amount || 0;
-      const ref = cr.receipt_no || `CR-0000${idx + 4}`;
+      const ref = cr.receipt_no || `CR-${String(idx + 1).padStart(5, '0')}`;
+      const d = (cr.receipt_date || cr.created_at || todayISO()).slice(0, 10);
       linesArr.push({
         id: `cr-dr-${cr.id || idx}`,
-        date: cr.receipt_date || '2026-07-11',
-        formattedDate: '11 Jul 2026',
-        entryNo: `JV-0000${idx + 5}`,
+        date: d,
+        formattedDate: formatDate(d),
+        entryNo: `JV-CR-${String(idx + 1).padStart(4, '0')}`,
         entryType: 'Receipt',
         accountCodeName: '1110 · Cash in Hand',
         accountId: '1110',
@@ -353,9 +426,9 @@ export function AccountingModule() {
       });
       linesArr.push({
         id: `cr-cr-${cr.id || idx}`,
-        date: cr.receipt_date || '2026-07-11',
-        formattedDate: '11 Jul 2026',
-        entryNo: `JV-0000${idx + 5}`,
+        date: d,
+        formattedDate: formatDate(d),
+        entryNo: `JV-CR-${String(idx + 1).padStart(4, '0')}`,
         entryType: 'Receipt',
         accountCodeName: '1200 · Accounts Receivable',
         accountId: '1200',
@@ -368,12 +441,13 @@ export function AccountingModule() {
     // 3. Vendor Payments
     (vendorPayments || []).forEach((vp, idx) => {
       const amt = vp.amount || 0;
-      const ref = vp.payment_no || `CP-0000${idx + 1}`;
+      const ref = vp.payment_no || `CP-${String(idx + 1).padStart(5, '0')}`;
+      const d = (vp.payment_date || vp.created_at || todayISO()).slice(0, 10);
       linesArr.push({
         id: `vp-dr-${vp.id || idx}`,
-        date: vp.payment_date || '2026-07-11',
-        formattedDate: '11 Jul 2026',
-        entryNo: `JV-0000${idx + 6}`,
+        date: d,
+        formattedDate: formatDate(d),
+        entryNo: `JV-VP-${String(idx + 1).padStart(4, '0')}`,
         entryType: 'Payment',
         accountCodeName: '2100 · Accounts Payable',
         accountId: '2100',
@@ -383,9 +457,9 @@ export function AccountingModule() {
       });
       linesArr.push({
         id: `vp-cr-${vp.id || idx}`,
-        date: vp.payment_date || '2026-07-11',
-        formattedDate: '11 Jul 2026',
-        entryNo: `JV-0000${idx + 6}`,
+        date: d,
+        formattedDate: formatDate(d),
+        entryNo: `JV-VP-${String(idx + 1).padStart(4, '0')}`,
         entryType: 'Payment',
         accountCodeName: '1110 · Cash in Hand',
         accountId: '1110',
@@ -395,14 +469,94 @@ export function AccountingModule() {
       });
     });
 
+    // 4. Expense Records
+    (expenseRecords || []).forEach((exp, idx) => {
+      const amt = exp.amount || 0;
+      const d = (exp.date || exp.created_at || todayISO()).slice(0, 10);
+      linesArr.push({
+        id: `exp-dr-${exp.id || idx}`,
+        date: d,
+        formattedDate: formatDate(d),
+        entryNo: exp.number || `EX-${String(idx + 1).padStart(5, '0')}`,
+        entryType: 'Expense',
+        accountCodeName: `${exp.account_id || '5000'} · ${exp.account_name || 'Expense'}`,
+        accountId: exp.account_id || '5000',
+        description: exp.description || 'Expense entry',
+        debit: amt,
+        credit: 0,
+      });
+      linesArr.push({
+        id: `exp-cr-${exp.id || idx}`,
+        date: d,
+        formattedDate: formatDate(d),
+        entryNo: exp.number || `EX-${String(idx + 1).padStart(5, '0')}`,
+        entryType: 'Expense',
+        accountCodeName: '1110 · Cash in Hand',
+        accountId: '1110',
+        description: `Paid via ${exp.cash_bank_account || 'Cash'}`,
+        debit: 0,
+        credit: amt,
+      });
+    });
+
+    // 5. Income Records
+    (incomeRecords || []).forEach((inc, idx) => {
+      const amt = inc.amount || 0;
+      const d = (inc.date || inc.created_at || todayISO()).slice(0, 10);
+      linesArr.push({
+        id: `inc-dr-${inc.id || idx}`,
+        date: d,
+        formattedDate: formatDate(d),
+        entryNo: inc.number || `MI-${String(idx + 1).padStart(5, '0')}`,
+        entryType: 'Income',
+        accountCodeName: '1110 · Cash in Hand',
+        accountId: '1110',
+        description: `Received via ${inc.cash_bank_account || 'Cash'}`,
+        debit: amt,
+        credit: 0,
+      });
+      linesArr.push({
+        id: `inc-cr-${inc.id || idx}`,
+        date: d,
+        formattedDate: formatDate(d),
+        entryNo: inc.number || `MI-${String(idx + 1).padStart(5, '0')}`,
+        entryType: 'Income',
+        accountCodeName: `${inc.account_id || '4000'} · ${inc.account_name || 'Income'}`,
+        accountId: inc.account_id || '4000',
+        description: inc.description || 'Direct income entry',
+        debit: 0,
+        credit: amt,
+      });
+    });
+
+    // Sort chronologically
+    linesArr.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
     // Filter by Account & Date Range
     return linesArr.filter((l) => {
-      if (appliedGlAccountFilter !== 'all' && !l.accountCodeName.includes(appliedGlAccountFilter)) {
+      if (appliedGlAccountFilter !== 'all') {
+        const matchesName = l.accountCodeName.toLowerCase().includes(appliedGlAccountFilter.toLowerCase());
+        const matchesId = l.accountId === appliedGlAccountFilter;
+        if (!matchesName && !matchesId) return false;
+      }
+      if (appliedGlFromDate && l.date < appliedGlFromDate) {
+        return false;
+      }
+      if (appliedGlToDate && l.date > appliedGlToDate) {
         return false;
       }
       return true;
     });
-  }, [journalEntries, customerReceipts, vendorPayments, appliedGlAccountFilter, appliedGlFromDate, appliedGlToDate]);
+  }, [
+    journalEntries,
+    customerReceipts,
+    vendorPayments,
+    expenseRecords,
+    incomeRecords,
+    appliedGlAccountFilter,
+    appliedGlFromDate,
+    appliedGlToDate,
+  ]);
 
   const handleExportGlCSV = () => {
     const dataToExport = compiledGlEntries.map((l) => ({
@@ -425,8 +579,6 @@ export function AccountingModule() {
 
   // Trial Balance: compute debit/credit balance per account from JVs
   const trialBalance = chartOfAccounts.map((acc) => {
-    const debit = journalEntries.reduce((sum, je) => sum + je.total_debit, 0);
-    const credit = journalEntries.reduce((sum, je) => sum + je.total_credit, 0);
     return { ...acc, debit: acc.current_balance || 0, credit: 0 };
   });
 
@@ -1169,7 +1321,7 @@ export function AccountingModule() {
                   </div>
 
                   <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-3.5 py-1 text-xs font-medium text-slate-500 self-start sm:self-auto">
-                    01 Jul 2026 — 22 Jul 2026
+                    {appliedStatementFromDate ? formatDate(appliedStatementFromDate) : 'Start'} — {appliedStatementToDate ? formatDate(appliedStatementToDate) : 'Today'}
                   </span>
                 </div>
 
@@ -1178,7 +1330,7 @@ export function AccountingModule() {
                   <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 border-l-4 border-l-amber-500">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">OPENING BALANCE</p>
                     <h3 className="mt-1.5 text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
-                      Rs. 0.00
+                      Rs. {(statementOpeningBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </h3>
                   </div>
 
@@ -1221,16 +1373,18 @@ export function AccountingModule() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                      {/* Opening Balance Row matching screenshot */}
+                      {/* Opening Balance Row */}
                       <tr className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 font-medium">
-                        <td className="px-4 py-3.5 text-slate-600 dark:text-slate-400">01 Jul 2026</td>
+                        <td className="px-4 py-3.5 text-slate-600 dark:text-slate-400">
+                          {appliedStatementFromDate ? formatDate(appliedStatementFromDate) : 'Start'}
+                        </td>
                         <td className="px-4 py-3.5 text-slate-400">—</td>
                         <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">Opening</td>
                         <td className="px-4 py-3.5 text-slate-700 dark:text-slate-300">Balance brought forward</td>
                         <td className="px-4 py-3.5 text-right text-slate-400">—</td>
                         <td className="px-4 py-3.5 text-right text-slate-400">—</td>
                         <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-slate-100">
-                          Rs. 0.00
+                          Rs. {(statementOpeningBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
 

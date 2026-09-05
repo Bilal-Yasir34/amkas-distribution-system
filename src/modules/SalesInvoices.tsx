@@ -17,10 +17,13 @@ import { computeLineTotal, downloadCSV, formatCurrency, formatDate, getCustomerN
 import { useQueryClient } from '@tanstack/react-query';
 import { InvoicePrint } from '@/components/InvoicePrint';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
+import { useDataStore } from '@/lib/dataStore';
+import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
 import type { SalesInvoice, SalesInvoiceItem } from '@/lib/types';
 
 interface DraftLine {
   id: string;
+  article_id?: string;
   product_id: string;
   description: string;
   qty: number;
@@ -32,18 +35,24 @@ interface DraftLine {
 }
 
 function emptyLine(): DraftLine {
-  return { id: crypto.randomUUID(), product_id: '', description: '', qty: 1, length: 0, width: 0, rate: 0, discount: 0, tax_pct: 0 };
+  return { id: crypto.randomUUID(), article_id: '', product_id: '', description: '', qty: 1, length: 0, width: 0, rate: 0, discount: 0, tax_pct: 0 };
 }
 
 export function SalesInvoices() {
   const toast = useToast();
   const qc = useQueryClient();
+  const { productArticles = [], universalArticles = [] } = useDataStore();
   const { data: invoices = [] } = useSalesInvoices();
   const { data: customers = [] } = useCustomers();
   const { data: warehouses = [] } = useWarehouses();
   const { data: products = [] } = useProducts();
   const postMut = usePostInvoice();
   const delMut = useDeleteInvoice();
+
+  const allArticles = useMemo(
+    () => getAllArticles(universalArticles, products, productArticles),
+    [universalArticles, products, productArticles]
+  );
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'UNPOSTED' | 'POSTED'>('ALL');
@@ -107,11 +116,22 @@ export function SalesInvoices() {
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   }
 
-  function onProductChange(id: string, productId: string) {
+  function onArticleChange(id: string, articleName: string) {
+    updateLine(id, {
+      article_id: articleName,
+      product_id: '',
+      description: articleName ? `[${articleName}]` : '',
+      rate: 0,
+    });
+  }
+
+  function onProductChange(id: string, productId: string, currentArticle?: string) {
     const p = products.find((x) => x.id === productId);
+    const art = currentArticle || (p ? getArticleForProduct(p.id, products, productArticles) : '');
     updateLine(id, {
       product_id: productId,
-      description: p ? (p.article_name ? `${p.name} (${p.article_name})` : p.name) : '',
+      article_id: art,
+      description: p ? (art ? `[${art}] ${p.name}` : p.name) : '',
       rate: p?.sale_price ?? 0,
       length: p?.length ?? 0,
       width: p?.width ?? 0,
@@ -386,21 +406,50 @@ export function SalesInvoices() {
                 {lines.map((l) => (
                   <tr key={l.id} className="border-t border-slate-100 dark:border-slate-700/60">
                     <td className="px-3 py-1.5">
-                      <select className="input !py-1 !text-xs" value={l.product_id} onChange={(e) => onProductChange(l.id, e.target.value)}>
-                        <option value="">Select…</option>
-                        {products
-                          .filter((p) => showZeroStock || true)
-                          .map((p) => <option key={p.id} value={p.id}>{p.code} — {p.name}{p.article_name ? ` (Article: ${p.article_name})` : ''}</option>)}
-                      </select>
                       {(() => {
-                        const prod = products.find((x) => x.id === l.product_id);
-                        return prod?.article_name ? (
-                          <div className="mt-0.5">
-                            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1 py-0.5 rounded border border-amber-500/20">
-                              Art: {prod.article_name}
-                            </span>
+                        const currentArt = l.article_id || getArticleForProduct(l.product_id, products, productArticles);
+                        const availableProds = getProductsForArticle(currentArt, products, productArticles);
+
+                        return (
+                          <div className="space-y-1 min-w-[200px]">
+                            <div>
+                              <span className="text-[9px] font-bold uppercase text-amber-600 dark:text-amber-400 block">
+                                Article (Major Head)
+                              </span>
+                              <select
+                                className="input !py-1 !text-xs !bg-amber-50/40 dark:!bg-amber-950/20 !border-amber-300 dark:!border-amber-600/40"
+                                value={currentArt}
+                                onChange={(e) => onArticleChange(l.id, e.target.value)}
+                              >
+                                <option value="">-- Select Article --</option>
+                                {allArticles.map((art) => (
+                                  <option key={art} value={art}>{art}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <span className="text-[9px] font-bold uppercase text-slate-400 block">
+                                Product / Option
+                              </span>
+                              <select
+                                className="input !py-1 !text-xs"
+                                value={l.product_id}
+                                disabled={!currentArt && availableProds.length === 0}
+                                onChange={(e) => onProductChange(l.id, e.target.value, currentArt)}
+                              >
+                                <option value="">
+                                  {currentArt ? '-- Select Product --' : '-- Select Article first --'}
+                                </option>
+                                {availableProds.map((p) => (
+                                  <option key={p.id} value={p.id}>
+                                    {p.code} — {p.name} (Rs {p.sale_price})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
-                        ) : null;
+                        );
                       })()}
                     </td>
                     <td className="px-3 py-1.5"><input className="input !py-1 !text-xs" value={l.description} onChange={(e) => updateLine(l.id, { description: e.target.value })} /></td>
