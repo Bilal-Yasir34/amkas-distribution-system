@@ -44,8 +44,6 @@ export function PurchaseReturnModule() {
   const [dueDate, setDueDate] = useState(todayISO());
   const [warehouseId, setWarehouseId] = useState('');
   const [returnNo, setReturnNo] = useState('');
-  const [accountCategory, setAccountCategory] = useState('Purchase Returns & Allowances');
-  const [accountHead, setAccountHead] = useState('Purchase Returns & Allowances');
   const [notes, setNotes] = useState('');
 
   const [lineItems, setLineItems] = useState<
@@ -167,8 +165,6 @@ export function PurchaseReturnModule() {
     setWarehouseId(warehouses[0]?.id || 'w1');
     const autoNo = `PR-${String((purchaseReturns || []).length + 1).padStart(5, '0')}`;
     setReturnNo(autoNo);
-    setAccountCategory('Purchase Returns & Allowances');
-    setAccountHead('Purchase Returns & Allowances');
     setNotes('');
     setLineItems([
       {
@@ -199,8 +195,6 @@ export function PurchaseReturnModule() {
     setDueDate(pr.due_date || todayISO());
     setWarehouseId(pr.warehouse_id || warehouses[0]?.id || 'w1');
     setReturnNo(pr.return_no || '');
-    setAccountCategory(pr.account_category || 'Purchase Returns & Allowances');
-    setAccountHead(pr.account_head || 'Purchase Returns & Allowances');
     setNotes(pr.notes || '');
     if (pr.items && pr.items.length > 0) {
       setLineItems(
@@ -372,8 +366,6 @@ export function PurchaseReturnModule() {
       warehouse_id: warehouseId || warehouses[0]?.id || 'w1',
       document_date: docDate,
       due_date: dueDate,
-      account_category: accountCategory,
-      account_head: accountHead,
       status,
       subtotal: totals.subtotal,
       discount_total: totals.discountTotal,
@@ -618,34 +610,7 @@ export function PurchaseReturnModule() {
                 </div>
               </div>
 
-              {/* Row 3: Account category & Account head */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account category</label>
-                  <select
-                    value={accountCategory}
-                    onChange={(e) => setAccountCategory(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                  >
-                    <option value="Purchase Returns & Allowances">Purchase Returns & Allowances</option>
-                    <option value="Inventory Accounts">Inventory Accounts</option>
-                    <option value="Current Assets">Current Assets</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account head</label>
-                  <select
-                    value={accountHead}
-                    onChange={(e) => setAccountHead(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                  >
-                    <option value="Purchase Returns & Allowances">Purchase Returns & Allowances</option>
-                    <option value="Vendor Debit Account">Vendor Debit Account</option>
-                  </select>
-                </div>
               </div>
-            </div>
 
             {/* Accounting Rule Card (Right - 1 Col) */}
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 shadow-sm dark:bg-slate-900/70 flex flex-col justify-between space-y-4">
