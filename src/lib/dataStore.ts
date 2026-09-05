@@ -787,34 +787,37 @@ export const useDataStore = create<DataStoreState>()(
 
       addCustomerReceipt: (r) =>
         set((s) => {
-          const newReceipt = { id: crypto.randomUUID(), ...r };
+          const newReceipt = { id: (r as any).id || crypto.randomUUID(), ...r };
           const newReceipts = [newReceipt, ...(s.customerReceipts || [])];
           let newBankAccounts = [...(s.bankAccounts || [])];
           let newJournalEntries = [...(s.journalEntries || [])];
 
-          const bankIdx = newBankAccounts.findIndex(
-            (b) => b.id === r.deposit_account_id || b.account_name === r.deposit_to
-          );
-          if (bankIdx !== -1) {
-            newBankAccounts[bankIdx] = {
-              ...newBankAccounts[bankIdx],
-              current_balance: (newBankAccounts[bankIdx].current_balance || 0) + (r.amount || 0),
-            };
-          }
+          // Only post immediately if status is explicitly POSTED
+          if (r.status === 'POSTED') {
+            const bankIdx = newBankAccounts.findIndex(
+              (b) => b.id === r.deposit_account_id || b.account_name === r.deposit_to
+            );
+            if (bankIdx !== -1) {
+              newBankAccounts[bankIdx] = {
+                ...newBankAccounts[bankIdx],
+                current_balance: (newBankAccounts[bankIdx].current_balance || 0) + (r.amount || 0),
+              };
+            }
 
-          const depositName = r.deposit_to || newBankAccounts[bankIdx]?.account_name || 'Cash in Hand';
-          newJournalEntries.unshift({
-            id: crypto.randomUUID(),
-            entry_no: `JV-${r.receipt_no}`,
-            entry_date: r.receipt_date,
-            reference_no: r.receipt_no,
-            source: 'Customer Payment',
-            narration: `Customer payment ${r.receipt_no} deposited to ${depositName}`,
-            total_debit: r.amount,
-            total_credit: r.amount,
-            status: 'POSTED',
-            created_at: new Date().toISOString(),
-          });
+            const depositName = r.deposit_to || newBankAccounts[bankIdx]?.account_name || 'Cash in Hand';
+            newJournalEntries.unshift({
+              id: crypto.randomUUID(),
+              entry_no: `JV-${r.receipt_no}`,
+              entry_date: r.receipt_date,
+              reference_no: r.receipt_no,
+              source: 'Customer Payment',
+              narration: `Customer payment ${r.receipt_no} deposited to ${depositName}`,
+              total_debit: r.amount,
+              total_credit: r.amount,
+              status: 'POSTED',
+              created_at: new Date().toISOString(),
+            });
+          }
 
           return {
             customerReceipts: newReceipts,
@@ -926,6 +929,7 @@ export const useDataStore = create<DataStoreState>()(
             let newPurchaseInvoices = s.purchaseInvoices;
             let newSalesReturns = s.salesReturns;
             let newPurchaseReturns = s.purchaseReturns;
+            let newCustomerReceipts = s.customerReceipts;
 
             if (item.entity_type === 'sales_invoice') {
               newInvoices = s.invoices.map((inv) =>
@@ -946,6 +950,10 @@ export const useDataStore = create<DataStoreState>()(
               newPurchaseReturns = s.purchaseReturns.map((pr) =>
                 pr.id === item.record_id || pr.return_no === item.record_no ? { ...pr, status: targetStatus } : pr
               );
+            } else if (item.entity_type === 'customer_receipt' || item.entity_type === 'payment_receipt') {
+              newCustomerReceipts = (s.customerReceipts || []).map((cr) =>
+                cr.id === item.record_id || cr.receipt_no === item.record_no ? { ...cr, status: targetStatus } : cr
+              );
             }
 
             return {
@@ -955,6 +963,7 @@ export const useDataStore = create<DataStoreState>()(
               purchaseInvoices: newPurchaseInvoices,
               salesReturns: newSalesReturns,
               purchaseReturns: newPurchaseReturns,
+              customerReceipts: newCustomerReceipts,
             };
           }
 
@@ -965,6 +974,9 @@ export const useDataStore = create<DataStoreState>()(
             let newPurchaseInvoices = s.purchaseInvoices;
             let newSalesReturns = s.salesReturns;
             let newPurchaseReturns = s.purchaseReturns;
+            let newCustomerReceipts = s.customerReceipts;
+            let newBankAccounts = [...s.bankAccounts];
+            let newJournalEntries = [...s.journalEntries];
 
             // 1. Sales Invoice Approved -> status POSTED, decrement product inventory
             if (item.entity_type === 'sales_invoice') {
@@ -1026,20 +1038,59 @@ export const useDataStore = create<DataStoreState>()(
               }
             }
 
-            // 4. Purchase Return Approved -> status POSTED, decrement product inventory (items returned to supplier)
-            else if (item.entity_type === 'purchase_return') {
-              const pr = s.purchaseReturns.find((r) => r.id === item.record_id || r.return_no === item.record_no);
-              if (pr) {
-                newPurchaseReturns = s.purchaseReturns.map((r) =>
-                  r.id === pr.id ? { ...r, status: 'POSTED' } : r
+            // 5. Customer / Payment Receipt Approved -> status POSTED, auto-allocate customer invoices, update bank balance, post journal entry
+            else if (item.entity_type === 'customer_receipt' || item.entity_type === 'payment_receipt') {
+              const receipt = (s.customerReceipts || []).find((r) => r.id === item.record_id || r.receipt_no === item.record_no);
+              if (receipt) {
+                newCustomerReceipts = (s.customerReceipts || []).map((r) =>
+                  r.id === receipt.id ? { ...r, status: 'POSTED' } : r
                 );
-                (pr.items || []).forEach((prItem) => {
-                  if (!prItem.product_id) return;
-                  newProducts = newProducts.map((p) =>
-                    p.id === prItem.product_id
-                      ? { ...p, stock_quantity: Math.max(0, (p.stock_quantity || 0) - (prItem.qty || 0)) }
-                      : p
-                  );
+
+                // Auto allocate oldest customer invoices if customer_id is present
+                if (receipt.customer_id) {
+                  let remaining = receipt.amount || 0;
+                  newInvoices = newInvoices.map((inv) => {
+                    if (inv.customer_id === receipt.customer_id && inv.status !== 'CANCELLED' && remaining > 0) {
+                      const due = (inv.total_amount || 0) - (inv.paid_amount || 0);
+                      if (due > 0) {
+                        const alloc = Math.min(remaining, due);
+                        const newPaid = (inv.paid_amount || 0) + alloc;
+                        remaining -= alloc;
+                        return {
+                          ...inv,
+                          paid_amount: newPaid,
+                          status: newPaid >= (inv.total_amount || 0) ? 'POSTED' : inv.status,
+                        };
+                      }
+                    }
+                    return inv;
+                  });
+                }
+
+                // Update Bank Account balance
+                const bankIdx = newBankAccounts.findIndex(
+                  (b) => b.id === receipt.deposit_account_id || b.account_name === receipt.deposit_to
+                );
+                if (bankIdx !== -1) {
+                  newBankAccounts[bankIdx] = {
+                    ...newBankAccounts[bankIdx],
+                    current_balance: (newBankAccounts[bankIdx].current_balance || 0) + (receipt.amount || 0),
+                  };
+                }
+
+                // Add Journal Entry
+                const depositName = receipt.deposit_to || newBankAccounts[bankIdx]?.account_name || 'Cash in Hand';
+                newJournalEntries.unshift({
+                  id: crypto.randomUUID(),
+                  entry_no: `JV-${receipt.receipt_no}`,
+                  entry_date: receipt.receipt_date,
+                  reference_no: receipt.receipt_no,
+                  source: 'Customer Payment',
+                  narration: `Customer payment ${receipt.receipt_no} deposited to ${depositName}`,
+                  total_debit: receipt.amount,
+                  total_credit: receipt.amount,
+                  status: 'POSTED',
+                  created_at: new Date().toISOString(),
                 });
               }
             }
@@ -1052,6 +1103,9 @@ export const useDataStore = create<DataStoreState>()(
               purchaseInvoices: newPurchaseInvoices,
               salesReturns: newSalesReturns,
               purchaseReturns: newPurchaseReturns,
+              customerReceipts: newCustomerReceipts,
+              bankAccounts: newBankAccounts,
+              journalEntries: newJournalEntries,
             };
           }
 

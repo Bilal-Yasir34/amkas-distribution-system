@@ -68,6 +68,13 @@ export function Approvals() {
             <ArrowUpRight className="h-3 w-3" /> Purchase Return
           </span>
         );
+      case 'customer_receipt':
+      case 'payment_receipt':
+        return (
+          <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <CheckSquare className="h-3 w-3" /> Payment Receipt
+          </span>
+        );
       default:
         return (
           <span className="inline-flex items-center gap-1 rounded-md bg-slate-500/10 px-2 py-0.5 text-[10px] font-bold text-slate-400 border border-slate-500/20">
@@ -166,17 +173,17 @@ export function Approvals() {
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
         <table className="w-full text-left text-xs">
-          <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
+          <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:bg-slate-800/50">
             <tr>
-              <th className="px-4 py-3">Document Type</th>
-              <th className="px-4 py-3">Record No</th>
-              <th className="px-4 py-3">Party Name</th>
-              <th className="px-4 py-3">Warehouse / Items</th>
-              <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">Requested By</th>
-              <th className="px-4 py-3 text-right">Total Amount</th>
-              <th className="px-4 py-3 text-center">Status</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-3 py-2.5 whitespace-nowrap">Document Type</th>
+              <th className="px-3 py-2.5 whitespace-nowrap">Record No</th>
+              <th className="px-3 py-2.5 whitespace-nowrap">Party Name</th>
+              <th className="px-3 py-2.5">Warehouse / Items</th>
+              <th className="px-3 py-2.5 whitespace-nowrap">Date</th>
+              <th className="px-3 py-2.5 whitespace-nowrap">Requested By</th>
+              <th className="px-3 py-2.5 text-right whitespace-nowrap">Total Amount</th>
+              <th className="px-3 py-2.5 text-center whitespace-nowrap">Status</th>
+              <th className="px-3 py-2.5 text-right whitespace-nowrap">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -189,39 +196,39 @@ export function Approvals() {
             ) : (
               filtered.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
-                  <td className="px-4 py-3 font-medium">
+                  <td className="px-3 py-2 whitespace-nowrap font-medium">
                     {getEntityBadge(item.entity_type, item.module)}
                   </td>
-                  <td className="px-4 py-3 font-mono font-bold text-amber-500">
+                  <td className="px-3 py-2 whitespace-nowrap font-mono font-bold text-amber-500">
                     {item.record_no || '—'}
                   </td>
-                  <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">
+                  <td className="px-3 py-2 whitespace-nowrap font-semibold text-slate-800 dark:text-slate-200">
                     {item.party_name || '—'}
                   </td>
-                  <td className="px-4 py-3 text-slate-400">
-                    <div className="text-[11px] text-slate-300 font-medium">
+                  <td className="px-3 py-2 text-slate-400">
+                    <div className="text-[11px] text-slate-300 font-medium truncate max-w-[150px]" title={getWarehouseName(item.warehouse_id)}>
                       {getWarehouseName(item.warehouse_id)}
                     </div>
                     {item.items_summary && (
-                      <div className="text-[10px] text-slate-500 truncate max-w-[180px]" title={item.items_summary}>
+                      <div className="text-[10px] text-slate-500 truncate max-w-[150px]" title={item.items_summary}>
                         {item.items_summary}
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-400 whitespace-nowrap">
+                  <td className="px-3 py-2 text-slate-400 whitespace-nowrap text-[11px]">
                     {formatDate(item.created_at || '')}
                   </td>
-                  <td className="px-4 py-3 text-slate-400">
+                  <td className="px-3 py-2 text-slate-400 whitespace-nowrap">
                     <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-300">
                       {item.requested_by || 'admin'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-slate-800 dark:text-slate-100">
+                  <td className="px-3 py-2 text-right font-mono font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
                     {formatCurrency(Number(item.amount || 0))}
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-3 py-2 text-center whitespace-nowrap">
                     <span
-                      className={`inline-flex items-center gap-1 rounded-md px-2.5 py-0.5 text-[10px] font-bold ${
+                      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold ${
                         item.status === 'APPROVED'
                           ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
                           : item.status === 'REJECTED'
@@ -235,24 +242,24 @@ export function Approvals() {
                       {item.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-3 py-2 text-right whitespace-nowrap">
                     {item.status === 'PENDING' ? (
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleApprove(item.id, item.record_no || '', item.entity_type)}
-                          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white shadow hover:bg-emerald-700 transition"
+                          className="rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white shadow hover:bg-emerald-700 transition"
                         >
                           Approve
                         </button>
                         <button
                           onClick={() => handleReject(item.id, item.record_no || '', item.entity_type)}
-                          className="rounded-lg bg-rose-600 px-3 py-1.5 text-[11px] font-bold text-white shadow hover:bg-rose-700 transition"
+                          className="rounded-lg bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white shadow hover:bg-rose-700 transition"
                         >
                           Reject
                         </button>
                       </div>
                     ) : (
-                      <div className="text-right">
+                      <div className="text-right whitespace-nowrap">
                         <span className="text-[10px] text-slate-400 block font-medium">
                           {item.reviewed_by || 'Admin'}
                         </span>

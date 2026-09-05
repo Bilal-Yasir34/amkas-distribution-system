@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { todayISO } from '@/lib/utils';
@@ -6,73 +6,103 @@ import { DateInput } from '@/components/DateInput';
 
 export function ReceivePayment() {
   const toast = useToast();
-  const { customers, vendors, bankAccounts, invoices, customerReceipts, addCustomerReceipt, updateInvoice } = useDataStore();
+  const {
+    customers = [],
+    vendors = [],
+    users = [],
+    accountTypes = [],
+    bankAccounts = [],
+    invoices = [],
+    customerReceipts = [],
+    addCustomerReceipt,
+    addApprovalQueueItem,
+  } = useDataStore();
 
+  const [selectedAccountType, setSelectedAccountType] = useState(
+    (accountTypes || []).filter((at) => at.is_active)[0]?.name || 'Customer'
+  );
   const [receivedFrom, setReceivedFrom] = useState('');
   const [receiptDate, setReceiptDate] = useState(todayISO());
   const [depositTo, setDepositTo] = useState('Cash in Hand');
   const [amount, setAmount] = useState<number | ''>('');
-  const [accountCategory, setAccountCategory] = useState('Auto select based on selected party');
-  const [currency, setCurrency] = useState('PKR');
-  const [exchangeRate, setExchangeRate] = useState(1);
   const [refNo, setRefNo] = useState('');
   const [notes, setNotes] = useState('');
 
-  const receiptNo = `CR-${String(customerReceipts.length + 1).padStart(5, '0')}`;
+  const allParties = useMemo(() => {
+    const list = [
+      ...customers.map((c) => ({ ...c, _origin: 'customer' as const, account_type: c.account_type || 'Customer', party_code: c.code })),
+      ...vendors.map((v) => ({ ...v, _origin: 'vendor' as const, account_type: v.account_type || 'Vendor', party_code: v.code })),
+      ...users.map((u) => ({ ...u, name: u.full_name, _origin: 'user' as const, account_type: (u as any).account_type || u.role || 'Staff', party_code: u.employee_code })),
+    ];
+    return list.filter((item, idx, arr) => arr.findIndex((x) => x.id === item.id) === idx);
+  }, [customers, vendors, users]);
+
+  const filteredParties = useMemo(() => {
+    if (!selectedAccountType) return [];
+    return allParties.filter(
+      (p) => p.account_type?.toLowerCase() === selectedAccountType.toLowerCase()
+    );
+  }, [allParties, selectedAccountType]);
+
+  // Auto-generate reference number starting from CR-01
+  const autoRefNo = useMemo(() => {
+    const existingNums = (customerReceipts || []).map((r) => {
+      const match = (r.reference_no || r.receipt_no || '').match(/CR-(\d+)/i);
+      return match ? parseInt(match[1], 10) : 0;
+    });
+    const max = existingNums.length > 0 ? Math.max(0, ...existingNums) : 0;
+    return `CR-${String(max + 1).padStart(2, '0')}`;
+  }, [customerReceipts]);
 
   const handlePostReceipt = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!receivedFrom) return toast.error('Please select customer, vendor or account');
+    if (!receivedFrom) return toast.error(`Please select a ${selectedAccountType || 'user'}`);
     if (!amount || Number(amount) <= 0) return toast.error('Please enter a valid receipt amount');
 
     const amtNum = Number(amount);
-    const customerId = receivedFrom.startsWith('v-') ? '' : receivedFrom;
+    const selectedParty = allParties.find((p) => p.id === receivedFrom);
+    const customerId = selectedParty?._origin === 'customer' ? selectedParty.id : '';
 
     const depositAcc = bankAccounts.find(
       (b) => b.account_name === depositTo || b.id === depositTo
     );
     const depositAccId = depositAcc?.id || bankAccounts[0]?.id || 'ba1';
-
-    // Auto allocation for customer invoices
-    if (customerId) {
-      let remaining = amtNum;
-      const custInvoices = invoices
-        .filter((i) => i.customer_id === customerId && i.status !== 'CANCELLED')
-        .sort((a, b) => new Date(a.invoice_date).getTime() - new Date(b.invoice_date).getTime());
-
-      custInvoices.forEach((inv) => {
-        if (remaining <= 0) return;
-        const due = (inv.total_amount || 0) - (inv.paid_amount || 0);
-        if (due > 0) {
-          const alloc = Math.min(remaining, due);
-          const newPaid = (inv.paid_amount || 0) + alloc;
-          remaining -= alloc;
-          updateInvoice(inv.id, {
-            paid_amount: newPaid,
-            status: newPaid >= (inv.total_amount || 0) ? 'POSTED' : inv.status,
-          });
-        }
-      });
-    }
+    const receiptId = crypto.randomUUID();
+    const finalRefNo = refNo.trim() || autoRefNo;
 
     addCustomerReceipt({
-      receipt_no: receiptNo,
-      customer_id: customerId || customers[0]?.id || 'c1',
+      id: receiptId,
+      receipt_no: finalRefNo,
+      customer_id: customerId || selectedParty?.id || customers[0]?.id || 'c1',
       sales_invoice_id: null,
       receipt_date: receiptDate,
       payment_method: depositTo.includes('Cash') ? 'Cash' : 'Bank Transfer',
       deposit_account_id: depositAccId,
       deposit_to: depositTo,
       amount: amtNum,
-      reference_no: refNo || null,
+      reference_no: finalRefNo,
       notes: notes || null,
-      currency,
-      status: 'POSTED',
-      created_by: 'admin',
+      currency: 'PKR',
+      status: 'PENDING',
+      created_by: 'Cashier / User',
       created_at: new Date().toISOString(),
     });
 
-    toast.success(`Receipt ${receiptNo} posted! Rs. ${amtNum.toLocaleString()} received.`);
+    addApprovalQueueItem({
+      entity_type: 'customer_receipt',
+      module: 'Receive Payment',
+      record_id: receiptId,
+      record_no: finalRefNo,
+      party_name: selectedParty?.name || 'Customer',
+      amount: amtNum,
+      warehouse_id: null,
+      requested_by: 'Cashier / User',
+      status: 'PENDING',
+      created_at: new Date().toISOString(),
+      items_summary: `Payment receipt of Rs. ${amtNum.toLocaleString()} for ${selectedParty?.name || 'Party'} (Deposit to: ${depositTo})`,
+    });
+
+    toast.success(`Receipt ${finalRefNo} submitted to Approval Center for review!`);
 
     // Reset form
     setReceivedFrom('');
@@ -92,39 +122,47 @@ export function ReceivePayment() {
           <div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Receive Payment</h2>
             <p className="text-xs font-medium text-slate-500 mt-1">
-              Use one receipt screen for customers, suppliers or direct account heads.
+              Select an account type to view and select relevant accounts.
             </p>
           </div>
 
-          {/* Row 1: Received from & Date */}
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* Row 1: Account Type, Received from & Date */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account Type</label>
+              <select
+                value={selectedAccountType}
+                onChange={(e) => {
+                  setSelectedAccountType(e.target.value);
+                  setReceivedFrom('');
+                }}
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-semibold"
+              >
+                <option value="">Select Account Type</option>
+                {(accountTypes || []).filter((at) => at.is_active).map((at) => (
+                  <option key={at.id} value={at.name}>
+                    {at.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Received from</label>
               <select
                 value={receivedFrom}
                 onChange={(e) => setReceivedFrom(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                disabled={!selectedAccountType}
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
               >
-                <option value="">Select customer, supplier or account</option>
-                <optgroup label="Customers">
-                  {customers.filter((c) => c.is_active).map((c) => (
-                    <option key={`c-${c.id}`} value={c.id}>
-                      {c.name} ({c.code})
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Suppliers">
-                  {vendors.filter((v) => v.is_active).map((v) => (
-                    <option key={`v-${v.id}`} value={`v-${v.id}`}>
-                      {v.name} ({v.code})
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Direct Account Heads">
-                  <option value="acc-ar">Accounts Receivable</option>
-                  <option value="acc-advance">Customer Advances</option>
-                  <option value="acc-other">Other Income / Revenue</option>
-                </optgroup>
+                <option value="">
+                  {selectedAccountType ? `Select ${selectedAccountType}` : 'Select Account Type first'}
+                </option>
+                {filteredParties.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.party_code ? `(${p.party_code})` : ''}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -135,8 +173,8 @@ export function ReceivePayment() {
             />
           </div>
 
-          {/* Row 2: Deposit to & Amount */}
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* Row 2: Deposit to, Amount & Reference Number */}
+          <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Deposit to</label>
               <select
@@ -162,66 +200,20 @@ export function ReceivePayment() {
                 className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               />
             </div>
-          </div>
-
-          {/* Row 3: Account category & Currency */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account category</label>
-              <select
-                value={accountCategory}
-                onChange={(e) => setAccountCategory(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-              >
-                <option value="Auto select based on selected party">Auto select based on selected party</option>
-                <option value="Accounts Receivable">Accounts Receivable</option>
-                <option value="Customer Advances">Customer Advances</option>
-                <option value="Sales Income">Sales Income</option>
-              </select>
-            </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Currency</label>
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-              >
-                <option value="PKR">PKR</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-                <option value="GBP">GBP</option>
-                <option value="AED">AED</option>
-                <option value="SAR">SAR</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Row 4: Exchange rate & Reference number */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Exchange rate</label>
-              <input
-                type="number"
-                value={exchangeRate}
-                onChange={(e) => setExchangeRate(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Reference number</label>
+              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Reference number (Auto)</label>
               <input
                 type="text"
-                placeholder="Reference number"
-                value={refNo}
+                placeholder={autoRefNo}
+                value={refNo !== '' ? refNo : autoRefNo}
                 onChange={(e) => setRefNo(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-bold text-amber-500 dark:border-slate-700 dark:bg-slate-800 outline-none focus:border-amber-500"
               />
             </div>
           </div>
 
-          {/* Row 5: Notes Textarea */}
+          {/* Row 3: Notes Textarea */}
           <div>
             <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Notes</label>
             <textarea

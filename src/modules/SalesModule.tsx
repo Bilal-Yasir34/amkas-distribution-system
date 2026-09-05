@@ -684,6 +684,9 @@ export function SalesModule() {
   const [receiptViewMode, setReceiptViewMode] = useState<'list' | 'form'>('form');
   const [editingReceiptId, setEditingReceiptId] = useState<string | null>(null);
 
+  const [receiptAccountType, setReceiptAccountType] = useState(
+    (accountTypes || []).filter((at) => at.is_active)[0]?.name || 'Customer'
+  );
   const [receiptCustomerId, setReceiptCustomerId] = useState('');
   const [receiptDate, setReceiptDate] = useState('2026-07-22');
   const [receiptDepositTo, setReceiptDepositTo] = useState('Cash in Hand');
@@ -693,6 +696,21 @@ export function SalesModule() {
   const [receiptExchangeRate, setReceiptExchangeRate] = useState(1);
   const [receiptRefNo, setReceiptRefNo] = useState('');
   const [receiptNotes, setReceiptNotes] = useState('');
+
+  const receiptAllParties = useMemo(() => {
+    const list = [
+      ...customers.map((c) => ({ ...c, _origin: 'customer' as const, account_type: c.account_type || 'Customer' })),
+      ...vendors.map((v) => ({ ...v, _origin: 'vendor' as const, account_type: v.account_type || 'Vendor' })),
+    ];
+    return list.filter((item, idx, arr) => arr.findIndex((x) => x.id === item.id) === idx);
+  }, [customers, vendors]);
+
+  const receiptFilteredParties = useMemo(() => {
+    if (!receiptAccountType) return [];
+    return receiptAllParties.filter(
+      (p) => p.account_type?.toLowerCase() === receiptAccountType.toLowerCase()
+    );
+  }, [receiptAllParties, receiptAccountType]);
 
   const openCreateReceiptForm = () => {
     setEditingReceiptId(null);
@@ -745,32 +763,15 @@ export function SalesModule() {
       });
       toast.success('Customer Receipt updated');
     } else {
-      const receiptNo = `MCR-${String((customerReceipts || []).length + 1).padStart(5, '0')}`;
-
-      // Smart allocation to oldest outstanding invoices
-      let remaining = amt;
-      const custInvoices = invoices
-        .filter((i) => i.customer_id === receiptCustomerId && (i.status as string) !== 'CANCELLED')
-        .sort((a, b) => new Date(a.invoice_date).getTime() - new Date(b.invoice_date).getTime());
-
-      custInvoices.forEach((inv) => {
-        if (remaining <= 0) return;
-        const due = (inv.total_amount || 0) - (inv.paid_amount || 0);
-        if (due > 0) {
-          const alloc = Math.min(remaining, due);
-          const newPaid = (inv.paid_amount || 0) + alloc;
-          remaining -= alloc;
-          updateInvoice(inv.id, {
-            paid_amount: newPaid,
-            status: newPaid >= (inv.total_amount || 0) ? 'POSTED' : inv.status,
-          });
-        }
-      });
+      const receiptId = crypto.randomUUID();
+      const receiptNo = `CR-${Date.now().toString().slice(-5)}`;
+      const party = receiptAllParties.find((p) => p.id === receiptCustomerId);
 
       addCustomerReceipt({
+        id: receiptId,
         receipt_no: receiptNo,
         customer_id: receiptCustomerId,
-        sales_invoice_id: custInvoices[0]?.id || null,
+        sales_invoice_id: null,
         receipt_date: receiptDate,
         payment_method: receiptDepositTo.includes('Cash') ? 'Cash' : 'Bank Transfer',
         deposit_account_id: depositAccId,
@@ -778,12 +779,26 @@ export function SalesModule() {
         amount: amt,
         reference_no: receiptRefNo || null,
         currency: receiptCurrency,
-        status: 'POSTED',
+        status: 'PENDING',
         notes: receiptNotes || null,
         created_at: new Date().toISOString(),
       });
 
-      toast.success(`Customer Receipt ${receiptNo} posted successfully!`);
+      addApprovalQueueItem({
+        entity_type: 'customer_receipt',
+        module: 'Sales / Receipts',
+        record_id: receiptId,
+        record_no: receiptNo,
+        party_name: party?.name || 'Customer',
+        amount: amt,
+        warehouse_id: null,
+        requested_by: 'Cashier / User',
+        status: 'PENDING',
+        created_at: new Date().toISOString(),
+        items_summary: `Payment receipt of Rs. ${amt.toLocaleString()} for ${party?.name || 'Customer'} (Deposit to: ${receiptDepositTo})`,
+      });
+
+      toast.success(`Customer Receipt ${receiptNo} submitted to Approval Center for review!`);
     }
 
     setReceiptViewMode('list');
@@ -2554,35 +2569,43 @@ export function SalesModule() {
                     </p>
                   </div>
 
-                  {/* Row 1: Received from & Date */}
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  {/* Row 1: Account Type, Received from & Date */}
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account Type</label>
+                      <select
+                        value={receiptAccountType}
+                        onChange={(e) => {
+                          setReceiptAccountType(e.target.value);
+                          setReceiptCustomerId('');
+                        }}
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-semibold"
+                      >
+                        <option value="">Select Account Type</option>
+                        {(accountTypes || []).filter((at) => at.is_active).map((at) => (
+                          <option key={at.id} value={at.name}>
+                            {at.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
                     <div>
                       <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Received from</label>
                       <select
                         value={receiptCustomerId}
                         onChange={(e) => setReceiptCustomerId(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                        disabled={!receiptAccountType}
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                       >
-                        <option value="">Select customer, supplier or account</option>
-                        <optgroup label="Customers">
-                          {customers.filter((c) => c.is_active).map((c) => (
-                            <option key={`c-${c.id}`} value={c.id}>
-                              {c.name} ({c.code})
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Supplier">
-                          {vendors.filter((v) => v.is_active).map((v) => (
-                            <option key={`v-${v.id}`} value={`v-${v.id}`}>
-                              {v.name} ({v.code})
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Direct Account Heads">
-                          <option value="acc-ar">Accounts Receivable</option>
-                          <option value="acc-advance">Customer Advances</option>
-                          <option value="acc-other">Other Income / Revenue</option>
-                        </optgroup>
+                        <option value="">
+                          {receiptAccountType ? `Select ${receiptAccountType}` : 'Select Account Type first'}
+                        </option>
+                        {receiptFilteredParties.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} {p.code ? `(${p.code})` : ''}
+                          </option>
+                        ))}
                       </select>
                     </div>
 

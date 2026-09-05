@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { todayISO } from '@/lib/utils';
@@ -6,28 +6,69 @@ import { DateInput } from '@/components/DateInput';
 
 export function PayPayment() {
   const toast = useToast();
-  const { vendors, customers, bankAccounts, vendorBills, vendorPayments, addVendorPayment, updateVendor, updateVendorBill } = useDataStore();
+  const {
+    vendors = [],
+    customers = [],
+    users = [],
+    accountTypes = [],
+    bankAccounts = [],
+    vendorBills = [],
+    vendorPayments = [],
+    addVendorPayment,
+    updateVendor,
+    updateVendorBill,
+  } = useDataStore();
 
-  const paymentNo = `CP-${String(vendorPayments.length + 1).padStart(5, '0')}`;
+  const [selectedAccountType, setSelectedAccountType] = useState(
+    (accountTypes || []).filter((at) => at.is_active).find((at) => at.name?.toLowerCase().includes('vendor') || at.name?.toLowerCase().includes('supplier'))?.name ||
+    (accountTypes || []).filter((at) => at.is_active)[0]?.name ||
+    'Vendor'
+  );
   const [paidTo, setPaidTo] = useState('');
   const [paymentDate, setPaymentDate] = useState(todayISO());
   const [payFrom, setPayFrom] = useState('Cash in Hand');
   const [amount, setAmount] = useState<string | number>('');
-  const [accountCategory, setAccountCategory] = useState('Auto select based on selected party');
-  const [currency, setCurrency] = useState('PKR');
-  const [exchangeRate, setExchangeRate] = useState(1);
   const [refNo, setRefNo] = useState('');
   const [notes, setNotes] = useState('');
 
+  const allParties = useMemo(() => {
+    const list = [
+      ...vendors.map((v) => ({ ...v, _origin: 'vendor' as const, account_type: v.account_type || 'Vendor', party_code: v.code })),
+      ...customers.map((c) => ({ ...c, _origin: 'customer' as const, account_type: c.account_type || 'Customer', party_code: c.code })),
+      ...users.map((u) => ({ ...u, name: u.full_name, _origin: 'user' as const, account_type: (u as any).account_type || u.role || 'Staff', party_code: u.employee_code })),
+    ];
+    return list.filter((item, idx, arr) => arr.findIndex((x) => x.id === item.id) === idx);
+  }, [vendors, customers, users]);
+
+  const filteredParties = useMemo(() => {
+    if (!selectedAccountType) return [];
+    return allParties.filter(
+      (p) => p.account_type?.toLowerCase() === selectedAccountType.toLowerCase()
+    );
+  }, [allParties, selectedAccountType]);
+
+  // Auto-generate reference number starting from CP-01
+  const autoRefNo = useMemo(() => {
+    const existingNums = (vendorPayments || []).map((p) => {
+      const match = (p.reference_no || p.payment_no || '').match(/CP-(\d+)/i);
+      return match ? parseInt(match[1], 10) : 0;
+    });
+    const max = existingNums.length > 0 ? Math.max(0, ...existingNums) : 0;
+    return `CP-${String(max + 1).padStart(2, '0')}`;
+  }, [vendorPayments]);
+
   const handlePostPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!paidTo) return toast.error('Please select customer, supplier or account');
+    if (!paidTo) return toast.error(`Please select a ${selectedAccountType || 'payee'}`);
     if (!amount || Number(amount) <= 0) return toast.error('Please enter a valid payment amount');
 
     const amtNum = Number(amount);
-    const vendorId = paidTo.startsWith('c-') ? '' : paidTo;
+    const selectedParty = allParties.find((p) => p.id === paidTo);
+    const vendorId = selectedParty?._origin === 'vendor' ? selectedParty.id : '';
+    const finalRefNo = refNo.trim() || autoRefNo;
+    const paymentNo = finalRefNo;
 
-    // Auto allocation to oldest vendor bills
+    // Auto allocation to oldest vendor bills if paying a vendor
     if (vendorId) {
       let remaining = amtNum;
       const vBills = vendorBills
@@ -58,13 +99,13 @@ export function PayPayment() {
 
     addVendorPayment({
       payment_no: paymentNo,
-      vendor_id: vendorId || vendors[0]?.id || 'v1',
+      vendor_id: vendorId || selectedParty?.id || vendors[0]?.id || 'v1',
       vendor_bill_id: null,
       payment_date: paymentDate,
       payment_method: payFrom,
       paid_from_account_id: payFrom,
       amount: amtNum,
-      reference_no: refNo || null,
+      reference_no: finalRefNo,
       notes: notes || null,
       status: 'POSTED',
       created_by: 'admin',
@@ -94,40 +135,47 @@ export function PayPayment() {
           <div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Pay Payment</h2>
             <p className="text-xs font-medium text-slate-500 mt-1">
-              Use one payment screen for suppliers, customers or direct account heads.
+              Select an account type to view and select relevant accounts.
             </p>
           </div>
 
-          {/* Row 1: Paid to & Date */}
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* Row 1: Account Type, Paid to & Date */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account Type</label>
+              <select
+                value={selectedAccountType}
+                onChange={(e) => {
+                  setSelectedAccountType(e.target.value);
+                  setPaidTo('');
+                }}
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-semibold"
+              >
+                <option value="">Select Account Type</option>
+                {(accountTypes || []).filter((at) => at.is_active).map((at) => (
+                  <option key={at.id} value={at.name}>
+                    {at.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Paid to</label>
               <select
                 value={paidTo}
                 onChange={(e) => setPaidTo(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                disabled={!selectedAccountType}
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
               >
-                <option value="">Select customer, supplier or account</option>
-                <optgroup label="Suppliers">
-                  {vendors.filter((v) => v.is_active).map((v) => (
-                    <option key={`v-${v.id}`} value={v.id}>
-                      {v.name} ({v.code})
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Customers">
-                  {customers.filter((c) => c.is_active).map((c) => (
-                    <option key={`c-${c.id}`} value={`c-${c.id}`}>
-                      {c.name} ({c.code})
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Direct Account Heads">
-                  <option value="acc-ap">Accounts Payable</option>
-                  <option value="acc-advance">Supplier Advances</option>
-                  <option value="acc-direct-exp">Direct Expenses</option>
-                  <option value="acc-op-exp">Operating Expenses</option>
-                </optgroup>
+                <option value="">
+                  {selectedAccountType ? `Select ${selectedAccountType}` : 'Select Account Type first'}
+                </option>
+                {filteredParties.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.party_code ? `(${p.party_code})` : ''}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -138,8 +186,8 @@ export function PayPayment() {
             />
           </div>
 
-          {/* Row 2: Pay from & Amount */}
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* Row 2: Pay from, Amount & Reference Number */}
+          <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Pay from</label>
               <select
@@ -169,68 +217,20 @@ export function PayPayment() {
                 className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
               />
             </div>
-          </div>
-
-          {/* Row 3: Account head / category & Currency */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Account head / category</label>
-              <select
-                value={accountCategory}
-                onChange={(e) => setAccountCategory(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-              >
-                <option value="Auto select based on selected party">Auto select based on selected party</option>
-                <option value="Accounts Payable">Accounts Payable</option>
-                <option value="Vendor Advances">Vendor Advances</option>
-                <option value="Accounts Receivable">Accounts Receivable</option>
-                <option value="Direct Expenses">Direct Expenses</option>
-                <option value="Operating Expenses">Operating Expenses</option>
-              </select>
-            </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Currency</label>
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-              >
-                <option value="PKR">PKR</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-                <option value="GBP">GBP</option>
-                <option value="AED">AED</option>
-                <option value="SAR">SAR</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Row 4: Exchange rate & Reference number */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Exchange rate</label>
-              <input
-                type="number"
-                value={exchangeRate}
-                onChange={(e) => setExchangeRate(Number(e.target.value))}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Reference number</label>
+              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Reference number (Auto)</label>
               <input
                 type="text"
-                placeholder="Reference number"
-                value={refNo}
+                placeholder={autoRefNo}
+                value={refNo !== '' ? refNo : autoRefNo}
                 onChange={(e) => setRefNo(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-mono font-bold text-amber-500 dark:border-slate-700 dark:bg-slate-800 outline-none focus:border-amber-500"
               />
             </div>
           </div>
 
-          {/* Row 5: Notes Textarea */}
+          {/* Row 3: Notes Textarea */}
           <div>
             <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Notes</label>
             <textarea
