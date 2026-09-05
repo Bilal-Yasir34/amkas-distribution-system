@@ -205,14 +205,20 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
     toast.success('SQL Backup downloaded successfully');
   };
 
-  const handleClearBusinessData = () => {
+  const handleClearBusinessData = async () => {
     if (resetInput !== 'RESET NICE') {
       return toast.error('Type RESET NICE to confirm');
     }
     resetBusinessData();
-    toast.success('Business records cleared. Organization setup preserved.');
+    toast.success('All sales, purchases, approval queue, bank, and transaction entries cleared successfully!');
     setResetConfirmOpen(false);
     setResetInput('');
+    // Synchronize cleared state to cloud
+    try {
+      await pushStateToSupabase();
+    } catch {
+      // cloud sync will retry in background
+    }
   };
 
   return (
@@ -631,15 +637,15 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
           </div>
         </div>
 
-        {/* Fresh Client Handover Reset */}
+        {/* Fresh Client Handover / Clear All Entries Reset */}
         <div className="card p-6 space-y-5">
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-rose-500">FRESH CLIENT HANDOVER</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-rose-500">SYSTEM DATA RESET</p>
             <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 font-heading mt-0.5">
-              Reset Business Records
+              Clear All Sales & System Entries
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-              Purge dummy testing transactions while retaining organization settings, master accounts, and employee setup.
+              Purge all transactions and operational records while safely retaining users, account types, and master configurations.
             </p>
           </div>
 
@@ -647,20 +653,20 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
             <div className="flex items-start gap-2.5 text-slate-800 dark:text-slate-200 leading-relaxed font-semibold">
               <AlertTriangle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
               <p>
-                Clears all sales, purchases, receipts, payments, journals, bank imports, stock movements, customers, vendors, and product catalogs for the active organization.
+                Clears all sales invoices, quotations, sales orders, credit notes, sales returns, customer receipts, commissions, purchase requests, purchase orders, purchase invoices, vendor bills, debit notes, purchase returns, vendor payments, approval center queue items, bank statements, journal entries, expense & income records, and stock adjustments.
               </p>
             </div>
             <div className="rounded-xl bg-amber-500/15 p-3 text-xs text-amber-700 dark:text-amber-300 border border-amber-500/30">
-              <strong className="font-extrabold text-amber-800 dark:text-amber-200">Preserved Configuration:</strong> Organization profile, branches, departments, employee credentials, role permissions, financial years, chart of accounts, bank accounts, warehouses, and company logo.
+              <strong className="font-extrabold text-amber-800 dark:text-amber-200">Preserved Master Data:</strong> Users & employee accounts, Account Types, Customer & Vendor contacts, Product catalog & categories, Chart of Accounts, Bank Accounts, Warehouses, and Organization settings.
             </div>
           </div>
 
           {!resetConfirmOpen ? (
             <button
               onClick={() => setResetConfirmOpen(true)}
-              className="btn btn-danger w-full justify-center py-3 text-xs"
+              className="btn btn-danger w-full justify-center py-3 text-xs font-bold"
             >
-              <Trash2 className="h-4 w-4" /> Clear Business Data
+              <Trash2 className="h-4 w-4" /> Clear All Sales & System Entries
             </button>
           ) : (
             <div className="space-y-4 border-t border-slate-200 dark:border-amber-500/20 pt-4">
@@ -685,7 +691,7 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
                 </button>
                 <button
                   onClick={handleClearBusinessData}
-                  className="btn btn-danger flex-1 py-2.5 text-xs"
+                  className="btn btn-danger flex-1 py-2.5 text-xs font-bold"
                 >
                   Confirm Data Wipe
                 </button>

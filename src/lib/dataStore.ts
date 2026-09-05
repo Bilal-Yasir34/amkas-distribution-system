@@ -1330,13 +1330,14 @@ export const useDataStore = create<DataStoreState>()(
           };
         }),
 
-      // Reset
+      // Reset all transactional entries
       resetBusinessData: () =>
         set({
           invoices: [],
           quotations: [],
           salesOrders: [],
           creditNotes: [],
+          salesReturns: [],
           customerReceipts: [],
           commissions: [],
           purchaseRequests: [],
@@ -1344,12 +1345,19 @@ export const useDataStore = create<DataStoreState>()(
           purchaseInvoices: [],
           vendorBills: [],
           debitNotes: [],
+          purchaseReturns: [],
           vendorPayments: [],
+          approvalQueue: [],
+          bankStatements: [],
+          journalEntries: [],
+          expenseRecords: [],
+          incomeRecords: [],
           stockTransfers: [],
           stockAdjustments: [],
           batches: [],
           serials: [],
-          productArticles: [],
+          auditLogs: [],
+          loginLogs: [],
         }),
     }),
     {
