@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Printer, X, FileText } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
+import { formatDate } from '@/lib/utils';
 import { Modal } from './Modal';
 
 interface PrintDocumentProps {
@@ -19,7 +20,7 @@ export function PrintDocument({
   title,
   subtitle,
   documentNo,
-  date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+  date = formatDate(new Date()),
   children,
 }: PrintDocumentProps) {
   const { orgSettings } = useDataStore();

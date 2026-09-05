@@ -1,13 +1,46 @@
-import { useState } from 'react';
-import { Wrench, Download, Trash2, ShieldCheck, Database, HardDrive, AlertTriangle, RefreshCw, KeyRound, ShieldAlert, Power, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useState, useRef } from 'react';
+import {
+  Wrench,
+  Download,
+  Upload,
+  Trash2,
+  ShieldCheck,
+  Database,
+  HardDrive,
+  AlertTriangle,
+  RefreshCw,
+  KeyRound,
+  ShieldAlert,
+  Power,
+  CheckCircle2,
+  AlertCircle,
+  Cloud,
+  UploadCloud,
+  DownloadCloud,
+  ClipboardPaste,
+  FileCode,
+  X,
+} from 'lucide-react';
 import { useToast } from '@/lib/toast';
 import { useDataStore } from '@/lib/dataStore';
+import { pushStateToSupabase, pullStateFromSupabase } from '@/lib/cloudSync';
 
 export function Maintenance() {
   const toast = useToast();
   const { resetBusinessData, isMaintenanceMode, enableMaintenanceMode, disableMaintenanceMode } = useDataStore();
   const [resetInput, setResetInput] = useState('');
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+
+  // Cloud Sync state
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+  // File upload ref for JSON import
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Paste Data Modal state
+  const [showPasteModal, setShowPasteModal] = useState(false);
+  const [pasteInput, setPasteInput] = useState('');
 
   // Maintenance mode turn-off modal state
   const [showTurnOffModal, setShowTurnOffModal] = useState(false);
@@ -31,6 +64,103 @@ export function Maintenance() {
     toast.success('Maintenance mode DISABLED successfully.');
     setShowTurnOffModal(false);
     setTurnOffPassword('');
+  };
+
+  const handlePushToCloud = async () => {
+    setSyncing(true);
+    setSyncMessage('Pushing current store to Supabase Cloud Database...');
+    const res = await pushStateToSupabase();
+    setSyncing(false);
+    if (res.success) {
+      toast.success(res.message);
+      setSyncMessage(res.message);
+    } else {
+      toast.error(res.message);
+      setSyncMessage(res.message);
+    }
+  };
+
+  const handlePullFromCloud = async () => {
+    setSyncing(true);
+    setSyncMessage('Pulling latest data from Supabase Cloud...');
+    const res = await pullStateFromSupabase();
+    setSyncing(false);
+    if (res.success) {
+      toast.success(res.message);
+      setSyncMessage(res.message);
+    } else {
+      toast.error(res.message);
+      setSyncMessage(res.message);
+    }
+  };
+
+  const handleExportJSON = () => {
+    try {
+      const state = useDataStore.getState();
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        version: '1.1',
+        data: state,
+      };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `amkas_erp_data_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Full system JSON snapshot exported successfully!');
+    } catch {
+      toast.error('Failed to export JSON snapshot');
+    }
+  };
+
+  const applyImportedData = (rawText: string) => {
+    try {
+      let parsed = JSON.parse(rawText.trim());
+      // Handle wrapped format { state: { ... } } or { data: { ... } }
+      if (parsed.state) parsed = parsed.state;
+      if (parsed.data) parsed = parsed.data;
+
+      // Validate presence of core arrays
+      if (!parsed.organizations && !parsed.products && !parsed.users && !parsed.customers) {
+        toast.error('Data does not appear to contain valid ERP records.');
+        return false;
+      }
+
+      useDataStore.setState(parsed);
+      toast.success('Data snapshot imported successfully! Local state updated.');
+      return true;
+    } catch {
+      toast.error('Invalid JSON format. Please ensure you copied the complete text.');
+      return false;
+    }
+  };
+
+  const handleImportJSONFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      applyImportedData(content);
+      // Reset input value so re-selecting same file triggers onChange
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
+  const handleApplyPastedData = () => {
+    if (!pasteInput.trim()) {
+      toast.error('Please paste your JSON data into the text box');
+      return;
+    }
+    const ok = applyImportedData(pasteInput);
+    if (ok) {
+      setShowPasteModal(false);
+      setPasteInput('');
+    }
   };
 
   const handleDownloadBackup = () => {
@@ -68,13 +198,21 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
 
   return (
     <div className="space-y-6">
+      {/* Hidden file input for JSON import - accepts any file extension */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleImportJSONFile}
+        className="hidden"
+      />
+
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4 dark:border-amber-500/20">
         <div>
           <p className="text-[11px] font-extrabold uppercase tracking-widest text-amber-500">SYSTEM GOVERNANCE & UTILITIES</p>
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-heading flex items-center gap-2.5 mt-0.5">
             <Wrench className="h-6 w-6 text-amber-500" />
-            System Maintenance
+            System Maintenance & Cloud Sync
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -104,19 +242,19 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
               <Database className="h-4 w-4" />
             </div>
           </div>
-          <p className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-heading">PostgreSQL</p>
-          <p className="mt-1 text-xs font-semibold text-amber-500 dark:text-amber-400">Supabase Transactional Storage</p>
+          <p className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-heading">Supabase</p>
+          <p className="mt-1 text-xs font-semibold text-emerald-500 dark:text-emerald-400">Cloud Connected</p>
         </div>
 
         <div className="card p-5">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">BACKUP SCOPE</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">SYNC STATUS</p>
             <div className="rounded-xl bg-amber-500/15 p-2 text-amber-500">
-              <Download className="h-4 w-4" />
+              <Cloud className="h-4 w-4" />
             </div>
           </div>
-          <p className="mt-2 text-2xl font-extrabold text-amber-500 dark:text-amber-400 font-heading">FULL SQL</p>
-          <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">Schema & All Organizations</p>
+          <p className="mt-2 text-2xl font-extrabold text-amber-500 dark:text-amber-400 font-heading">BIDIRECTIONAL</p>
+          <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">Localhost & Production</p>
         </div>
 
         <div className="card p-5">
@@ -131,60 +269,112 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
         </div>
       </div>
 
-      {/* Maintenance Mode System Control Card */}
-      <div className={`card p-6 border-2 transition-all ${
-        isMaintenanceMode
-          ? 'border-amber-500 bg-amber-500/10 dark:bg-amber-500/15 shadow-xl shadow-amber-500/10'
-          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80'
-      }`}>
+      {/* CLOUD DATABASE SYNC SECTION */}
+      <div className="card p-6 border-2 border-amber-500/30 bg-amber-50/20 dark:bg-amber-950/10 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-4">
-            <div className={`p-3.5 rounded-2xl ${
-              isMaintenanceMode ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-            }`}>
-              <Wrench className={`h-7 w-7 ${isMaintenanceMode ? 'animate-bounce' : ''}`} />
+            <div className="p-3.5 rounded-2xl bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20">
+              <Cloud className="h-7 w-7" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-500">SYSTEM ACCESS CONTROL</span>
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                  isMaintenanceMode ? 'bg-amber-500/20 text-amber-500 border border-amber-500/40 animate-pulse' : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
-                }`}>
-                  {isMaintenanceMode ? 'MAINTENANCE MODE ACTIVE' : 'LIVE & ACCESSIBLE'}
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-500">CLOUD DATABASE SYNC</span>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
+                  Supabase Ready
                 </span>
               </div>
               <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 font-heading mt-1">
-                System Maintenance Mode
+                Synchronize Localhost & Live Domain Data
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 max-w-xl leading-relaxed">
-                Enable maintenance mode to restrict non-admin access while conducting system upgrades. Turning off maintenance mode requires the master password: <span className="font-mono font-bold text-amber-500">AmkasMaintenanceOff!</span>
+                Push your active store data to the centralized Supabase Cloud Database, or pull the latest cloud tables into your current environment.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0 self-end md:self-center">
-            {isMaintenanceMode ? (
-              <button
-                onClick={() => {
-                  setShowTurnOffModal(true);
-                  setTurnOffError(null);
-                  setTurnOffPassword('');
-                }}
-                className="btn border border-amber-500/40 bg-slate-900 text-amber-400 hover:bg-slate-800 px-5 py-2.5 text-xs font-extrabold shadow-md flex items-center gap-2"
-              >
-                <KeyRound className="h-4 w-4" /> Turn Off Maintenance Mode
-              </button>
-            ) : (
-              <button
-                onClick={handleEnableMode}
-                className="btn-primary px-5 py-2.5 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-amber-500/20"
-              >
-                <Power className="h-4 w-4" /> Enable Maintenance Mode
-              </button>
-            )}
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <button
+              onClick={handlePushToCloud}
+              disabled={syncing}
+              className="btn-primary px-4 py-2.5 text-xs font-bold flex items-center gap-2"
+            >
+              <UploadCloud className="h-4 w-4" />
+              {syncing ? 'Pushing...' : 'Push to Cloud (Supabase)'}
+            </button>
+            <button
+              onClick={handlePullFromCloud}
+              disabled={syncing}
+              className="btn border border-amber-500/40 bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 px-4 py-2.5 text-xs font-bold flex items-center gap-2"
+            >
+              <DownloadCloud className="h-4 w-4" />
+              {syncing ? 'Pulling...' : 'Pull from Cloud'}
+            </button>
           </div>
         </div>
+
+        {syncMessage && (
+          <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-3 text-xs font-semibold text-amber-800 dark:text-amber-200">
+            {syncMessage}
+          </div>
+        )}
       </div>
+
+      {/* DIRECT PASTE DATA MODAL */}
+      {showPasteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-xl card p-6 shadow-2xl space-y-4">
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-amber-500">DIRECT DATA SYNC</p>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 font-heading flex items-center gap-2 mt-0.5">
+                  <ClipboardPaste className="h-5 w-5 text-amber-500" /> Paste System Snapshot
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowPasteModal(false);
+                  setPasteInput('');
+                }}
+                className="text-slate-400 hover:text-slate-200 font-bold text-lg"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Paste the exported JSON data or your browser's <code className="font-mono text-amber-500">amkas-erp-data-store</code> text below to load it immediately into Localhost:
+            </p>
+
+            <textarea
+              rows={8}
+              value={pasteInput}
+              onChange={(e) => setPasteInput(e.target.value)}
+              placeholder="Paste JSON text here (e.g. { 'products': [...], 'users': [...] })"
+              className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs font-mono text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 outline-none focus:border-amber-500"
+            />
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPasteModal(false);
+                  setPasteInput('');
+                }}
+                className="btn-secondary py-2 px-4 text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyPastedData}
+                className="btn-primary py-2 px-5 text-xs"
+              >
+                Apply Snapshot Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Turn Off Password Modal */}
       {showTurnOffModal && (
@@ -205,7 +395,7 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
                 }}
                 className="text-slate-400 hover:text-slate-200 font-bold text-lg"
               >
-                ×
+                <X className="h-5 w-5" />
               </button>
             </div>
 
@@ -261,31 +451,51 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
 
       {/* Main Operations Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Disaster Recovery SQL Backup */}
+        {/* Instant JSON Snapshot Migration */}
         <div className="card p-6 space-y-5">
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-500">DISASTER RECOVERY</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-500">DATA MIGRATION</p>
             <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 font-heading mt-0.5">
-              Download Database Backup
+              Snapshot Backup & Restore
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-              Generate an instant, unencrypted SQL snapshot of all database structures and transactional tables.
+              Export your live domain's exact dataset to a file or copy-paste text, and load it directly into Localhost.
             </p>
           </div>
 
-          <div className="flex flex-col items-center justify-center p-8 text-center border-2 border-dashed border-amber-500/40 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 backdrop-blur-md">
-            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 shadow-lg shadow-amber-500/30 mb-4">
-              <Download className="h-8 w-8" />
+          <div className="flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-amber-500/40 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 backdrop-blur-md space-y-3">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                onClick={handleExportJSON}
+                className="btn-primary px-3.5 py-2 text-xs flex items-center gap-1.5"
+              >
+                <Download className="h-4 w-4" /> Export Backup
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="btn border border-amber-500/40 bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 px-3.5 py-2 text-xs font-bold flex items-center gap-1.5"
+              >
+                <Upload className="h-4 w-4" /> Import File
+              </button>
+              <button
+                onClick={() => setShowPasteModal(true)}
+                className="btn border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 px-3.5 py-2 text-xs font-bold flex items-center gap-1.5"
+              >
+                <ClipboardPaste className="h-4 w-4 text-amber-500" /> Paste Text
+              </button>
             </div>
-            <h4 className="text-base font-extrabold text-slate-900 dark:text-slate-100 font-heading">One-Click SQL Dump</h4>
-            <p className="mt-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 max-w-sm leading-relaxed">
-              Safely export table schemas, ledgers, products, invoices, and vouchers before major updates or migrations.
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              1-click snapshot import immediately synchronizes all users, invoices, articles, and settings.
             </p>
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Need raw SQL instead?</span>
             <button
               onClick={handleDownloadBackup}
-              className="mt-6 btn-primary px-6 py-3 text-xs"
+              className="text-xs font-bold text-amber-600 hover:underline flex items-center gap-1"
             >
-              <Download className="h-4 w-4" /> Download Full SQL Backup
+              <Download className="h-3.5 w-3.5" /> Download SQL Dump
             </button>
           </div>
         </div>
@@ -356,4 +566,3 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
     </div>
   );
 }
-

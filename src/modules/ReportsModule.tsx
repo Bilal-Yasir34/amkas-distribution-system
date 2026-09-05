@@ -10,7 +10,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
-import { downloadCSV, formatCurrency, getCustomerName, getVendorName } from '@/lib/utils';
+import { downloadCSV, formatCurrency, formatDate, getCustomerName, getVendorName } from '@/lib/utils';
 
 interface ReportTile {
   code: string;
@@ -281,7 +281,7 @@ export function ReportsModule() {
                     <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                       <td className="px-4 py-2.5 font-mono font-semibold text-amber-500">{r.invoice_no}</td>
                       <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">{r.customer}</td>
-                      <td className="px-4 py-2.5 text-slate-400">{r.date}</td>
+                      <td className="px-4 py-2.5 text-slate-400">{formatDate(r.date)}</td>
                       <td className="px-4 py-2.5 text-right font-mono">{formatCurrency(r.total)}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-amber-400">{formatCurrency(r.paid)}</td>
                       <td className={`px-4 py-2.5 text-right font-mono font-bold ${r.balance > 0 ? 'text-amber-500' : 'text-slate-400'}`}>{formatCurrency(r.balance)}</td>
@@ -310,7 +310,7 @@ export function ReportsModule() {
                     <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                       <td className="px-4 py-2.5 font-mono font-semibold text-rose-400">{r.bill_no}</td>
                       <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">{r.vendor}</td>
-                      <td className="px-4 py-2.5 text-slate-400">{r.date}</td>
+                      <td className="px-4 py-2.5 text-slate-400">{formatDate(r.date)}</td>
                       <td className="px-4 py-2.5 text-right font-mono">{formatCurrency(r.total)}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-amber-400">{formatCurrency(r.paid)}</td>
                       <td className={`px-4 py-2.5 text-right font-mono font-bold ${r.balance > 0 ? 'text-amber-500' : 'text-slate-400'}`}>{formatCurrency(r.balance)}</td>

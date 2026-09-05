@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { todayISO, safeUUID , formatDate} from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
-import { Plus, Edit, Trash2, X } from 'lucide-react';
+import { Plus, Edit, Trash2, X, ShoppingBag, Receipt, Sparkles, CheckCircle2, History, RotateCcw } from 'lucide-react';
 import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
 
 export function SalesReturnModule() {
@@ -12,8 +12,11 @@ export function SalesReturnModule() {
   const {
     customers,
     vendors,
+    users = [],
     warehouses,
     products,
+    invoices = [],
+    salesOrders = [],
     salesReturns,
     addSalesReturn,
     updateSalesReturn,
@@ -46,14 +49,107 @@ export function SalesReturnModule() {
     { id: string; product_id: string; article_id?: string; colour?: string; description: string; qty: number; rate: number; discount: number; tax_pct: number }[]
   >([{ id: '1', product_id: '', article_id: '', colour: '', description: '', qty: 1, rate: 0, discount: 0, tax_pct: 0 }]);
 
+  // All unified parties in the system
+  const allParties = useMemo(() => {
+    const list = [
+      ...customers.map(c => ({ ...c, _origin: 'customer' as const, account_type: c.account_type || 'Customer' })),
+      ...vendors.map(v => ({ ...v, _origin: 'vendor' as const, account_type: v.account_type || 'Vendor' })),
+      ...users.map(u => ({ ...u, _origin: 'user' as const, account_type: (u as any).account_type || u.role || 'Staff' }))
+    ];
+    return list.filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx);
+  }, [customers, vendors, users]);
+
+  const selectedPartyObj = useMemo(() => {
+    return allParties.find(p => p.id === customerId);
+  }, [allParties, customerId]);
+
+  // Dynamically find all products sold to the selected customer across Invoices & Sales Orders
+  const soldProductsToParty = useMemo(() => {
+    if (!customerId) return [];
+    
+    // Match customer by ID or name
+    const partyInvoices = (invoices || []).filter(
+      (inv) => inv.customer_id === customerId || (selectedPartyObj && inv.customer_name === selectedPartyObj.name)
+    );
+    const partyOrders = (salesOrders || []).filter((so) => so.customer_id === customerId);
+
+    const map = new Map<string, {
+      productId: string;
+      productName: string;
+      productCode: string;
+      articleName: string;
+      soldRate: number;
+      totalSoldQty: number;
+      lastSoldDate: string;
+      invoiceNo: string;
+      taxPct: number;
+      discount: number;
+    }>();
+
+    // Scan posted and all invoices
+    partyInvoices.forEach((inv) => {
+      (inv.items || []).forEach((item) => {
+        if (!item.product_id) return;
+        const prod = products.find((p) => p.id === item.product_id);
+        const art = getArticleForProduct(item.product_id, products, productArticles) || (prod?.article_name || '');
+        const key = `${item.product_id}-${item.rate}`;
+        const existing = map.get(key);
+        if (existing) {
+          existing.totalSoldQty += item.qty || 0;
+          if (inv.invoice_date > existing.lastSoldDate) {
+            existing.lastSoldDate = inv.invoice_date;
+            existing.invoiceNo = inv.invoice_no;
+          }
+        } else {
+          map.set(key, {
+            productId: item.product_id,
+            productName: prod?.name || item.description || 'Product',
+            productCode: prod?.code || '',
+            articleName: art,
+            soldRate: item.rate ?? prod?.sale_price ?? 0,
+            totalSoldQty: item.qty || 0,
+            lastSoldDate: inv.invoice_date || '',
+            invoiceNo: inv.invoice_no || '',
+            taxPct: item.tax_pct ?? prod?.tax_pct ?? 0,
+            discount: item.discount ?? 0,
+          });
+        }
+      });
+    });
+
+    // Also scan sales orders
+    partyOrders.forEach((ord) => {
+      (ord.items || []).forEach((item) => {
+        if (!item.product_id) return;
+        const prod = products.find((p) => p.id === item.product_id);
+        const art = getArticleForProduct(item.product_id, products, productArticles) || (prod?.article_name || '');
+        const key = `${item.product_id}-${item.rate}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            productId: item.product_id,
+            productName: prod?.name || item.description || 'Product',
+            productCode: prod?.code || '',
+            articleName: art,
+            soldRate: item.rate ?? prod?.sale_price ?? 0,
+            totalSoldQty: item.qty || 0,
+            lastSoldDate: ord.order_date || ord.document_date || '',
+            invoiceNo: ord.order_no || '',
+            taxPct: item.tax_pct ?? prod?.tax_pct ?? 0,
+            discount: item.discount ?? 0,
+          });
+        }
+      });
+    });
+
+    return Array.from(map.values());
+  }, [customerId, invoices, salesOrders, products, productArticles, selectedPartyObj]);
+
   const handlePartyTypeChange = (type: string) => {
     setPartyType(type);
-    const all = [...customers, ...vendors];
-    const unique = all.filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx);
     if (!type || type === 'ALL') {
-      setCustomerId(unique[0]?.id || '');
+      setCustomerId(allParties[0]?.id || '');
     } else {
-      const filtered = unique.filter(c => c.account_type?.toLowerCase() === type.toLowerCase());
+      const filtered = allParties.filter(c => c.account_type?.toLowerCase() === type.toLowerCase());
       setCustomerId(filtered[0]?.id || '');
     }
   };
@@ -119,17 +215,51 @@ export function SalesReturnModule() {
     setViewMode('form');
   };
 
+  const addSoldItemToLines = (item: {
+    productId: string;
+    productName: string;
+    productCode: string;
+    articleName: string;
+    soldRate: number;
+    totalSoldQty: number;
+    invoiceNo: string;
+    taxPct: number;
+    discount: number;
+  }) => {
+    // If the first line is blank, replace it
+    const isFirstBlank = lineItems.length === 1 && !lineItems[0].product_id;
+    const newLine = {
+      id: safeUUID(),
+      product_id: item.productId,
+      article_id: item.articleName,
+      colour: '',
+      description: item.articleName ? `[${item.articleName}] ${item.productName}` : item.productName,
+      qty: 1,
+      rate: item.soldRate,
+      discount: item.discount || 0,
+      tax_pct: item.taxPct || 0,
+    };
+
+    if (isFirstBlank) {
+      setLineItems([newLine]);
+    } else {
+      setLineItems((prev) => [...prev, newLine]);
+    }
+
+    toast.success(`Added "${item.productName}" at invoice sold rate of Rs. ${item.soldRate}`);
+  };
+
   const addLineItem = () => {
     setLineItems((prev) => [
       ...prev,
       {
         id: safeUUID(),
-        product_id: products[0]?.id || '',
-        description: products[0]?.name || '',
+        product_id: '',
+        description: '',
         qty: 1,
-        rate: products[0]?.sale_price || 0,
+        rate: 0,
         discount: 0,
-        tax_pct: products[0]?.tax_pct || 0,
+        tax_pct: 0,
       },
     ]);
   };
@@ -156,8 +286,19 @@ export function SalesReturnModule() {
           if (p) {
             const currentArt = updated.article_id || getArticleForProduct(p.id, products, productArticles);
             updated.description = currentArt ? `[${currentArt}] ${p.name}` : (p.description || p.name);
-            updated.rate = p.sale_price || 0;
-            updated.tax_pct = p.tax_pct || 0;
+            
+            // Check if this product was sold to this customer
+            const soldMatch = soldProductsToParty.find(sp => sp.productId === p.id);
+            if (soldMatch) {
+              updated.rate = soldMatch.soldRate;
+              updated.tax_pct = soldMatch.taxPct;
+              updated.discount = soldMatch.discount;
+              if (soldMatch.articleName) updated.article_id = soldMatch.articleName;
+            } else {
+              updated.rate = p.sale_price || 0;
+              updated.tax_pct = p.tax_pct || 0;
+            }
+
             if (!updated.article_id && currentArt) {
               updated.article_id = currentArt;
             }
@@ -394,23 +535,29 @@ export function SalesReturnModule() {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                      Select Party (Credit Party)
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                        Select Party (Credit Party)
+                      </label>
+                      {soldProductsToParty.length > 0 && (
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded">
+                          {soldProductsToParty.length} sold item(s)
+                        </span>
+                      )}
+                    </div>
                     <select
                       value={customerId}
                       onChange={(e) => setCustomerId(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 font-semibold"
                     >
                       <option value="">Select {partyType === 'ALL' ? 'Party' : partyType}</option>
-                      {(() => {
-                        const all = [...customers, ...vendors.map(v => ({ ...v, _origin: 'vendor' as const }))];
-                        const unique = all.filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx);
-                        if (!partyType || partyType === 'ALL') return unique;
-                        return unique.filter(c => c.account_type?.toLowerCase() === partyType.toLowerCase());
-                      })().map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
+                      {allParties
+                        .filter((c) => !partyType || partyType === 'ALL' || c.account_type?.toLowerCase() === partyType.toLowerCase())
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name} {c.account_type ? `(${c.account_type})` : ''}
+                          </option>
+                        ))}
                     </select>
                   </div>
 
@@ -461,7 +608,7 @@ export function SalesReturnModule() {
                     <p className="font-bold text-amber-400">Party (Customer/Supplier): CREDIT</p>
                     <p className="font-bold text-amber-500 mt-1">Company / We: DEBIT</p>
                     <p className="text-[11px] text-slate-400 mt-2">
-                      Returned goods increase stock count in warehouse and credit party balance.
+                      Returned goods increase stock count in warehouse and credit party balance (reducing receivables).
                     </p>
                   </div>
                 </div>
@@ -484,6 +631,85 @@ export function SalesReturnModule() {
                 </div>
               </div>
             </div>
+
+            {/* QUICK SELECTION OF PRODUCTS SOLD TO THIS USER */}
+            {customerId && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <History className="h-4 w-4 text-amber-500" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                      Products Sold to {selectedPartyObj?.name || 'Selected Party'}
+                    </h3>
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-extrabold text-amber-800 dark:bg-amber-950/50 dark:text-amber-400">
+                      {soldProductsToParty.length} record(s) found
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 hidden sm:block">
+                    Click <strong className="text-amber-600 dark:text-amber-400">+ Return This Item</strong> to auto-apply exact sold rate (Rs. 150)
+                  </p>
+                </div>
+
+                {soldProductsToParty.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-4 text-center">
+                    <p className="text-xs text-slate-400">
+                      No previous sales invoices found for {selectedPartyObj?.name || 'this customer'}. You can still select any product from the catalog below.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {soldProductsToParty.map((sp) => (
+                      <div
+                        key={`${sp.productId}-${sp.soldRate}`}
+                        className="flex flex-col justify-between rounded-xl border border-slate-200/90 bg-slate-50/70 p-3.5 dark:border-slate-800 dark:bg-slate-800/40 hover:border-amber-400 transition"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                                {sp.productName}
+                              </p>
+                              {sp.articleName && (
+                                <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                                  Article: {sp.articleName}
+                                </p>
+                              )}
+                            </div>
+                            <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-mono font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                              {sp.productCode || 'PROD'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                            <span>Sold Qty: <strong>{sp.totalSoldQty}</strong></span>
+                            {sp.invoiceNo && (
+                              <span>Inv: <strong>{sp.invoiceNo}</strong></span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-700/60 pt-2.5 mt-2.5">
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase font-semibold">Sold Rate:</span>
+                            <p className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
+                              Rs. {sp.soldRate.toFixed(2)}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => addSoldItemToLines(sp)}
+                            className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-600 shadow-sm transition"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            + Return
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Line Items Card */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
@@ -520,6 +746,9 @@ export function SalesReturnModule() {
                           {(() => {
                             const currentArt = item.article_id || getArticleForProduct(item.product_id, products, productArticles);
                             const availableProds = getProductsForArticle(currentArt, products, productArticles);
+
+                            // Filter sold products under this article if any
+                            const soldUnderArt = soldProductsToParty.filter(sp => !currentArt || sp.articleName === currentArt);
 
                             return (
                               <div className="space-y-1.5 min-w-[210px]">
@@ -567,11 +796,22 @@ export function SalesReturnModule() {
                                     <option value="">
                                       {currentArt ? '-- Select Product under this Article --' : '-- Select Article first --'}
                                     </option>
-                                    {availableProds.map((p) => (
-                                      <option key={p.id} value={p.id}>
-                                        {p.name} [{p.code}] — Rs {p.sale_price}
-                                      </option>
-                                    ))}
+                                    {soldUnderArt.length > 0 && (
+                                      <optgroup label="★ Sold to this Customer (Sold Price Auto-Applies)">
+                                        {soldUnderArt.map((sp) => (
+                                          <option key={`sold-${sp.productId}`} value={sp.productId}>
+                                            ★ {sp.productName} [{sp.productCode}] — Sold @ Rs {sp.soldRate}
+                                          </option>
+                                        ))}
+                                      </optgroup>
+                                    )}
+                                    <optgroup label="Catalog Products">
+                                      {availableProds.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                          {p.name} [{p.code}] — Catalog Rs {p.sale_price}
+                                        </option>
+                                      ))}
+                                    </optgroup>
                                   </select>
                                 </div>
                               </div>

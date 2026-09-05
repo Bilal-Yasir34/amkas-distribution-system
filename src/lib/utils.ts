@@ -7,26 +7,31 @@ export function formatNumber(amount: number): string {
   return Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
-export function formatDate(date: string | Date | null): string {
+export function formatDate(date: string | Date | null | undefined): string {
   if (!date) return '—';
   
   if (typeof date === 'string') {
-    const isoMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const trimmed = date.trim();
+    if (!trimmed) return '—';
+    const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (isoMatch) {
-      return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+      const year = isoMatch[1].slice(-2);
+      return `${isoMatch[3]}/${isoMatch[2]}/${year}`;
     }
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return '—';
+    const d = new Date(trimmed);
+    if (isNaN(d.getTime())) return trimmed;
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${day}/${month}/${d.getFullYear()}`;
+    const year = String(d.getFullYear()).slice(-2);
+    return `${day}/${month}/${year}`;
   }
 
   if (date instanceof Date) {
     if (isNaN(date.getTime())) return '—';
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
-    return `${day}/${month}/${date.getFullYear()}`;
+    const year = String(date.getFullYear()).slice(-2);
+    return `${day}/${month}/${year}`;
   }
   
   return '—';

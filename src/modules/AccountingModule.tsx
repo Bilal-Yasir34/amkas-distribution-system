@@ -21,19 +21,21 @@ type SubTab =
 export function AccountingModule() {
   const toast = useToast();
   const {
-    journalEntries,
-    chartOfAccounts,
-    accountTypes,
-    customers,
-    vendors,
-    invoices,
-    vendorBills,
-    customerReceipts,
-    vendorPayments,
-    salesReturns,
-    purchaseReturns,
-    expenseRecords,
-    incomeRecords,
+    journalEntries = [],
+    chartOfAccounts = [],
+    accountTypes = [],
+    customers = [],
+    vendors = [],
+    users = [],
+    invoices = [],
+    purchaseInvoices = [],
+    vendorBills = [],
+    customerReceipts = [],
+    vendorPayments = [],
+    salesReturns = [],
+    purchaseReturns = [],
+    expenseRecords = [],
+    incomeRecords = [],
     addJournalEntry,
     deleteJournalEntry,
     addExpenseRecord,
@@ -41,7 +43,68 @@ export function AccountingModule() {
   } = useDataStore();
 
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('Overview');
-  const allAccounts = [...customers, ...vendors];
+
+  // Unified Accounts / Parties list across Customers, Vendors, and Users
+  const allAccounts = useMemo(() => {
+    const list: Array<{ id: string; name: string; code?: string; account_type: string; email?: string; phone?: string }> = [];
+
+    // Customers
+    (customers || []).forEach((c) => {
+      list.push({
+        id: c.id,
+        name: c.name,
+        code: c.code,
+        account_type: c.account_type || 'Customer',
+        email: c.email || undefined,
+        phone: c.phone || undefined,
+      });
+    });
+
+    // Vendors
+    (vendors || []).forEach((v) => {
+      if (!list.some((item) => item.id === v.id)) {
+        list.push({
+          id: v.id,
+          name: v.name,
+          code: v.code,
+          account_type: v.account_type || 'Vendor',
+          email: v.email || undefined,
+          phone: v.phone || undefined,
+        });
+      }
+    });
+
+    // Users / Employees
+    (users || []).forEach((u) => {
+      if (!list.some((item) => item.id === u.id)) {
+        list.push({
+          id: u.id,
+          name: u.full_name,
+          code: u.employee_code,
+          account_type: u.role || 'Employee',
+          email: u.email || undefined,
+          phone: u.phone || undefined,
+        });
+      }
+    });
+
+    return list;
+  }, [customers, vendors, users]);
+
+  // Dynamically collect all available account/party types
+  const availableTypes = useMemo(() => {
+    const typeSet = new Set<string>();
+    (accountTypes || []).filter((at) => at.is_active).forEach((at) => typeSet.add(at.name));
+    allAccounts.forEach((a) => {
+      if (a.account_type) typeSet.add(a.account_type);
+    });
+    if (typeSet.size === 0) {
+      typeSet.add('Customer');
+      typeSet.add('Vendor');
+    }
+    return Array.from(typeSet);
+  }, [accountTypes, allAccounts]);
+
   const [newJvOpen, setNewJvOpen] = useState(false);
   const [entryDate, setEntryDate] = useState(todayISO());
   const [refNo, setRefNo] = useState('');
@@ -72,15 +135,15 @@ export function AccountingModule() {
   const [incCustomerId, setIncCustomerId] = useState('');
   const [incDescription, setIncDescription] = useState('');
 
-  // Party Statement State (Matching User Screenshot)
+  // Party Statement State
   const [statementType, setStatementType] = useState<string>('ALL');
-  const [agingSummaryType, setAgingSummaryType] = useState<string>('');
+  const [agingSummaryType, setAgingSummaryType] = useState<string>('ALL');
   const [statementPartyId, setStatementPartyId] = useState('');
-  const [statementFromDate, setStatementFromDate] = useState('2026-07-01');
-  const [statementToDate, setStatementToDate] = useState('2026-07-22');
+  const [statementFromDate, setStatementFromDate] = useState('2026-01-01');
+  const [statementToDate, setStatementToDate] = useState(todayISO());
   const [generatedStatementPartyId, setGeneratedStatementPartyId] = useState('');
-  const [appliedStatementFromDate, setAppliedStatementFromDate] = useState('2026-07-01');
-  const [appliedStatementToDate, setAppliedStatementToDate] = useState('2026-07-22');
+  const [appliedStatementFromDate, setAppliedStatementFromDate] = useState('2026-01-01');
+  const [appliedStatementToDate, setAppliedStatementToDate] = useState(todayISO());
 
   const activePartyObj = useMemo(() => {
     return allAccounts.find((c) => c.id === generatedStatementPartyId);
@@ -103,74 +166,84 @@ export function AccountingModule() {
       };
     }
 
+    const partyObj = allAccounts.find((a) => a.id === generatedStatementPartyId);
+    const partyName = partyObj?.name?.toLowerCase();
+
+    // 1. Sales Invoices
     const custInvs = (invoices || [])
-      .filter((i) => i.customer_id === generatedStatementPartyId)
+      .filter((i) => i.customer_id === generatedStatementPartyId || (partyName && i.customer_name?.toLowerCase() === partyName))
       .map((i) => ({
         id: `inv-${i.id}`,
         date: (i.invoice_date || i.created_at || todayISO()).slice(0, 10),
         number: i.invoice_no,
         type: 'Sales Invoice',
-        desc: 'Sales Invoice',
+        desc: `Sales Invoice - ${i.customer_name || partyObj?.name || 'Customer'}`,
         debit: Number(i.total_amount || 0),
         credit: 0,
       }));
 
+    // 2. Customer Receipts
     const custRects = (customerReceipts || [])
-      .filter((r) => r.customer_id === generatedStatementPartyId)
+      .filter((r) => r.customer_id === generatedStatementPartyId || (partyName && r.customer_name?.toLowerCase() === partyName))
       .map((r) => ({
         id: `rect-${r.id}`,
         date: (r.receipt_date || r.created_at || todayISO()).slice(0, 10),
         number: r.receipt_no,
         type: 'Receipt',
-        desc: 'Payment Received',
+        desc: `Payment Received - ${r.customer_name || partyObj?.name || 'Customer'}`,
         debit: 0,
         credit: Number(r.amount || 0),
       }));
 
+    // 3. Sales Returns
     const custReturns = (salesReturns || [])
-      .filter((sr) => sr.customer_id === generatedStatementPartyId)
+      .filter((sr) => sr.customer_id === generatedStatementPartyId || (partyName && sr.customer_name?.toLowerCase() === partyName))
       .map((sr) => ({
         id: `sr-${sr.id}`,
         date: (sr.document_date || sr.created_at || todayISO()).slice(0, 10),
         number: sr.return_no,
         type: 'Sales Return',
-        desc: 'Sales Return / Credit Note',
+        desc: `Sales Return / Credit Note - ${sr.customer_name || partyObj?.name || 'Customer'}`,
         debit: 0,
         credit: Number(sr.total_amount || 0),
       }));
 
-    const vendBills = (vendorBills || [])
-      .filter((b) => b.vendor_id === generatedStatementPartyId)
+    // 4. Vendor Bills & Purchase Invoices
+    const allBills = [...(vendorBills || []), ...(purchaseInvoices || [])];
+    const vendBills = allBills
+      .filter((b) => b.vendor_id === generatedStatementPartyId || (partyName && b.vendor_name?.toLowerCase() === partyName))
       .map((b) => ({
         id: `bill-${b.id}`,
-        date: (b.bill_date || b.created_at || todayISO()).slice(0, 10),
-        number: b.bill_no,
+        date: (b.bill_date || (b as any).invoice_date || b.created_at || todayISO()).slice(0, 10),
+        number: b.bill_no || (b as any).invoice_no || `BILL-${b.id.slice(0, 6)}`,
         type: 'Purchase Bill',
-        desc: 'Purchase Bill',
+        desc: `Purchase Bill - ${b.vendor_name || partyObj?.name || 'Vendor'}`,
         debit: 0,
         credit: Number(b.total_amount || 0),
       }));
 
+    // 5. Vendor Payments
     const vendPays = (vendorPayments || [])
-      .filter((p) => p.vendor_id === generatedStatementPartyId)
+      .filter((p) => p.vendor_id === generatedStatementPartyId || (partyName && p.vendor_name?.toLowerCase() === partyName))
       .map((p) => ({
         id: `pay-${p.id}`,
         date: (p.payment_date || p.created_at || todayISO()).slice(0, 10),
         number: p.payment_no,
         type: 'Payment',
-        desc: 'Payment Made',
+        desc: `Payment Made - ${p.vendor_name || partyObj?.name || 'Vendor'}`,
         debit: Number(p.amount || 0),
         credit: 0,
       }));
 
+    // 6. Purchase Returns
     const purchReturns = (purchaseReturns || [])
-      .filter((pr) => pr.vendor_id === generatedStatementPartyId)
+      .filter((pr) => pr.vendor_id === generatedStatementPartyId || (partyName && pr.vendor_name?.toLowerCase() === partyName))
       .map((pr) => ({
         id: `pr-${pr.id}`,
         date: (pr.document_date || pr.created_at || todayISO()).slice(0, 10),
         number: pr.return_no,
         type: 'Purchase Return',
-        desc: 'Purchase Return / Debit Note',
+        desc: `Purchase Return / Debit Note - ${pr.vendor_name || partyObj?.name || 'Vendor'}`,
         debit: Number(pr.total_amount || 0),
         credit: 0,
       }));
@@ -222,10 +295,12 @@ export function AccountingModule() {
     generatedStatementPartyId,
     appliedStatementFromDate,
     appliedStatementToDate,
+    allAccounts,
     invoices,
     customerReceipts,
     salesReturns,
     vendorBills,
+    purchaseInvoices,
     vendorPayments,
     purchaseReturns,
   ]);
@@ -1194,32 +1269,45 @@ export function AccountingModule() {
                     Statement type
                   </label>
                   <select
-                      value={statementType}
-                      onChange={(e) => setStatementType(e.target.value)}
-                      className="rounded-xl border border-slate-300 bg-slate-50 p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 outline-none focus:border-amber-500"
-                    >
-                      {(accountTypes || []).filter(at => at.is_active).map(at => (
-                        <option key={at.id} value={at.name}>{at.name}</option>
-                      ))}
-                    </select>
+                    value={statementType}
+                    onChange={(e) => {
+                      setStatementType(e.target.value);
+                      setStatementPartyId('');
+                    }}
+                    className="rounded-xl border border-slate-300 bg-slate-50 p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 outline-none focus:border-amber-500"
+                  >
+                    <option value="ALL">All Account Types</option>
+                    {availableTypes.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Dynamic Party Selector */}
                 <div>
                   <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 block">
-                    {statementType}
+                    {statementType === 'ALL' ? 'Party / User' : statementType}
                   </label>
                   <select
                     value={statementPartyId}
                     onChange={(e) => setStatementPartyId(e.target.value)}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 min-w-[240px]"
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 min-w-[260px]"
                   >
-                    <option value="">Select party</option>
-                    {allAccounts.filter(c => c.account_type?.toLowerCase() === statementType.toLowerCase()).map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
+                    <option value="">
+                      Select party / user (
+                      {statementType === 'ALL'
+                        ? allAccounts.length
+                        : allAccounts.filter((c) => c.account_type.toLowerCase() === statementType.toLowerCase()).length}
+                      )
+                    </option>
+                    {(statementType === 'ALL'
+                      ? allAccounts
+                      : allAccounts.filter((c) => c.account_type.toLowerCase() === statementType.toLowerCase())
+                    ).map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} {c.code ? `(${c.code})` : ''} — {c.account_type}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -1427,9 +1515,9 @@ export function AccountingModule() {
                 onChange={(e) => setAgingSummaryType(e.target.value)}
                 className="w-full rounded-xl border border-slate-300 bg-slate-50 p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 outline-none focus:border-amber-500"
               >
-                <option value="">Select Account Type</option>
-                {(accountTypes || []).filter(at => at.is_active).map(at => (
-                  <option key={at.id} value={at.name}>{at.name}</option>
+                <option value="ALL">All Account Types</option>
+                {availableTypes.map((t) => (
+                  <option key={t} value={t}>{t}</option>
                 ))}
               </select>
             </div>
@@ -1438,7 +1526,9 @@ export function AccountingModule() {
           {agingSummaryType ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 space-y-4">
               <div>
-                <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 uppercase">{agingSummaryType} Aging Summary</h2>
+                <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 uppercase">
+                  {agingSummaryType === 'ALL' ? 'All Parties' : agingSummaryType} Aging Summary
+                </h2>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900/70 overflow-hidden">
                 <table className="w-full text-left text-xs">
@@ -1452,14 +1542,20 @@ export function AccountingModule() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {allAccounts.filter(c => c.account_type?.toLowerCase() === agingSummaryType.toLowerCase()).length === 0 ? (
+                    {(agingSummaryType === 'ALL'
+                      ? allAccounts
+                      : allAccounts.filter((c) => c.account_type.toLowerCase() === agingSummaryType.toLowerCase())
+                    ).length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
                           No aging data available for {agingSummaryType}.
                         </td>
                       </tr>
                     ) : (
-                      allAccounts.filter(c => c.account_type?.toLowerCase() === agingSummaryType.toLowerCase()).map((c) => {
+                      (agingSummaryType === 'ALL'
+                        ? allAccounts
+                        : allAccounts.filter((c) => c.account_type.toLowerCase() === agingSummaryType.toLowerCase())
+                      ).map((c) => {
                         const custInvoices = invoices.filter((i) => i.customer_id === c.id);
                         const custReceipts = customerReceipts.filter((r) => r.customer_id === c.id);
                         const custReturns = salesReturns.filter((sr) => sr.customer_id === c.id);
