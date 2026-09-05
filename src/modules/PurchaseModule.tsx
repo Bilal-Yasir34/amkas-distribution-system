@@ -43,6 +43,7 @@ export function PurchaseModule() {
     addVendorPayment,
     updateVendorPayment,
     deleteVendorPayment,
+    addApprovalQueueItem,
     accountTypes = [],
   } = useDataStore();
 
@@ -686,6 +687,9 @@ export function PurchaseModule() {
       };
     });
 
+    const finalStatus = 'PENDING_APPROVAL';
+    const partyObj = availableVendors.find((v) => v.id === piVendorId);
+
     if (editingPIId) {
       updatePurchaseInvoice(editingPIId, {
         vendor_id: piVendorId,
@@ -696,16 +700,30 @@ export function PurchaseModule() {
         gate_pass_no: piGatePassNo,
         account_category: piAccountCategory,
         account_head: piAccountHead,
-        status: 'POSTED',
+        status: finalStatus,
         subtotal: totals.subtotal,
         tax_total: totals.taxTotal,
         total_amount: totals.grandTotal,
         notes: piNotes,
       });
-      toast.success('Purchase Invoice updated and posted successfully');
+      addApprovalQueueItem({
+        module: 'Purchase',
+        entity_type: 'purchase_invoice',
+        record_id: editingPIId,
+        record_no: piReferenceNo || 'PI',
+        requested_by: 'admin',
+        amount: totals.grandTotal,
+        status: 'PENDING',
+        party_name: partyObj?.name || 'Vendor',
+        warehouse_id: piWarehouseId || 'w1',
+        items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+      });
+      toast.success('Purchase Invoice updated and submitted to Approval Center');
     } else {
       const piNo = piReferenceNo || nextDocNumber('PI', (purchaseInvoices || []).map((p) => p.invoice_no || ''), 2);
+      const piId = crypto.randomUUID();
       addPurchaseInvoice({
+        id: piId,
         grn_no: piNo,
         invoice_no: piNo,
         po_id: null,
@@ -717,14 +735,26 @@ export function PurchaseModule() {
         gate_pass_no: piGatePassNo,
         account_category: piAccountCategory,
         account_head: piAccountHead,
-        status: 'POSTED',
+        status: finalStatus,
         subtotal: totals.subtotal,
         tax_total: totals.taxTotal,
         total_amount: totals.grandTotal,
         notes: piNotes,
         created_at: new Date().toISOString(),
       });
-      toast.success(`Purchase Invoice ${piNo} saved and posted! Inventory updated.`);
+      addApprovalQueueItem({
+        module: 'Purchase',
+        entity_type: 'purchase_invoice',
+        record_id: piId,
+        record_no: piNo,
+        requested_by: 'admin',
+        amount: totals.grandTotal,
+        status: 'PENDING',
+        party_name: partyObj?.name || 'Vendor',
+        warehouse_id: piWarehouseId || 'w1',
+        items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+      });
+      toast.success(`Purchase Invoice ${piNo} submitted to Approval Center!`);
     }
 
     setPiViewMode('list');
@@ -901,6 +931,9 @@ export function PurchaseModule() {
       };
     });
 
+    const finalStatus = 'PENDING_APPROVAL';
+    const partyObj = availableVendors.find((v) => v.id === vbVendorId);
+
     if (editingVBId) {
       updateVendorBill(editingVBId, {
         vendor_id: vbVendorId,
@@ -913,17 +946,31 @@ export function PurchaseModule() {
         currency: vbCurrency,
         exchange_rate: vbExchangeRate,
         vendor_invoice_no: vbSupplierRef,
-        status: 'POSTED',
+        status: finalStatus,
         subtotal: totals.subtotal,
         discount_total: totals.discountTotal,
         tax_total: totals.taxTotal,
         total_amount: totals.grandTotal,
         notes: vbNotes,
       });
-      toast.success('Vendor Bill updated and posted successfully');
+      addApprovalQueueItem({
+        module: 'Purchase',
+        entity_type: 'vendor_bill',
+        record_id: editingVBId,
+        record_no: vbSupplierRef || 'VB',
+        requested_by: 'admin',
+        amount: totals.grandTotal,
+        status: 'PENDING',
+        party_name: partyObj?.name || 'Vendor',
+        warehouse_id: vbWarehouseId || 'w1',
+        items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+      });
+      toast.success('Vendor Bill updated and submitted to Approval Center');
     } else {
       const billNo = `MP-${String((vendorBills || []).length + 1).padStart(5, '0')}`;
+      const billId = crypto.randomUUID();
       addVendorBill({
+        id: billId,
         bill_no: billNo,
         vendor_id: vbVendorId,
         warehouse_id: vbWarehouseId,
@@ -936,7 +983,7 @@ export function PurchaseModule() {
         exchange_rate: vbExchangeRate,
         vendor_invoice_no: vbSupplierRef || billNo,
         payment_terms: 'Net 30',
-        status: 'POSTED',
+        status: finalStatus,
         subtotal: totals.subtotal,
         discount_total: totals.discountTotal,
         tax_total: totals.taxTotal,
@@ -945,7 +992,19 @@ export function PurchaseModule() {
         notes: vbNotes,
         created_at: new Date().toISOString(),
       });
-      toast.success(`Vendor Bill ${billNo} saved and posted! Stock and ledger updated.`);
+      addApprovalQueueItem({
+        module: 'Purchase',
+        entity_type: 'vendor_bill',
+        record_id: billId,
+        record_no: billNo,
+        requested_by: 'admin',
+        amount: totals.grandTotal,
+        status: 'PENDING',
+        party_name: partyObj?.name || 'Vendor',
+        warehouse_id: vbWarehouseId || 'w1',
+        items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+      });
+      toast.success(`Vendor Bill ${billNo} submitted to Approval Center!`);
     }
 
     setVbViewMode('list');
@@ -1104,30 +1163,59 @@ export function PurchaseModule() {
       };
     });
 
+    const finalStatus = 'PENDING_APPROVAL';
+    const partyObj = availableVendors.find((v) => v.id === dnVendorId);
+
     if (editingDNId) {
       updateDebitNote(editingDNId, {
         vendor_id: dnVendorId,
         note_date: dnDocDate,
         due_date: dnDueDate,
         reason: dnPurposeReason || 'Purchase Return',
-        status: 'POSTED',
+        status: finalStatus,
         total_amount: totals.grandTotal,
       });
-      toast.success('Debit Note updated and posted successfully');
+      addApprovalQueueItem({
+        module: 'Purchase',
+        entity_type: 'purchase_return',
+        record_id: editingDNId,
+        record_no: 'DN',
+        requested_by: 'admin',
+        amount: totals.grandTotal,
+        status: 'PENDING',
+        party_name: partyObj?.name || 'Vendor',
+        warehouse_id: 'w1',
+        items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+      });
+      toast.success('Debit Note / Purchase Return updated and submitted to Approval Center');
     } else {
       const dnNo = `MDN-${String((debitNotes || []).length + 1).padStart(5, '0')}`;
+      const dnId = crypto.randomUUID();
       addDebitNote({
+        id: dnId,
         debit_note_no: dnNo,
         vendor_bill_id: null,
         vendor_id: dnVendorId,
         note_date: dnDocDate,
         due_date: dnDueDate,
         reason: dnPurposeReason || 'Purchase Return',
-        status: 'POSTED',
+        status: finalStatus,
         total_amount: totals.grandTotal,
         created_at: new Date().toISOString(),
       });
-      toast.success(`Debit Note / Purchase Return ${dnNo} saved and posted!`);
+      addApprovalQueueItem({
+        module: 'Purchase',
+        entity_type: 'purchase_return',
+        record_id: dnId,
+        record_no: dnNo,
+        requested_by: 'admin',
+        amount: totals.grandTotal,
+        status: 'PENDING',
+        party_name: partyObj?.name || 'Vendor',
+        warehouse_id: 'w1',
+        items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+      });
+      toast.success(`Debit Note / Purchase Return ${dnNo} submitted to Approval Center!`);
     }
 
     setDnViewMode('list');
@@ -1274,6 +1362,8 @@ export function PurchaseModule() {
 
   const handleSaveBill = (status: 'UNPOSTED' | 'POSTED') => {
     if (!vendorId) return toast.error('Please select a vendor');
+    const finalStatus = status === 'UNPOSTED' ? 'UNPOSTED' : 'PENDING_APPROVAL';
+    const partyObj = availableVendors.find((v) => v.id === vendorId);
 
     if (editingId) {
       updateVendorBill(editingId, {
@@ -1282,16 +1372,34 @@ export function PurchaseModule() {
         bill_date: billDate,
         due_date: dueDate,
         vendor_invoice_no: vendorInvoiceNo,
-        status,
+        status: finalStatus,
         subtotal: totals.subtotal,
         tax_total: totals.taxTotal,
         total_amount: totals.grandTotal,
         notes,
       });
-      toast.success(`Vendor Bill updated (${status})`);
+      if (finalStatus === 'PENDING_APPROVAL') {
+        addApprovalQueueItem({
+          module: 'Purchase',
+          entity_type: 'vendor_bill',
+          record_id: editingId,
+          record_no: vendorInvoiceNo || 'VB',
+          requested_by: 'admin',
+          amount: totals.grandTotal,
+          status: 'PENDING',
+          party_name: partyObj?.name || 'Vendor',
+          warehouse_id: warehouseId || 'w1',
+          items_summary: 'Vendor Bill items',
+        });
+        toast.success(`Vendor Bill updated and submitted to Approval Center`);
+      } else {
+        toast.success(`Vendor Bill updated (Draft)`);
+      }
     } else {
       const billNo = `MP-${String(vendorBills.length + 1).padStart(5, '0')}`;
+      const billId = crypto.randomUUID();
       addVendorBill({
+        id: billId,
         bill_no: billNo,
         vendor_id: vendorId,
         warehouse_id: warehouseId,
@@ -1302,7 +1410,7 @@ export function PurchaseModule() {
         exchange_rate: 1,
         payment_terms: 'Net 30',
         account_head: 'Default Procurement Payable',
-        status,
+        status: finalStatus,
         subtotal: totals.subtotal,
         discount_total: 0,
         tax_total: totals.taxTotal,
@@ -1312,13 +1420,30 @@ export function PurchaseModule() {
         created_by: 'admin',
         created_at: new Date().toISOString(),
       });
-      toast.success(`Vendor Bill ${billNo} saved and ${status.toLowerCase()}`);
+      if (finalStatus === 'PENDING_APPROVAL') {
+        addApprovalQueueItem({
+          module: 'Purchase',
+          entity_type: 'vendor_bill',
+          record_id: billId,
+          record_no: billNo,
+          requested_by: 'admin',
+          amount: totals.grandTotal,
+          status: 'PENDING',
+          party_name: partyObj?.name || 'Vendor',
+          warehouse_id: warehouseId || 'w1',
+          items_summary: 'Vendor Bill items',
+        });
+        toast.success(`Vendor Bill ${billNo} submitted to Approval Center!`);
+      } else {
+        toast.success(`Vendor Bill ${billNo} saved as Draft`);
+      }
     }
     setNewBillOpen(false);
   };
 
   const handleSaveGenericRecord = () => {
     const amountVal = Number(genericAmount) || 1000;
+    const partyObj = availableVendors.find((v) => v.id === genericVendorId);
 
     if (activeSubTab === 'Requests') {
       const prNo = `MPR-${String(purchaseRequests.length + 1).padStart(5, '0')}`;
@@ -1352,30 +1477,58 @@ export function PurchaseModule() {
       toast.success(`Purchase Order ${poNo} created and added to Purchase Orders register!`);
     } else if (activeSubTab === 'Purchase Invoices') {
       const piNo = `PI-${String(purchaseInvoices.length + 1).padStart(5, '0')}`;
+      const piId = crypto.randomUUID();
       addPurchaseInvoice({
+        id: piId,
         grn_no: piNo,
         po_id: null,
         vendor_id: genericVendorId,
         warehouse_id: warehouses[0]?.id || 'w1',
         received_date: todayISO(),
-        status: 'POSTED',
+        status: 'PENDING_APPROVAL',
         notes: genericNotes,
         created_at: new Date().toISOString(),
       });
-      toast.success(`Purchase Invoice ${piNo} created and added to Purchase Invoices register!`);
+      addApprovalQueueItem({
+        module: 'Purchase',
+        entity_type: 'purchase_invoice',
+        record_id: piId,
+        record_no: piNo,
+        requested_by: 'admin',
+        amount: amountVal,
+        status: 'PENDING',
+        party_name: partyObj?.name || 'Vendor',
+        warehouse_id: warehouses[0]?.id || 'w1',
+        items_summary: 'Purchase items',
+      });
+      toast.success(`Purchase Invoice ${piNo} created and submitted to Approval Center!`);
     } else if (activeSubTab === 'Debit Notes') {
       const dnNo = `MDN-${String(debitNotes.length + 1).padStart(5, '0')}`;
+      const dnId = crypto.randomUUID();
       addDebitNote({
+        id: dnId,
         debit_note_no: dnNo,
         vendor_bill_id: null,
         vendor_id: genericVendorId,
         note_date: todayISO(),
         reason: genericNotes || 'Purchase Return',
-        status: 'POSTED',
+        status: 'PENDING_APPROVAL',
         total_amount: amountVal,
         created_at: new Date().toISOString(),
       });
-      toast.success(`Debit Note ${dnNo} created and added to Debit Notes register!`);
+      addApprovalQueueItem({
+        module: 'Purchase',
+        entity_type: 'purchase_return',
+        record_id: dnId,
+        record_no: dnNo,
+        requested_by: 'admin',
+        amount: amountVal,
+        status: 'PENDING',
+        party_name: partyObj?.name || 'Vendor',
+        warehouse_id: warehouses[0]?.id || 'w1',
+        items_summary: 'Purchase Return items',
+      });
+      toast.success(`Debit Note ${dnNo} created and submitted to Approval Center!`);
     } else if (activeSubTab === 'Payments') {
       const vpNo = `CP-${String(vendorPayments.length + 1).padStart(5, '0')}`;
       addVendorPayment({
@@ -1637,9 +1790,9 @@ export function PurchaseModule() {
                       <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Procurement Workflow</h3>
 
                       <div className="rounded-xl bg-amber-500/10 p-3.5 border border-amber-500/30 text-xs font-medium text-amber-800 dark:text-amber-300 leading-relaxed">
-                        <p className="font-bold text-amber-400">Posting Rule</p>
+                        <p className="font-bold text-amber-400">Approval Workflow</p>
                         <p className="text-[11px] text-slate-400 mt-1">
-                          Saving & posting this purchase updates inventory stock levels and supplier payables immediately.
+                          Submitting this purchase sends it directly to the Approval Center. Once approved by an administrator, it will be posted to the ledger and increase warehouse stock automatically.
                         </p>
                       </div>
                     </div>
@@ -1657,7 +1810,7 @@ export function PurchaseModule() {
                         onClick={() => handleSavePIRecord('POSTED')}
                         className="btn-primary text-xs px-5"
                       >
-                        Save & Post Purchase
+                        Submit for Approval
                       </button>
                     </div>
                   </div>

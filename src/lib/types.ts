@@ -1,5 +1,5 @@
-export type InvoiceStatus = 'UNPOSTED' | 'POSTED' | 'CANCELLED';
-export type DocStatus = 'DRAFT' | 'UNPOSTED' | 'POSTED' | 'PENDING' | 'CONFIRMED' | 'Confirmed' | 'APPROVED' | 'Accepted' | 'REJECTED' | 'COMPLETED' | 'Completed' | 'CANCELLED' | 'OPEN' | 'Open' | 'Sent' | 'Current';
+export type InvoiceStatus = 'UNPOSTED' | 'POSTED' | 'CANCELLED' | 'PENDING_APPROVAL' | 'REJECTED' | 'DRAFT';
+export type DocStatus = 'DRAFT' | 'UNPOSTED' | 'POSTED' | 'PENDING' | 'PENDING_APPROVAL' | 'CONFIRMED' | 'Confirmed' | 'APPROVED' | 'Accepted' | 'REJECTED' | 'COMPLETED' | 'Completed' | 'CANCELLED' | 'OPEN' | 'Open' | 'Sent' | 'Current';
 export type AccountType = 'Asset' | 'Liability' | 'Equity' | 'Revenue' | 'Expense' | 'Income';
 
 export interface ExpenseRecord {
@@ -354,8 +354,9 @@ export interface CreditNote {
   id: string;
   credit_note_no: string;
   customer_id: string | null;
-  warehouse_id?: string | null;
-  sales_invoice_id?: string | null;
+  customer_name?: string | null;
+  party_name?: string | null;
+  sales_invoice_id: string | null;
   invoice_id?: string | null;
   note_date: string;
   document_date?: string;
@@ -393,6 +394,9 @@ export interface SalesReturn {
   return_no: string;
   party_type: string;
   customer_id: string | null;
+  customer_name?: string | null;
+  party_name?: string | null;
+  reason?: string | null;
   warehouse_id?: string | null;
   document_date: string;
   due_date?: string | null;
@@ -424,6 +428,8 @@ export interface PurchaseReturn {
   return_no: string;
   party_type: string;
   vendor_id: string | null;
+  vendor_name?: string | null;
+  party_name?: string | null;
   warehouse_id?: string | null;
   document_date: string;
   due_date?: string | null;
@@ -443,6 +449,8 @@ export interface CustomerReceipt {
   id: string;
   receipt_no: string;
   customer_id: string | null;
+  customer_name?: string | null;
+  party_name?: string | null;
   sales_invoice_id?: string | null;
   receipt_date: string;
   payment_method: string;
@@ -544,6 +552,8 @@ export interface VendorBill {
   id: string;
   bill_no: string;
   vendor_id: string | null;
+  vendor_name?: string | null;
+  party_name?: string | null;
   warehouse_id: string | null;
   bill_date: string;
   document_date?: string;
@@ -572,6 +582,8 @@ export interface DebitNote {
   id: string;
   debit_note_no: string;
   vendor_id: string | null;
+  vendor_name?: string | null;
+  party_name?: string | null;
   vendor_bill_id: string | null;
   warehouse_id?: string | null;
   note_date: string;
@@ -588,6 +600,8 @@ export interface VendorPayment {
   id: string;
   payment_no: string;
   vendor_id: string | null;
+  vendor_name?: string | null;
+  party_name?: string | null;
   vendor_bill_id?: string | null;
   payment_date: string;
   payment_method: string;
@@ -779,18 +793,21 @@ export interface LoginLog {
 export interface ApprovalQueueItem {
   id: string;
   module?: string;
-  entity_type?: string;
+  entity_type?: 'sales_invoice' | 'purchase_invoice' | 'vendor_bill' | 'sales_return' | 'purchase_return' | string;
   record_id?: string;
   entity_id?: string;
   voucher_no?: string | null;
   record_no?: string;
+  party_name?: string | null;
+  warehouse_id?: string | null;
   amount: number;
   requested_by: string | null;
-  status: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | string;
   reviewed_by?: string | null;
   review_note?: string | null;
-  created_at: string;
+  created_at?: string;
   reviewed_at?: string | null;
+  items_summary?: string | null;
 }
 
 export interface Category {

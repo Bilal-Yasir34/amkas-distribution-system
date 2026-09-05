@@ -34,6 +34,8 @@ export function AccountingModule() {
     vendorPayments = [],
     salesReturns = [],
     purchaseReturns = [],
+    creditNotes = [],
+    debitNotes = [],
     expenseRecords = [],
     incomeRecords = [],
     addJournalEntry,
@@ -46,7 +48,7 @@ export function AccountingModule() {
 
   // Unified Accounts / Parties list across Customers, Vendors, and Users
   const allAccounts = useMemo(() => {
-    const list: Array<{ id: string; name: string; code?: string; account_type: string; email?: string; phone?: string }> = [];
+    const list: Array<{ id: string; name: string; code?: string; account_type: string; email?: string; phone?: string; is_active?: boolean }> = [];
 
     // Customers
     (customers || []).forEach((c) => {
@@ -57,6 +59,7 @@ export function AccountingModule() {
         account_type: c.account_type || 'Customer',
         email: c.email || undefined,
         phone: c.phone || undefined,
+        is_active: c.is_active ?? true,
       });
     });
 
@@ -70,6 +73,7 @@ export function AccountingModule() {
           account_type: v.account_type || 'Vendor',
           email: v.email || undefined,
           phone: v.phone || undefined,
+          is_active: v.is_active ?? true,
         });
       }
     });
@@ -84,6 +88,7 @@ export function AccountingModule() {
           account_type: u.role || 'Employee',
           email: u.email || undefined,
           phone: u.phone || undefined,
+          is_active: u.is_active ?? true,
         });
       }
     });
@@ -167,86 +172,182 @@ export function AccountingModule() {
     }
 
     const partyObj = allAccounts.find((a) => a.id === generatedStatementPartyId);
-    const partyName = partyObj?.name?.toLowerCase();
+    const partyName = partyObj?.name?.toLowerCase().trim();
+
+    const resolvePartyName = (id?: string | null, directName?: string | null) => {
+      if (directName) return directName;
+      if (!id) return '';
+      const foundCust = customers.find((c) => c.id === id);
+      if (foundCust) return foundCust.name;
+      const foundVend = vendors.find((v) => v.id === id);
+      if (foundVend) return foundVend.name;
+      const foundUser = users.find((u) => u.id === id);
+      if (foundUser) return foundUser.full_name;
+      return '';
+    };
+
+    const isMatch = (id?: string | null, name?: string | null) => {
+      if (!id && !name) return false;
+      if (id && id === generatedStatementPartyId) return true;
+      const resolved = (resolvePartyName(id, name) || '').toLowerCase().trim();
+      if (partyName && resolved && (resolved === partyName || resolved.includes(partyName) || partyName.includes(resolved))) {
+        return true;
+      }
+      return false;
+    };
 
     // 1. Sales Invoices
     const custInvs = (invoices || [])
-      .filter((i) => i.customer_id === generatedStatementPartyId || (partyName && i.customer_name?.toLowerCase() === partyName))
+      .filter((i) => isMatch(i.customer_id, i.customer_name))
       .map((i) => ({
         id: `inv-${i.id}`,
         date: (i.invoice_date || i.created_at || todayISO()).slice(0, 10),
         number: i.invoice_no,
         type: 'Sales Invoice',
-        desc: `Sales Invoice - ${i.customer_name || partyObj?.name || 'Customer'}`,
+        desc: `Sales Invoice - ${i.customer_name || partyObj?.name || 'Customer'}${i.items && i.items.length > 0 ? ` (${i.items.length} item${i.items.length > 1 ? 's' : ''})` : ''}`,
         debit: Number(i.total_amount || 0),
         credit: 0,
       }));
 
     // 2. Customer Receipts
     const custRects = (customerReceipts || [])
-      .filter((r) => r.customer_id === generatedStatementPartyId || (partyName && r.customer_name?.toLowerCase() === partyName))
+      .filter((r) => isMatch(r.customer_id, r.customer_name))
       .map((r) => ({
         id: `rect-${r.id}`,
         date: (r.receipt_date || r.created_at || todayISO()).slice(0, 10),
         number: r.receipt_no,
-        type: 'Receipt',
-        desc: `Payment Received - ${r.customer_name || partyObj?.name || 'Customer'}`,
+        type: 'Customer Receipt',
+        desc: `Payment Received - ${r.customer_name || partyObj?.name || 'Customer'}${r.payment_method ? ` (${r.payment_method})` : ''}`,
         debit: 0,
         credit: Number(r.amount || 0),
       }));
 
-    // 3. Sales Returns
-    const custReturns = (salesReturns || [])
-      .filter((sr) => sr.customer_id === generatedStatementPartyId || (partyName && sr.customer_name?.toLowerCase() === partyName))
-      .map((sr) => ({
-        id: `sr-${sr.id}`,
-        date: (sr.document_date || sr.created_at || todayISO()).slice(0, 10),
-        number: sr.return_no,
-        type: 'Sales Return',
-        desc: `Sales Return / Credit Note - ${sr.customer_name || partyObj?.name || 'Customer'}`,
-        debit: 0,
-        credit: Number(sr.total_amount || 0),
-      }));
+    // 3. Sales Returns & Credit Notes
+    const seenSrNumbers = new Set<string>();
+    const custReturns: Array<{ id: string; date: string; number: string; type: string; desc: string; debit: number; credit: number }> = [];
+
+    (salesReturns || [])
+      .filter((sr) => isMatch(sr.customer_id || (sr as any).party_id, sr.customer_name || (sr as any).party_name))
+      .forEach((sr) => {
+        const num = sr.return_no || `SR-${sr.id.slice(0, 6)}`;
+        seenSrNumbers.add(num);
+        custReturns.push({
+          id: `sr-${sr.id}`,
+          date: (sr.document_date || (sr as any).return_date || sr.created_at || todayISO()).slice(0, 10),
+          number: num,
+          type: 'Sales Return',
+          desc: `Sales Return - ${sr.customer_name || (sr as any).party_name || partyObj?.name || 'Customer'}${sr.reason ? ` (${sr.reason})` : ''}`,
+          debit: 0,
+          credit: Number(sr.total_amount || 0),
+        });
+      });
+
+    (creditNotes || [])
+      .filter((cn) => isMatch(cn.customer_id || (cn as any).party_id, cn.customer_name || (cn as any).party_name))
+      .forEach((cn) => {
+        const num = cn.credit_note_no || `CN-${cn.id.slice(0, 6)}`;
+        if (!seenSrNumbers.has(num)) {
+          seenSrNumbers.add(num);
+          custReturns.push({
+            id: `cn-${cn.id}`,
+            date: (cn.note_date || (cn as any).date || cn.created_at || todayISO()).slice(0, 10),
+            number: num,
+            type: 'Credit Note',
+            desc: `Credit Note / Return - ${cn.customer_name || (cn as any).party_name || partyObj?.name || 'Customer'}${cn.reason ? ` (${cn.reason})` : ''}`,
+            debit: 0,
+            credit: Number(cn.total_amount || 0),
+          });
+        }
+      });
 
     // 4. Vendor Bills & Purchase Invoices
-    const allBills = [...(vendorBills || []), ...(purchaseInvoices || [])];
-    const vendBills = allBills
-      .filter((b) => b.vendor_id === generatedStatementPartyId || (partyName && b.vendor_name?.toLowerCase() === partyName))
-      .map((b) => ({
-        id: `bill-${b.id}`,
-        date: (b.bill_date || (b as any).invoice_date || b.created_at || todayISO()).slice(0, 10),
-        number: b.bill_no || (b as any).invoice_no || `BILL-${b.id.slice(0, 6)}`,
-        type: 'Purchase Bill',
-        desc: `Purchase Bill - ${b.vendor_name || partyObj?.name || 'Vendor'}`,
-        debit: 0,
-        credit: Number(b.total_amount || 0),
-      }));
+    const seenBillNumbers = new Set<string>();
+    const vendBills: Array<{ id: string; date: string; number: string; type: string; desc: string; debit: number; credit: number }> = [];
+
+    (vendorBills || [])
+      .filter((b) => isMatch(b.vendor_id || (b as any).party_id, b.vendor_name || (b as any).party_name))
+      .forEach((b) => {
+        const num = b.bill_no || b.vendor_invoice_no || `BILL-${b.id.slice(0, 6)}`;
+        seenBillNumbers.add(num);
+        vendBills.push({
+          id: `bill-${b.id}`,
+          date: (b.bill_date || b.document_date || b.created_at || todayISO()).slice(0, 10),
+          number: num,
+          type: 'Vendor Bill',
+          desc: `Vendor Bill - ${b.vendor_name || (b as any).party_name || partyObj?.name || 'Vendor'}`,
+          debit: 0,
+          credit: Number(b.total_amount || 0),
+        });
+      });
+
+    (purchaseInvoices || [])
+      .filter((pi) => isMatch(pi.vendor_id || (pi as any).party_id, (pi as any).vendor_name || (pi as any).party_name))
+      .forEach((pi) => {
+        const num = pi.grn_no || pi.invoice_no || `PI-${pi.id.slice(0, 6)}`;
+        if (!seenBillNumbers.has(num)) {
+          seenBillNumbers.add(num);
+          vendBills.push({
+            id: `pi-${pi.id}`,
+            date: (pi.received_date || pi.document_date || pi.created_at || todayISO()).slice(0, 10),
+            number: num,
+            type: 'Purchase Invoice',
+            desc: `Purchase Invoice - ${(pi as any).vendor_name || partyObj?.name || 'Vendor'}`,
+            debit: 0,
+            credit: Number(pi.total_amount || 0),
+          });
+        }
+      });
 
     // 5. Vendor Payments
     const vendPays = (vendorPayments || [])
-      .filter((p) => p.vendor_id === generatedStatementPartyId || (partyName && p.vendor_name?.toLowerCase() === partyName))
+      .filter((p) => isMatch(p.vendor_id || (p as any).party_id, p.vendor_name || (p as any).party_name))
       .map((p) => ({
         id: `pay-${p.id}`,
         date: (p.payment_date || p.created_at || todayISO()).slice(0, 10),
         number: p.payment_no,
-        type: 'Payment',
-        desc: `Payment Made - ${p.vendor_name || partyObj?.name || 'Vendor'}`,
+        type: 'Vendor Payment',
+        desc: `Payment Made - ${p.vendor_name || partyObj?.name || 'Vendor'}${p.payment_method ? ` (${p.payment_method})` : ''}`,
         debit: Number(p.amount || 0),
         credit: 0,
       }));
 
-    // 6. Purchase Returns
-    const purchReturns = (purchaseReturns || [])
-      .filter((pr) => pr.vendor_id === generatedStatementPartyId || (partyName && pr.vendor_name?.toLowerCase() === partyName))
-      .map((pr) => ({
-        id: `pr-${pr.id}`,
-        date: (pr.document_date || pr.created_at || todayISO()).slice(0, 10),
-        number: pr.return_no,
-        type: 'Purchase Return',
-        desc: `Purchase Return / Debit Note - ${pr.vendor_name || partyObj?.name || 'Vendor'}`,
-        debit: Number(pr.total_amount || 0),
-        credit: 0,
-      }));
+    // 6. Purchase Returns & Debit Notes
+    const seenPrNumbers = new Set<string>();
+    const purchReturns: Array<{ id: string; date: string; number: string; type: string; desc: string; debit: number; credit: number }> = [];
+
+    (purchaseReturns || [])
+      .filter((pr) => isMatch(pr.vendor_id || (pr as any).party_id || (pr as any).customer_id, pr.vendor_name || (pr as any).party_name || (pr as any).customer_name))
+      .forEach((pr) => {
+        const num = pr.return_no || `PR-${pr.id.slice(0, 6)}`;
+        seenPrNumbers.add(num);
+        purchReturns.push({
+          id: `pr-${pr.id}`,
+          date: (pr.document_date || (pr as any).return_date || pr.created_at || todayISO()).slice(0, 10),
+          number: num,
+          type: 'Purchase Return',
+          desc: `Purchase Return - ${pr.vendor_name || (pr as any).party_name || partyObj?.name || 'Vendor'}${pr.notes ? ` (${pr.notes})` : ''}`,
+          debit: Number(pr.total_amount || 0),
+          credit: 0,
+        });
+      });
+
+    (debitNotes || [])
+      .filter((dn) => isMatch(dn.vendor_id || (dn as any).party_id, (dn as any).vendor_name || (dn as any).party_name))
+      .forEach((dn) => {
+        const num = dn.debit_note_no || `DN-${dn.id.slice(0, 6)}`;
+        if (!seenPrNumbers.has(num)) {
+          seenPrNumbers.add(num);
+          purchReturns.push({
+            id: `dn-${dn.id}`,
+            date: (dn.note_date || (dn as any).date || dn.created_at || todayISO()).slice(0, 10),
+            number: num,
+            type: 'Debit Note',
+            desc: `Debit Note / Purchase Return - ${(dn as any).vendor_name || partyObj?.name || 'Vendor'}${dn.reason ? ` (${dn.reason})` : ''}`,
+            debit: Number(dn.total_amount || 0),
+            credit: 0,
+          });
+        }
+      });
 
     const allTxs = [
       ...custInvs,
@@ -299,10 +400,12 @@ export function AccountingModule() {
     invoices,
     customerReceipts,
     salesReturns,
+    creditNotes,
     vendorBills,
     purchaseInvoices,
     vendorPayments,
     purchaseReturns,
+    debitNotes,
   ]);
 
   const handleGenerateStatement = () => {
@@ -1556,21 +1659,39 @@ export function AccountingModule() {
                         ? allAccounts
                         : allAccounts.filter((c) => c.account_type.toLowerCase() === agingSummaryType.toLowerCase())
                       ).map((c) => {
-                        const custInvoices = invoices.filter((i) => i.customer_id === c.id);
-                        const custReceipts = customerReceipts.filter((r) => r.customer_id === c.id);
-                        const custReturns = salesReturns.filter((sr) => sr.customer_id === c.id);
-                        const vBills = vendorBills.filter((b) => b.vendor_id === c.id);
-                        const vPayments = vendorPayments.filter((p) => p.vendor_id === c.id);
-                        const vReturns = purchaseReturns.filter((pr) => pr.vendor_id === c.id);
+                        const isParty = (id?: string | null, name?: string | null) => {
+                          if (!id && !name) return false;
+                          if (id && id === c.id) return true;
+                          if (c.name && name && name.toLowerCase().trim() === c.name.toLowerCase().trim()) return true;
+                          return false;
+                        };
+                        const custInvoices = invoices.filter((i) => isParty(i.customer_id, i.customer_name));
+                        const custReceipts = customerReceipts.filter((r) => isParty(r.customer_id, r.customer_name));
+                        const custReturns = [
+                          ...salesReturns.filter((sr) => isParty(sr.customer_id || (sr as any).party_id, sr.customer_name || (sr as any).party_name)),
+                          ...creditNotes.filter((cn) => isParty(cn.customer_id || (cn as any).party_id, cn.customer_name || (cn as any).party_name)),
+                        ];
+                        const vBills = [
+                          ...vendorBills.filter((b) => isParty(b.vendor_id || (b as any).party_id, b.vendor_name || (b as any).party_name)),
+                          ...purchaseInvoices.filter((pi) => isParty(pi.vendor_id || (pi as any).party_id, (pi as any).vendor_name || (pi as any).party_name)),
+                        ];
+                        const vPayments = vendorPayments.filter((p) => isParty(p.vendor_id || (p as any).party_id, p.vendor_name || (p as any).party_name));
+                        const vReturns = [
+                          ...purchaseReturns.filter((pr) => isParty(pr.vendor_id || (pr as any).party_id || (pr as any).customer_id, pr.vendor_name || (pr as any).party_name || (pr as any).customer_name)),
+                          ...debitNotes.filter((dn) => isParty(dn.vendor_id || (dn as any).party_id, (dn as any).vendor_name || (dn as any).party_name)),
+                        ];
                         
                         const billed = custInvoices.reduce((s, i) => s + (i.total_amount || 0), 0) + vBills.reduce((s, b) => s + (b.total_amount || 0), 0);
                         const received = custReceipts.reduce((s, r) => s + (r.amount || 0), 0) + vPayments.reduce((s, p) => s + (p.amount || 0), 0);
                         const returned = custReturns.reduce((s, sr) => s + (sr.total_amount || 0), 0) + vReturns.reduce((s, pr) => s + (pr.total_amount || 0), 0);
                         const outstanding = Math.max(0, billed - received - returned);
                         
-                        const oldestDate = [...custInvoices.map(i => i.invoice_date || i.created_at), ...vBills.map(b => b.bill_date)]
-                            .filter(Boolean)
-                            .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[0];
+                        const oldestDate = [
+                          ...custInvoices.map((i) => i.invoice_date || i.created_at),
+                          ...vBills.map((b) => (b as any).bill_date || (b as any).received_date || (b as any).created_at),
+                        ]
+                          .filter(Boolean)
+                          .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[0];
                             
                         const oldestInv = oldestDate ? formatDate(oldestDate) : '--';
 

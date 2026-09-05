@@ -64,6 +64,7 @@ export function SalesModule() {
     addCommission,
     updateCommission,
     deleteCommission,
+    addApprovalQueueItem,
   } = useDataStore();
 
   const [commFromDate, setCommFromDate] = useState('2026-07-01');
@@ -355,7 +356,7 @@ export function SalesModule() {
     return { subtotal, discountTotal, taxTotal, grandTotal };
   };
 
-  const handleSaveSalesInvoiceRecord = (status: 'POSTED' | 'UNPOSTED') => {
+  const handleSaveSalesInvoiceRecord = (actionStatus: 'POSTED' | 'UNPOSTED') => {
     if (!invCustomerId) return toast.error('Please select a customer');
 
     const totals = calcInvoiceTotals();
@@ -377,6 +378,9 @@ export function SalesModule() {
       };
     });
 
+    const finalStatus = actionStatus === 'UNPOSTED' ? 'UNPOSTED' : 'PENDING_APPROVAL';
+    const customerObj = customers.find((c) => c.id === invCustomerId);
+
     if (editingInvoiceId) {
       updateInvoice(editingInvoiceId, {
         customer_id: invCustomerId,
@@ -390,7 +394,7 @@ export function SalesModule() {
         account_head: invAccountHead,
         account_category: invAccountCategory,
         gate_pass_no: invGatePassNo,
-        status,
+        status: finalStatus,
         subtotal: totals.subtotal,
         discount_total: totals.discountTotal,
         tax_total: totals.taxTotal,
@@ -400,10 +404,29 @@ export function SalesModule() {
         commission_rate: invCommissionRate,
         items: formattedItems,
       });
-      toast.success(`Invoice updated (${status})`);
+
+      if (finalStatus === 'PENDING_APPROVAL') {
+        addApprovalQueueItem({
+          module: 'Sales',
+          entity_type: 'sales_invoice',
+          record_id: editingInvoiceId,
+          record_no: invReferenceNo || 'Invoice',
+          requested_by: invSalesperson || 'admin',
+          amount: totals.grandTotal,
+          status: 'PENDING',
+          party_name: customerObj?.name || 'Customer',
+          warehouse_id: invWarehouseId || 'w1',
+          items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+        });
+        toast.success(`Invoice updated and submitted to Approval Center`);
+      } else {
+        toast.success(`Invoice updated (Draft)`);
+      }
     } else {
       const invoiceNo = invReferenceNo || nextDocNumber('SL', (invoices || []).map((i) => i.invoice_no), 2);
+      const invId = crypto.randomUUID();
       addInvoice({
+        id: invId,
         invoice_no: invoiceNo,
         customer_id: invCustomerId,
         warehouse_id: invWarehouseId || warehouses[0]?.id || 'w1',
@@ -416,7 +439,7 @@ export function SalesModule() {
         account_head: invAccountHead,
         account_category: invAccountCategory,
         gate_pass_no: invGatePassNo,
-        status,
+        status: finalStatus,
         subtotal: totals.subtotal,
         discount_total: totals.discountTotal,
         tax_total: totals.taxTotal,
@@ -429,7 +452,24 @@ export function SalesModule() {
         created_by: 'admin',
         created_at: new Date().toISOString(),
       });
-      toast.success(`Invoice ${invoiceNo} ${status.toLowerCase()}`);
+
+      if (finalStatus === 'PENDING_APPROVAL') {
+        addApprovalQueueItem({
+          module: 'Sales',
+          entity_type: 'sales_invoice',
+          record_id: invId,
+          record_no: invoiceNo,
+          requested_by: invSalesperson || 'admin',
+          amount: totals.grandTotal,
+          status: 'PENDING',
+          party_name: customerObj?.name || 'Customer',
+          warehouse_id: invWarehouseId || 'w1',
+          items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+        });
+        toast.success(`Invoice ${invoiceNo} submitted to Approval Center!`);
+      } else {
+        toast.success(`Invoice ${invoiceNo} saved as Draft`);
+      }
     }
 
     setInvoiceViewMode('list');
@@ -1448,9 +1488,9 @@ export function SalesModule() {
                       </div>
 
                       <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 space-y-1">
-                        <p className="text-[11px] font-bold text-amber-500">Posting Status</p>
+                        <p className="text-[11px] font-bold text-amber-500">Approval Workflow</p>
                         <p className="text-[10px] text-slate-400">
-                          Posting this invoice automatically debits Customer AR and credits Sales Revenue, creating stock ledger entries.
+                          Submitting this invoice sends it directly to the Approval Center. Once approved by an administrator, it will be posted to the ledger and deduct warehouse stock automatically.
                         </p>
                       </div>
                     </div>
@@ -1460,7 +1500,7 @@ export function SalesModule() {
                         onClick={() => handleSaveSalesInvoiceRecord('POSTED')}
                         className="w-full btn-primary py-3 text-xs font-bold tracking-wide shadow-md"
                       >
-                        Save & Post Sales Invoice
+                        Submit for Approval
                       </button>
                       <button
                         onClick={() => handleSaveSalesInvoiceRecord('UNPOSTED')}
@@ -1898,7 +1938,9 @@ export function SalesModule() {
                               <button
                                 onClick={() => {
                                   const invNo = `MS-${String(invoices.length + 1).padStart(5, '0')}`;
+                                  const invId = crypto.randomUUID();
                                   addInvoice({
+                                    id: invId,
                                     invoice_no: invNo,
                                     customer_id: so.customer_id,
                                     warehouse_id: so.warehouse_id || warehouses[0]?.id || null,
@@ -1910,7 +1952,7 @@ export function SalesModule() {
                                     payment_terms: 'Net 30',
                                     account_head: 'Sales Revenue',
                                     gate_pass_no: null,
-                                    status: 'UNPOSTED',
+                                    status: 'PENDING_APPROVAL',
                                     subtotal: so.subtotal || so.total_amount,
                                     discount_total: so.discount_total || 0,
                                     tax_total: so.tax_total || 0,
@@ -1920,8 +1962,21 @@ export function SalesModule() {
                                     created_by: 'admin',
                                     created_at: new Date().toISOString(),
                                   });
+                                  const cust = customers.find((c) => c.id === so.customer_id);
+                                  addApprovalQueueItem({
+                                    module: 'Sales',
+                                    entity_type: 'sales_invoice',
+                                    record_id: invId,
+                                    record_no: invNo,
+                                    requested_by: so.salesperson || 'admin',
+                                    amount: so.total_amount,
+                                    status: 'PENDING',
+                                    party_name: cust?.name || 'Customer',
+                                    warehouse_id: so.warehouse_id || 'w1',
+                                    items_summary: 'Sales Order items',
+                                  });
                                   updateSalesOrder(so.id, { converted_to_invoice: true, status: 'COMPLETED' });
-                                  toast.success(`Sales Order converted → Invoice ${invNo}`);
+                                  toast.success(`Sales Order converted → Invoice ${invNo} (Submitted to Approval Center)`);
                                   setActiveSubTab('Invoices');
                                 }}
                                 className="flex items-center gap-1 rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500 hover:bg-amber-500/20"

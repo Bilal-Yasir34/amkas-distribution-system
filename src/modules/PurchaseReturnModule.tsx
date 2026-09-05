@@ -22,6 +22,7 @@ export function PurchaseReturnModule() {
     addPurchaseReturn,
     updatePurchaseReturn,
     deletePurchaseReturn,
+    addApprovalQueueItem,
     updateProduct,
     productArticles,
     universalArticles = [],
@@ -55,7 +56,7 @@ export function PurchaseReturnModule() {
     const list = [
       ...vendors.map(v => ({ ...v, _origin: 'vendor' as const, account_type: v.account_type || 'Vendor' })),
       ...customers.map(c => ({ ...c, _origin: 'customer' as const, account_type: c.account_type || 'Customer' })),
-      ...users.map(u => ({ ...u, _origin: 'user' as const, account_type: (u as any).account_type || u.role || 'Staff' }))
+      ...users.map(u => ({ ...u, name: u.full_name, _origin: 'user' as const, account_type: (u as any).account_type || u.role || 'Staff' }))
     ];
     return list.filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx);
   }, [vendors, customers, users]);
@@ -365,6 +366,8 @@ export function PurchaseReturnModule() {
       return_no: returnNo || `PR-${String((purchaseReturns || []).length + 1).padStart(5, '0')}`,
       party_type: partyType,
       vendor_id: vendorId,
+      vendor_name: selectedPartyObj?.name || 'Vendor',
+      party_name: selectedPartyObj?.name || 'Vendor',
       warehouse_id: warehouseId || warehouses[0]?.id || 'w1',
       document_date: docDate,
       due_date: dueDate,
@@ -384,21 +387,24 @@ export function PurchaseReturnModule() {
       updatePurchaseReturn(editingId, payload);
       toast.success(`Purchase Return ${payload.return_no} updated successfully!`);
     } else {
-      addPurchaseReturn(payload);
+      const returnStatus = 'PENDING_APPROVAL';
+      addPurchaseReturn({ ...payload, status: returnStatus });
 
-      // Inventory effect: Company returns bought product to party -> Stock decreases
-      if (status === 'POSTED') {
-        lineItems.forEach((item) => {
-          const prod = products.find((p) => p.id === item.product_id);
-          if (prod) {
-            updateProduct(prod.id, {
-              stock_quantity: Math.max(0, (prod.stock_quantity || 0) - (item.qty || 0)),
-            });
-          }
-        });
-      }
+      // Queue into Approval Center
+      addApprovalQueueItem({
+        module: 'Purchase Return',
+        entity_type: 'purchase_return',
+        record_no: payload.return_no,
+        party_name: selectedPartyObj?.name || 'Vendor',
+        warehouse_id: payload.warehouse_id,
+        amount: totals.grandTotal,
+        requested_by: 'Procurement / User',
+        status: 'PENDING',
+        created_at: new Date().toISOString(),
+        items_summary: formattedItems.map(i => `${i.description || 'Product'} (Qty: ${i.qty})`).join(', ')
+      });
 
-      toast.success(`Purchase Return ${payload.return_no} posted! Party Debited (DR) & Company Credited (CR).`);
+      toast.success(`Purchase Return ${payload.return_no} submitted to Approval Center for verification!`);
     }
 
     setViewMode('list');
@@ -674,10 +680,10 @@ export function PurchaseReturnModule() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleSaveRecord('POSTED')}
+                  onClick={() => handleSaveRecord('UNPOSTED')}
                   className="rounded-xl bg-[#00a884] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#008f70] transition"
                 >
-                  Save & Post Return
+                  Submit for Approval
                 </button>
               </div>
             </div>

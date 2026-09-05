@@ -21,6 +21,7 @@ export function SalesReturnModule() {
     addSalesReturn,
     updateSalesReturn,
     deleteSalesReturn,
+    addApprovalQueueItem,
     updateProduct,
     productArticles,
     universalArticles = [],
@@ -54,7 +55,7 @@ export function SalesReturnModule() {
     const list = [
       ...customers.map(c => ({ ...c, _origin: 'customer' as const, account_type: c.account_type || 'Customer' })),
       ...vendors.map(v => ({ ...v, _origin: 'vendor' as const, account_type: v.account_type || 'Vendor' })),
-      ...users.map(u => ({ ...u, _origin: 'user' as const, account_type: (u as any).account_type || u.role || 'Staff' }))
+      ...users.map(u => ({ ...u, name: u.full_name, _origin: 'user' as const, account_type: (u as any).account_type || u.role || 'Staff' }))
     ];
     return list.filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx);
   }, [customers, vendors, users]);
@@ -360,6 +361,8 @@ export function SalesReturnModule() {
       return_no: returnNo || `SR-${String((salesReturns || []).length + 1).padStart(5, '0')}`,
       party_type: partyType,
       customer_id: customerId,
+      customer_name: selectedPartyObj?.name || 'Customer',
+      party_name: selectedPartyObj?.name || 'Customer',
       warehouse_id: warehouseId || warehouses[0]?.id || 'w1',
       document_date: docDate,
       due_date: dueDate,
@@ -379,21 +382,24 @@ export function SalesReturnModule() {
       updateSalesReturn(editingId, payload);
       toast.success(`Sales Return ${payload.return_no} updated successfully!`);
     } else {
-      addSalesReturn(payload);
+      const returnStatus = 'PENDING_APPROVAL';
+      addSalesReturn({ ...payload, status: returnStatus });
 
-      // Inventory effect: Customer returns product to company -> Stock increases
-      if (status === 'POSTED') {
-        lineItems.forEach((item) => {
-          const prod = products.find((p) => p.id === item.product_id);
-          if (prod) {
-            updateProduct(prod.id, {
-              stock_quantity: (prod.stock_quantity || 0) + (item.qty || 0),
-            });
-          }
-        });
-      }
+      // Queue into Approval Center
+      addApprovalQueueItem({
+        module: 'Sales Return',
+        entity_type: 'sales_return',
+        record_no: payload.return_no,
+        party_name: selectedPartyObj?.name || 'Customer',
+        warehouse_id: payload.warehouse_id,
+        amount: totals.grandTotal,
+        requested_by: 'Sales Rep / User',
+        status: 'PENDING',
+        created_at: new Date().toISOString(),
+        items_summary: formattedItems.map(i => `${i.description || 'Product'} (Qty: ${i.qty})`).join(', ')
+      });
 
-      toast.success(`Sales Return ${payload.return_no} posted! Customer Credited (CR) & Company Debited (DR).`);
+      toast.success(`Sales Return ${payload.return_no} submitted to Approval Center for verification!`);
     }
 
     setViewMode('list');
@@ -623,10 +629,10 @@ export function SalesReturnModule() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleSaveRecord('POSTED')}
+                    onClick={() => handleSaveRecord('UNPOSTED')}
                     className="btn-primary text-xs px-5"
                   >
-                    Save & Post Return
+                    Submit for Approval
                   </button>
                 </div>
               </div>

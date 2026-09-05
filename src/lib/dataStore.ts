@@ -273,7 +273,8 @@ interface DataStoreState {
   updateFinancialYear: (id: string, fy: Partial<FinancialYear>) => void;
 
   // Approvals Action
-  reviewApproval: (id: string, status: 'APPROVED' | 'REJECTED', note?: string) => void;
+  addApprovalQueueItem: (item: Omit<ApprovalQueueItem, 'id'>) => string;
+  reviewApproval: (id: string, status: 'APPROVED' | 'REJECTED', note?: string, reviewer?: string) => void;
 
   // Org & Branch & Dept Actions
   addOrg: (o: Omit<Organization, 'id'>) => void;
@@ -891,9 +892,169 @@ export const useDataStore = create<DataStoreState>()(
       updateFinancialYear: (id, patch) => set((s) => ({ financialYears: s.financialYears.map((fy) => (fy.id === id ? { ...fy, ...patch } : fy)) })),
 
       // Approvals Action
-      reviewApproval: (id, status, note) => set((s) => ({
-        approvalQueue: s.approvalQueue.map((item) => (item.id === id ? { ...item, status, review_note: note } : item))
-      })),
+      addApprovalQueueItem: (item) => {
+        const id = crypto.randomUUID();
+        set((s) => ({
+          approvalQueue: [{ id, ...item, created_at: item.created_at || new Date().toISOString() }, ...s.approvalQueue]
+        }));
+        return id;
+      },
+
+      reviewApproval: (id, status, note, reviewer) =>
+        set((s) => {
+          const item = s.approvalQueue.find((a) => a.id === id);
+          if (!item) return s;
+
+          const updatedQueue = s.approvalQueue.map((a) =>
+            a.id === id
+              ? {
+                  ...a,
+                  status,
+                  review_note: note,
+                  reviewed_by: reviewer || 'Administrator',
+                  reviewed_at: new Date().toISOString(),
+                }
+              : a
+          );
+
+          if (status === 'REJECTED') {
+            const targetStatus = 'REJECTED';
+            let newInvoices = s.invoices;
+            let newVendorBills = s.vendorBills;
+            let newPurchaseInvoices = s.purchaseInvoices;
+            let newSalesReturns = s.salesReturns;
+            let newPurchaseReturns = s.purchaseReturns;
+
+            if (item.entity_type === 'sales_invoice') {
+              newInvoices = s.invoices.map((inv) =>
+                inv.id === item.record_id || inv.invoice_no === item.record_no ? { ...inv, status: targetStatus } : inv
+              );
+            } else if (item.entity_type === 'vendor_bill' || item.entity_type === 'purchase_invoice') {
+              newVendorBills = s.vendorBills.map((b) =>
+                b.id === item.record_id || b.bill_no === item.record_no ? { ...b, status: targetStatus } : b
+              );
+              newPurchaseInvoices = s.purchaseInvoices.map((p) =>
+                p.id === item.record_id || p.grn_no === item.record_no ? { ...p, status: targetStatus } : p
+              );
+            } else if (item.entity_type === 'sales_return') {
+              newSalesReturns = s.salesReturns.map((sr) =>
+                sr.id === item.record_id || sr.return_no === item.record_no ? { ...sr, status: targetStatus } : sr
+              );
+            } else if (item.entity_type === 'purchase_return') {
+              newPurchaseReturns = s.purchaseReturns.map((pr) =>
+                pr.id === item.record_id || pr.return_no === item.record_no ? { ...pr, status: targetStatus } : pr
+              );
+            }
+
+            return {
+              approvalQueue: updatedQueue,
+              invoices: newInvoices,
+              vendorBills: newVendorBills,
+              purchaseInvoices: newPurchaseInvoices,
+              salesReturns: newSalesReturns,
+              purchaseReturns: newPurchaseReturns,
+            };
+          }
+
+          if (status === 'APPROVED') {
+            let newProducts = [...s.products];
+            let newInvoices = s.invoices;
+            let newVendorBills = s.vendorBills;
+            let newPurchaseInvoices = s.purchaseInvoices;
+            let newSalesReturns = s.salesReturns;
+            let newPurchaseReturns = s.purchaseReturns;
+
+            // 1. Sales Invoice Approved -> status POSTED, decrement product inventory
+            if (item.entity_type === 'sales_invoice') {
+              const inv = s.invoices.find((i) => i.id === item.record_id || i.invoice_no === item.record_no);
+              if (inv) {
+                newInvoices = s.invoices.map((i) =>
+                  i.id === inv.id ? { ...i, status: 'POSTED' } : i
+                );
+                (inv.items || []).forEach((invItem) => {
+                  if (!invItem.product_id) return;
+                  newProducts = newProducts.map((p) =>
+                    p.id === invItem.product_id
+                      ? { ...p, stock_quantity: Math.max(0, (p.stock_quantity || 0) - (invItem.qty || 0)) }
+                      : p
+                  );
+                });
+              }
+            }
+
+            // 2. Vendor Bill / Purchase Invoice Approved -> status POSTED, increment product inventory
+            else if (item.entity_type === 'vendor_bill' || item.entity_type === 'purchase_invoice') {
+              const bill = s.vendorBills.find((b) => b.id === item.record_id || b.bill_no === item.record_no);
+              if (bill) {
+                newVendorBills = s.vendorBills.map((b) =>
+                  b.id === bill.id ? { ...b, status: 'POSTED' } : b
+                );
+                (bill.items || []).forEach((bItem) => {
+                  if (!bItem.product_id) return;
+                  newProducts = newProducts.map((p) =>
+                    p.id === bItem.product_id
+                      ? { ...p, stock_quantity: (p.stock_quantity || 0) + (bItem.qty || 0) }
+                      : p
+                  );
+                });
+              }
+              const pi = s.purchaseInvoices.find((p) => p.id === item.record_id || p.grn_no === item.record_no);
+              if (pi) {
+                newPurchaseInvoices = s.purchaseInvoices.map((p) =>
+                  p.id === pi.id ? { ...p, status: 'POSTED' } : p
+                );
+              }
+            }
+
+            // 3. Sales Return Approved -> status POSTED, increment product inventory (items returned to company)
+            else if (item.entity_type === 'sales_return') {
+              const sr = s.salesReturns.find((r) => r.id === item.record_id || r.return_no === item.record_no);
+              if (sr) {
+                newSalesReturns = s.salesReturns.map((r) =>
+                  r.id === sr.id ? { ...r, status: 'POSTED' } : r
+                );
+                (sr.items || []).forEach((srItem) => {
+                  if (!srItem.product_id) return;
+                  newProducts = newProducts.map((p) =>
+                    p.id === srItem.product_id
+                      ? { ...p, stock_quantity: (p.stock_quantity || 0) + (srItem.qty || 0) }
+                      : p
+                  );
+                });
+              }
+            }
+
+            // 4. Purchase Return Approved -> status POSTED, decrement product inventory (items returned to supplier)
+            else if (item.entity_type === 'purchase_return') {
+              const pr = s.purchaseReturns.find((r) => r.id === item.record_id || r.return_no === item.record_no);
+              if (pr) {
+                newPurchaseReturns = s.purchaseReturns.map((r) =>
+                  r.id === pr.id ? { ...r, status: 'POSTED' } : r
+                );
+                (pr.items || []).forEach((prItem) => {
+                  if (!prItem.product_id) return;
+                  newProducts = newProducts.map((p) =>
+                    p.id === prItem.product_id
+                      ? { ...p, stock_quantity: Math.max(0, (p.stock_quantity || 0) - (prItem.qty || 0)) }
+                      : p
+                  );
+                });
+              }
+            }
+
+            return {
+              approvalQueue: updatedQueue,
+              products: newProducts,
+              invoices: newInvoices,
+              vendorBills: newVendorBills,
+              purchaseInvoices: newPurchaseInvoices,
+              salesReturns: newSalesReturns,
+              purchaseReturns: newPurchaseReturns,
+            };
+          }
+
+          return { approvalQueue: updatedQueue };
+        }),
 
       // Org & Branch & Dept Actions
       addOrg: (o) =>
