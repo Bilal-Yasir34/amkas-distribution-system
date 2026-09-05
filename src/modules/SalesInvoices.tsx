@@ -365,10 +365,6 @@ export function SalesInvoices() {
               onChange={(val) => setInvoiceDate(val)}
             />
             <div>
-              <label className="label">Salesperson</label>
-              <input className="input" value={salesperson} onChange={(e) => setSalesperson(e.target.value)} />
-            </div>
-            <div>
               <label className="label">Payment Terms</label>
               <input className="input" value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} />
             </div>

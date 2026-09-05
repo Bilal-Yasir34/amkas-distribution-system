@@ -1414,34 +1414,19 @@ export function SalesModule() {
                       />
                     </div>
 
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Salesperson</label>
-                        <select
-                          value={invSalesperson}
-                          onChange={(e) => setInvSalesperson(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                        >
-                          <option value="Unassigned">Unassigned</option>
-                          <option value="admin">Admin</option>
-                          <option value="Sales Rep 1">Sales Rep 1</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Warehouse</label>
-                        <select
-                          value={invWarehouseId}
-                          onChange={(e) => setInvWarehouseId(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                        >
-                          {warehouses.map((w) => (
-                            <option key={w.id} value={w.id}>
-                              {w.name} ({w.code})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Warehouse</label>
+                      <select
+                        value={invWarehouseId}
+                        onChange={(e) => setInvWarehouseId(e.target.value)}
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
+                      >
+                        {warehouses.map((w) => (
+                          <option key={w.id} value={w.id}>
+                            {w.name} ({w.code})
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
@@ -2131,20 +2116,8 @@ export function SalesModule() {
                     />
                   </div>
 
-                  {/* Row 2: Salesperson, Currency, Exchange rate */}
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Salesperson</label>
-                      <select
-                        value={cnSalesperson}
-                        onChange={(e) => setCnSalesperson(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
-                      >
-                        <option value="Unassigned">Unassigned</option>
-                        <option value="admin">Admin</option>
-                        <option value="Sales Rep 1">Sales Rep 1</option>
-                      </select>
-                    </div>
+                  {/* Row 2: Currency, Exchange rate */}
+                  <div className="grid gap-4 sm:grid-cols-2">
 
                     <div>
                       <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Currency</label>
