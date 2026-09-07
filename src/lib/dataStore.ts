@@ -420,20 +420,7 @@ export const useDataStore = create<DataStoreState>()(
       ],
       rolePermissions: ROLE_MODULES,
       expenseRecords: [],
-      incomeRecords: [
-        {
-          id: 'inc1',
-          number: 'MI-00001',
-          date: '26 Jun 2026',
-          account_id: 'co10',
-          account_name: 'Other Income',
-          description: 'test',
-          cash_bank_account: 'Cash in Hand',
-          amount: 1500,
-          status: 'Posted',
-          created_at: '2026-06-26T10:00:00Z',
-        },
-      ],
+      incomeRecords: [],
 
       isMaintenanceMode: false,
 
@@ -1330,9 +1317,26 @@ export const useDataStore = create<DataStoreState>()(
           };
         }),
 
-      // Reset all transactional entries
+      // Reset all business data, entries, products, balances, transactions for a completely clean slate
       resetBusinessData: () =>
-        set({
+        set((s) => ({
+          customers: [],
+          vendors: [],
+          products: [],
+          categories: [],
+          productArticles: [],
+          universalArticles: [],
+          warehouses: [
+            {
+              id: 'w1',
+              code: 'MAIN',
+              name: 'Main Warehouse',
+              branch_id: 'b1',
+              address: 'Head Office Compound',
+              is_active: true,
+              is_default: true,
+            },
+          ],
           invoices: [],
           quotations: [],
           salesOrders: [],
@@ -1348,8 +1352,16 @@ export const useDataStore = create<DataStoreState>()(
           purchaseReturns: [],
           vendorPayments: [],
           approvalQueue: [],
+          bankAccounts: [
+            { id: 'ba1', account_name: 'Cash in Hand', bank_name: 'Cash', account_number: '1110', iban: null, currency: 'PKR', opening_balance: 0, current_balance: 0, account_type: 'Cash', status: 'Active' },
+            { id: 'ba2', account_name: 'Meezan Islamic Main Account', bank_name: 'Meezan Bank', account_number: '0102998877', iban: 'PK36MEZN000102998877', currency: 'PKR', opening_balance: 0, current_balance: 0, account_type: 'Bank', status: 'Active' },
+          ],
           bankStatements: [],
           journalEntries: [],
+          chartOfAccounts: (s.chartOfAccounts && s.chartOfAccounts.length > 0 ? s.chartOfAccounts : initialCOA).map((coa) => ({
+            ...coa,
+            current_balance: 0,
+          })),
           expenseRecords: [],
           incomeRecords: [],
           stockTransfers: [],
@@ -1358,7 +1370,13 @@ export const useDataStore = create<DataStoreState>()(
           serials: [],
           auditLogs: [],
           loginLogs: [],
-        }),
+          users: s.users.map((u) => ({
+            ...u,
+            base_salary: 0,
+            allowances: 0,
+            others: 0,
+          })),
+        })),
     }),
     {
       name: 'amkas-erp-data-store',
@@ -1386,6 +1404,9 @@ export const useDataStore = create<DataStoreState>()(
           }
           if (state.invoices?.some((i) => i.id === 'inv1')) {
             state.invoices = state.invoices.filter((i) => i.id !== 'inv1');
+          }
+          if (state.incomeRecords?.some((i) => i.id === 'inc1')) {
+            state.incomeRecords = state.incomeRecords.filter((i) => i.id !== 'inc1');
           }
           if (state.approvalQueue?.some((a) => a.id === 'app1')) {
             state.approvalQueue = state.approvalQueue.filter((a) => a.id !== 'app1');

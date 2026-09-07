@@ -210,7 +210,7 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
       return toast.error('Type RESET NICE to confirm');
     }
     resetBusinessData();
-    toast.success('All sales, purchases, approval queue, bank, and transaction entries cleared successfully!');
+    toast.success('System reset successfully! All products, contacts, transactions, and balances have been cleared.');
     setResetConfirmOpen(false);
     setResetInput('');
     // Synchronize cleared state to cloud
@@ -289,8 +289,8 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
               <RefreshCw className="h-4 w-4" />
             </div>
           </div>
-          <p className="mt-2 text-2xl font-extrabold text-amber-500 dark:text-amber-400 font-heading">ORGANIZATION</p>
-          <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">Preserves Users & Setup</p>
+          <p className="mt-2 text-2xl font-extrabold text-rose-500 dark:text-rose-400 font-heading">FULL SYSTEM</p>
+          <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">Complete Clean Slate</p>
         </div>
       </div>
 
@@ -637,15 +637,15 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
           </div>
         </div>
 
-        {/* Fresh Client Handover / Clear All Entries Reset */}
+        {/* Full System Clean Slate Reset */}
         <div className="card p-6 space-y-5">
           <div>
             <p className="text-[10px] font-extrabold uppercase tracking-wider text-rose-500">SYSTEM DATA RESET</p>
             <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 font-heading mt-0.5">
-              Clear All Sales & System Entries
+              Full System Clean Slate Reset
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-              Purge all transactions and operational records while safely retaining users, account types, and master configurations.
+              Clear all products, contacts, balances, numerical entries, and transactions for a pristine fresh system.
             </p>
           </div>
 
@@ -653,11 +653,11 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
             <div className="flex items-start gap-2.5 text-slate-800 dark:text-slate-200 leading-relaxed font-semibold">
               <AlertTriangle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
               <p>
-                Clears all sales invoices, quotations, sales orders, credit notes, sales returns, customer receipts, commissions, purchase requests, purchase orders, purchase invoices, vendor bills, debit notes, purchase returns, vendor payments, approval center queue items, bank statements, journal entries, expense & income records, and stock adjustments.
+                Clears all products, categories, product articles, universal articles, customers, vendors, sales invoices, quotations, sales orders, credit notes, sales returns, customer receipts, commissions, purchase requests, purchase orders, purchase invoices, vendor bills, debit notes, purchase returns, vendor payments, approval queue items, bank statements, bank account balances, journal entries, chart of accounts balances, expense & income records, batches, serials, and stock adjustments.
               </p>
             </div>
             <div className="rounded-xl bg-amber-500/15 p-3 text-xs text-amber-700 dark:text-amber-300 border border-amber-500/30">
-              <strong className="font-extrabold text-amber-800 dark:text-amber-200">Preserved Master Data:</strong> Users & employee accounts, Account Types, Customer & Vendor contacts, Product catalog & categories, Chart of Accounts, Bank Accounts, Warehouses, and Organization settings.
+              <strong className="font-extrabold text-amber-800 dark:text-amber-200">Preserved Configuration:</strong> Super Admin access, core Account Types, baseline Warehouse & Chart of Accounts structure (with zeroed balances), and Organization settings.
             </div>
           </div>
 
@@ -666,7 +666,7 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
               onClick={() => setResetConfirmOpen(true)}
               className="btn btn-danger w-full justify-center py-3 text-xs font-bold"
             >
-              <Trash2 className="h-4 w-4" /> Clear All Sales & System Entries
+              <Trash2 className="h-4 w-4" /> Reset All System Data & Balances
             </button>
           ) : (
             <div className="space-y-4 border-t border-slate-200 dark:border-amber-500/20 pt-4">
@@ -693,7 +693,7 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
                   onClick={handleClearBusinessData}
                   className="btn btn-danger flex-1 py-2.5 text-xs font-bold"
                 >
-                  Confirm Data Wipe
+                  Confirm Full Data Reset
                 </button>
               </div>
             </div>
