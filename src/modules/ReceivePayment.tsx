@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
-import { todayISO } from '@/lib/utils';
+import { todayISO, safeUUID } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
 
 export function ReceivePayment() {
@@ -67,7 +67,7 @@ export function ReceivePayment() {
       (b) => b.account_name === depositTo || b.id === depositTo
     );
     const depositAccId = depositAcc?.id || bankAccounts[0]?.id || 'ba1';
-    const receiptId = crypto.randomUUID();
+    const receiptId = safeUUID();
     const finalRefNo = refNo.trim() || autoRefNo;
 
     addCustomerReceipt({

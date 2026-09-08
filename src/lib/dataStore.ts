@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { safeUUID } from './utils';
 import { ROLE_MODULES, type Role, type ModuleKey } from './rbac';
 import type {
   Customer,
@@ -885,7 +886,7 @@ export const useDataStore = create<DataStoreState>()(
 
       // Approvals Action
       addApprovalQueueItem: (item) => {
-        const id = crypto.randomUUID();
+        const id = (item as any).id || safeUUID();
         const et = (item.entity_type || '').toLowerCase();
         const mod = (item.module || '').toLowerCase();
         const rec = (item.record_no || '').toLowerCase();

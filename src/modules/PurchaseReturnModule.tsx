@@ -158,12 +158,13 @@ export function PurchaseReturnModule() {
 
   const openCreateForm = () => {
     setEditingId(null);
-    setPartyType(accountTypes[0]?.name || 'ALL');
-    setVendorId(vendors[0]?.id || customers[0]?.id || '');
+    setPartyType('ALL');
+    const defaultParty = allParties[0]?.id || vendors[0]?.id || customers[0]?.id || '';
+    setVendorId(defaultParty);
     setDocDate(todayISO());
     setDueDate(todayISO());
     setWarehouseId(warehouses[0]?.id || 'w1');
-    const autoNo = `PR-${String((purchaseReturns || []).length + 1).padStart(5, '0')}`;
+    const autoNo = nextDocNumber('PRT', (purchaseReturns || []).map(r => r.return_no), 2);
     setReturnNo(autoNo);
     setNotes('');
     setLineItems([
@@ -381,12 +382,14 @@ export function PurchaseReturnModule() {
       toast.success(`Purchase Return ${payload.return_no} updated successfully!`);
     } else {
       const returnStatus = 'PENDING_APPROVAL';
-      addPurchaseReturn({ ...payload, status: returnStatus });
+      const returnId = safeUUID();
+      addPurchaseReturn({ id: returnId, ...payload, status: returnStatus });
 
       // Queue into Approval Center
       addApprovalQueueItem({
         module: 'Purchase Return',
         entity_type: 'purchase_return',
+        record_id: returnId,
         record_no: payload.return_no,
         party_name: selectedPartyObj?.name || 'Vendor',
         warehouse_id: payload.warehouse_id,
@@ -400,6 +403,7 @@ export function PurchaseReturnModule() {
       toast.success(`Purchase Return ${payload.return_no} submitted to Approval Center for verification!`);
     }
 
+    setEditingId(null);
     setViewMode('list');
   };
 

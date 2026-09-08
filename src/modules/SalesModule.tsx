@@ -178,8 +178,10 @@ export function SalesModule() {
 
   const openCreateInvoiceForm = () => {
     setEditingInvoiceId(null);
-    setInvPartyType('Customer');
-    setInvCustomerId(customers[0]?.id || '');
+    setInvReferenceNo('');
+    const defaultParty = availableParties[0]?.id || customers[0]?.id || vendors[0]?.id || '';
+    setInvPartyType('ALL');
+    setInvCustomerId(defaultParty);
     setInvDocDate(todayISO());
     setInvDueDate(todayISO());
     setInvSalesperson('Unassigned');
@@ -380,7 +382,7 @@ export function SalesModule() {
     });
 
     const finalStatus = actionStatus === 'UNPOSTED' ? 'UNPOSTED' : 'PENDING_APPROVAL';
-    const customerObj = customers.find((c) => c.id === invCustomerId);
+    const partyObj = customers.find((c) => c.id === invCustomerId) || vendors.find((v) => v.id === invCustomerId);
 
     if (editingInvoiceId) {
       updateInvoice(editingInvoiceId, {
@@ -415,7 +417,7 @@ export function SalesModule() {
           requested_by: invSalesperson || 'admin',
           amount: totals.grandTotal,
           status: 'PENDING',
-          party_name: customerObj?.name || 'Customer',
+          party_name: partyObj?.name || 'Customer',
           warehouse_id: invWarehouseId || 'w1',
           items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
         });
@@ -424,8 +426,8 @@ export function SalesModule() {
         toast.success(`Invoice updated (Draft)`);
       }
     } else {
-      const invoiceNo = invReferenceNo || nextDocNumber('SL', (invoices || []).map((i) => i.invoice_no), 2);
-      const invId = crypto.randomUUID();
+      const invoiceNo = invReferenceNo.trim() || nextDocNumber('SL', (invoices || []).map((i) => i.invoice_no), 2);
+      const invId = safeUUID();
       addInvoice({
         id: invId,
         invoice_no: invoiceNo,
@@ -463,7 +465,7 @@ export function SalesModule() {
           requested_by: invSalesperson || 'admin',
           amount: totals.grandTotal,
           status: 'PENDING',
-          party_name: customerObj?.name || 'Customer',
+          party_name: partyObj?.name || 'Customer',
           warehouse_id: invWarehouseId || 'w1',
           items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
         });
@@ -473,6 +475,8 @@ export function SalesModule() {
       }
     }
 
+    setEditingInvoiceId(null);
+    setInvReferenceNo('');
     setInvoiceViewMode('list');
   };
 
@@ -763,7 +767,7 @@ export function SalesModule() {
       });
       toast.success('Customer Receipt updated');
     } else {
-      const receiptId = crypto.randomUUID();
+      const receiptId = safeUUID();
       const receiptNo = `CR-${Date.now().toString().slice(-5)}`;
       const party = receiptAllParties.find((p) => p.id === receiptCustomerId);
 
@@ -801,6 +805,8 @@ export function SalesModule() {
       toast.success(`Customer Receipt ${receiptNo} submitted to Approval Center for review!`);
     }
 
+    setEditingReceiptId(null);
+    setReceiptRefNo('');
     setReceiptViewMode('list');
   };
 
@@ -1932,8 +1938,8 @@ export function SalesModule() {
                             {!so.converted_to_invoice && (
                               <button
                                 onClick={() => {
-                                  const invNo = `MS-${String(invoices.length + 1).padStart(5, '0')}`;
-                                  const invId = crypto.randomUUID();
+                                  const invNo = nextDocNumber('SL', (invoices || []).map((i) => i.invoice_no), 2);
+                                  const invId = safeUUID();
                                   addInvoice({
                                     id: invId,
                                     invoice_no: invNo,
@@ -1957,7 +1963,7 @@ export function SalesModule() {
                                     created_by: 'admin',
                                     created_at: new Date().toISOString(),
                                   });
-                                  const cust = customers.find((c) => c.id === so.customer_id);
+                                  const cust = customers.find((c) => c.id === so.customer_id) || vendors.find((v) => v.id === so.customer_id);
                                   addApprovalQueueItem({
                                     module: 'Sales',
                                     entity_type: 'sales_invoice',
@@ -1972,7 +1978,7 @@ export function SalesModule() {
                                   });
                                   updateSalesOrder(so.id, { converted_to_invoice: true, status: 'COMPLETED' });
                                   toast.success(`Sales Order converted → Invoice ${invNo} (Submitted to Approval Center)`);
-                                  setActiveSubTab('Invoices');
+                                  setActiveSubTab('Sales');
                                 }}
                                 className="flex items-center gap-1 rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500 hover:bg-amber-500/20"
                               >

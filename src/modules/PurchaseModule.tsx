@@ -251,7 +251,7 @@ export function PurchaseModule() {
       });
       toast.success('Purchase Request updated successfully');
     } else {
-      const prNo = `PR-${String((purchaseRequests || []).length + 1).padStart(5, '0')}`;
+      const prNo = nextDocNumber('PR', (purchaseRequests || []).map((p) => p.request_no), 2);
       addPurchaseRequest({
         request_no: prNo,
         department_id: 'd1',
@@ -266,6 +266,7 @@ export function PurchaseModule() {
       toast.success(`Purchase Request ${prNo} saved successfully!`);
     }
 
+    setEditingPRId(null);
     setPrViewMode('list');
   };
 
@@ -449,7 +450,7 @@ export function PurchaseModule() {
       });
       toast.success('Purchase Order updated successfully');
     } else {
-      const poNo = `PO-${String((purchaseOrders || []).length + 1).padStart(5, '0')}`;
+      const poNo = poSupplierRef?.trim() || nextDocNumber('PO', (purchaseOrders || []).map((p) => p.po_no), 2);
       addPurchaseOrder({
         po_no: poNo,
         vendor_id: poVendorId,
@@ -471,6 +472,8 @@ export function PurchaseModule() {
       toast.success(`Purchase Order ${poNo} created successfully!`);
     }
 
+    setEditingPOId(null);
+    setPoSupplierRef('');
     setPoViewMode('list');
   };
 
@@ -722,7 +725,7 @@ export function PurchaseModule() {
       toast.success('Purchase Invoice updated and submitted to Approval Center');
     } else {
       const piNo = piReferenceNo || nextDocNumber('PI', (purchaseInvoices || []).map((p) => p.invoice_no || ''), 2);
-      const piId = crypto.randomUUID();
+      const piId = safeUUID();
       addPurchaseInvoice({
         id: piId,
         grn_no: piNo,
@@ -758,6 +761,8 @@ export function PurchaseModule() {
       toast.success(`Purchase Invoice ${piNo} submitted to Approval Center!`);
     }
 
+    setEditingPIId(null);
+    setPiReferenceNo('');
     setPiViewMode('list');
   };
 
@@ -968,8 +973,8 @@ export function PurchaseModule() {
       });
       toast.success('Vendor Bill updated and submitted to Approval Center');
     } else {
-      const billNo = `MP-${String((vendorBills || []).length + 1).padStart(5, '0')}`;
-      const billId = crypto.randomUUID();
+      const billNo = vbSupplierRef?.trim() || nextDocNumber('VB', (vendorBills || []).map((v) => v.bill_no), 2);
+      const billId = safeUUID();
       addVendorBill({
         id: billId,
         bill_no: billNo,
@@ -1008,6 +1013,8 @@ export function PurchaseModule() {
       toast.success(`Vendor Bill ${billNo} submitted to Approval Center!`);
     }
 
+    setEditingVBId(null);
+    setVbSupplierRef('');
     setVbViewMode('list');
   };
 
@@ -1190,8 +1197,8 @@ export function PurchaseModule() {
       });
       toast.success('Debit Note / Purchase Return updated and submitted to Approval Center');
     } else {
-      const dnNo = `MDN-${String((debitNotes || []).length + 1).padStart(5, '0')}`;
-      const dnId = crypto.randomUUID();
+      const dnNo = nextDocNumber('DN', (debitNotes || []).map((d) => d.debit_note_no), 2);
+      const dnId = safeUUID();
       addDebitNote({
         id: dnId,
         debit_note_no: dnNo,
@@ -1219,6 +1226,7 @@ export function PurchaseModule() {
       toast.success(`Debit Note / Purchase Return ${dnNo} submitted to Approval Center!`);
     }
 
+    setEditingDNId(null);
     setDnViewMode('list');
   };
 
@@ -1281,7 +1289,7 @@ export function PurchaseModule() {
       });
       toast.success('Vendor Payment updated successfully');
     } else {
-      const paymentNo = `PAY-${String((vendorPayments || []).length + 1).padStart(5, '0')}`;
+      const paymentNo = nextDocNumber('PAY', (vendorPayments || []).map((v) => v.payment_no), 2);
       addVendorPayment({
         payment_no: paymentNo,
         vendor_bill_id: null,
@@ -1299,6 +1307,8 @@ export function PurchaseModule() {
       toast.success(`Payment ${paymentNo} posted! Vendor balance updated.`);
     }
 
+    setEditingVPId(null);
+    setVpRefNumber('');
     setVpViewMode('list');
   };
 
@@ -1397,8 +1407,8 @@ export function PurchaseModule() {
         toast.success(`Vendor Bill updated (Draft)`);
       }
     } else {
-      const billNo = `MP-${String(vendorBills.length + 1).padStart(5, '0')}`;
-      const billId = crypto.randomUUID();
+      const billNo = vendorInvoiceNo?.trim() || nextDocNumber('VB', (vendorBills || []).map((v) => v.bill_no), 2);
+      const billId = safeUUID();
       addVendorBill({
         id: billId,
         bill_no: billNo,
@@ -1439,6 +1449,7 @@ export function PurchaseModule() {
         toast.success(`Vendor Bill ${billNo} saved as Draft`);
       }
     }
+    setEditingId(null);
     setNewBillOpen(false);
   };
 
@@ -1447,7 +1458,7 @@ export function PurchaseModule() {
     const partyObj = availableVendors.find((v) => v.id === genericVendorId);
 
     if (activeSubTab === 'Requests') {
-      const prNo = `MPR-${String(purchaseRequests.length + 1).padStart(5, '0')}`;
+      const prNo = nextDocNumber('PR', (purchaseRequests || []).map((p) => p.request_no), 2);
       addPurchaseRequest({
         request_no: prNo,
         department_id: 'd1',
@@ -1460,7 +1471,7 @@ export function PurchaseModule() {
       });
       toast.success(`Purchase Request ${prNo} created and added to Requests register!`);
     } else if (activeSubTab === 'Purchase Orders') {
-      const poNo = `MPO-${String(purchaseOrders.length + 1).padStart(5, '0')}`;
+      const poNo = nextDocNumber('PO', (purchaseOrders || []).map((p) => p.po_no), 2);
       addPurchaseOrder({
         po_no: poNo,
         vendor_id: genericVendorId,
@@ -1477,8 +1488,8 @@ export function PurchaseModule() {
       });
       toast.success(`Purchase Order ${poNo} created and added to Purchase Orders register!`);
     } else if (activeSubTab === 'Purchase Invoices') {
-      const piNo = `PI-${String(purchaseInvoices.length + 1).padStart(5, '0')}`;
-      const piId = crypto.randomUUID();
+      const piNo = nextDocNumber('PI', (purchaseInvoices || []).map((p) => p.invoice_no || ''), 2);
+      const piId = safeUUID();
       addPurchaseInvoice({
         id: piId,
         grn_no: piNo,
@@ -1504,8 +1515,8 @@ export function PurchaseModule() {
       });
       toast.success(`Purchase Invoice ${piNo} created and submitted to Approval Center!`);
     } else if (activeSubTab === 'Debit Notes') {
-      const dnNo = `MDN-${String(debitNotes.length + 1).padStart(5, '0')}`;
-      const dnId = crypto.randomUUID();
+      const dnNo = nextDocNumber('DN', (debitNotes || []).map((d) => d.debit_note_no), 2);
+      const dnId = safeUUID();
       addDebitNote({
         id: dnId,
         debit_note_no: dnNo,

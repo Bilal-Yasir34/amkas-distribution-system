@@ -158,12 +158,13 @@ export function SalesReturnModule() {
 
   const openCreateForm = () => {
     setEditingId(null);
-    setPartyType(accountTypes[0]?.name || 'ALL');
-    setCustomerId(customers[0]?.id || '');
+    setPartyType('ALL');
+    const defaultParty = allParties[0]?.id || customers[0]?.id || vendors[0]?.id || '';
+    setCustomerId(defaultParty);
     setDocDate(todayISO());
     setDueDate(todayISO());
     setWarehouseId(warehouses[0]?.id || 'w1');
-    const autoNo = `SR-${String((salesReturns || []).length + 1).padStart(5, '0')}`;
+    const autoNo = nextDocNumber('SR', (salesReturns || []).map(r => r.return_no), 2);
     setReturnNo(autoNo);
     setAccountCategory('Sales Returns & Allowances');
     setAccountHead('Sales Returns & Allowances');
@@ -384,12 +385,14 @@ export function SalesReturnModule() {
       toast.success(`Sales Return ${payload.return_no} updated successfully!`);
     } else {
       const returnStatus = 'PENDING_APPROVAL';
-      addSalesReturn({ ...payload, status: returnStatus });
+      const returnId = safeUUID();
+      addSalesReturn({ id: returnId, ...payload, status: returnStatus });
 
       // Queue into Approval Center
       addApprovalQueueItem({
         module: 'Sales Return',
         entity_type: 'sales_return',
+        record_id: returnId,
         record_no: payload.return_no,
         party_name: selectedPartyObj?.name || 'Customer',
         warehouse_id: payload.warehouse_id,
@@ -403,6 +406,7 @@ export function SalesReturnModule() {
       toast.success(`Sales Return ${payload.return_no} submitted to Approval Center for verification!`);
     }
 
+    setEditingId(null);
     setViewMode('list');
   };
 

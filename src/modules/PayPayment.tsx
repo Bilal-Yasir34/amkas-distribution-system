@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
-import { todayISO } from '@/lib/utils';
+import { todayISO, safeUUID } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
 
 export function PayPayment() {
@@ -68,7 +68,7 @@ export function PayPayment() {
     const vendorId = selectedParty?._origin === 'vendor' ? selectedParty.id : '';
     const finalRefNo = refNo.trim() || autoRefNo;
     const paymentNo = finalRefNo;
-    const paymentId = crypto.randomUUID();
+    const paymentId = safeUUID();
 
     const fromAcc = bankAccounts.find(
       (b) => b.account_name === payFrom || b.id === payFrom
