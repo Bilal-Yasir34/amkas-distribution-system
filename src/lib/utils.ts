@@ -266,4 +266,42 @@ export function formatUserRequester(
   };
 }
 
+export function amountToWords(amount: number): string {
+  const num = Math.floor(Math.abs(Number(amount) || 0));
+  if (num === 0) return 'Zero Rupees Only';
+
+  const a = [
+    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen',
+  ];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  function convertGroup(n: number): string {
+    let str = '';
+    if (n >= 100) {
+      str += a[Math.floor(n / 100)] + ' Hundred ';
+      n %= 100;
+    }
+    if (n >= 20) {
+      str += b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '') + ' ';
+    } else if (n > 0) {
+      str += a[n] + ' ';
+    }
+    return str;
+  }
+
+  let words = '';
+  const crore = Math.floor(num / 10000000);
+  const lakh = Math.floor((num % 10000000) / 100000);
+  const thousand = Math.floor((num % 100000) / 1000);
+  const remainder = num % 1000;
+
+  if (crore > 0) words += convertGroup(crore) + 'Crore ';
+  if (lakh > 0) words += convertGroup(lakh) + 'Lakh ';
+  if (thousand > 0) words += convertGroup(thousand) + 'Thousand ';
+  if (remainder > 0) words += convertGroup(remainder);
+
+  return `${words.trim()} Rupees Only`;
+}
+
 

@@ -17,12 +17,15 @@ import {
   Calendar,
   MapPin,
   AlertCircle,
-  Tag
+  Tag,
+  Printer,
 } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { ApprovalQueueItem } from '@/lib/types';
+import { ApprovalDocumentPrint } from '@/components/ApprovalDocumentPrint';
+import { getArticleForProduct } from '@/lib/articleUtils';
 
 export function Approvals() {
   const toast = useToast();
@@ -40,6 +43,7 @@ export function Approvals() {
     customers = [],
     vendors = [],
     products = [],
+    productArticles = [],
     bankAccounts = [],
   } = useDataStore();
 
@@ -47,6 +51,7 @@ export function Approvals() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<ApprovalQueueItem | null>(null);
   const [reviewNote, setReviewNote] = useState('');
+  const [printItem, setPrintItem] = useState<ApprovalQueueItem | null>(null);
 
   const handleApprove = (id: string, recordNo: string, entityType?: string, customNote?: string) => {
     reviewApproval(id, 'APPROVED', customNote || 'Approved by administrator');
@@ -275,9 +280,11 @@ export function Approvals() {
           termsConditions: inv.terms_conditions,
           items: (inv.items || []).map((it) => {
             const prod = products.find((p) => p.id === it.product_id);
+            const art = it.article_id || getArticleForProduct(it.product_id, products, productArticles) || prod?.article_name;
             return {
               productName: prod?.name || it.description || 'Product',
               sku: prod?.code || '',
+              article: art || '',
               description: it.description,
               qty: it.qty,
               unit: (it as any).unit || prod?.unit || 'pcs',
@@ -295,7 +302,7 @@ export function Approvals() {
     if (et === 'purchase_invoice' || mod === 'purchase') {
       const pi = purchaseInvoices.find((p) => p.id === record_id || p.grn_no === record_no || p.invoice_no === record_no);
       if (pi) {
-        const vend = vendors.find((v) => v.id === pi.vendor_id);
+        const vend = vendors.find((v) => v.id === pi.vendor_id) || customers.find((c) => c.id === pi.vendor_id);
         const wh = warehouses.find((w) => w.id === pi.warehouse_id);
         return {
           type: 'purchase_invoice',
@@ -319,9 +326,11 @@ export function Approvals() {
           notes: pi.notes,
           items: (pi.items || []).map((it) => {
             const prod = products.find((p) => p.id === it.product_id);
+            const art = it.article_id || getArticleForProduct(it.product_id, products, productArticles) || prod?.article_name;
             return {
               productName: prod?.name || it.description || 'Product',
               sku: prod?.code || '',
+              article: art || '',
               description: it.description,
               qty: it.qty,
               unit: it.unit || prod?.unit || 'pcs',
@@ -362,9 +371,11 @@ export function Approvals() {
           notes: vb.notes,
           items: (vb.items || []).map((it) => {
             const prod = products.find((p) => p.id === it.product_id);
+            const art = getArticleForProduct(it.product_id, products, productArticles) || prod?.article_name;
             return {
               productName: prod?.name || it.description || 'Product',
               sku: prod?.code || '',
+              article: art || '',
               description: it.description,
               qty: it.qty,
               unit: prod?.unit || 'pcs',
@@ -404,9 +415,11 @@ export function Approvals() {
           notes: sr.notes || sr.reason,
           items: (sr.items || []).map((it) => {
             const prod = products.find((p) => p.id === it.product_id);
+            const art = it.article_id || getArticleForProduct(it.product_id, products, productArticles) || prod?.article_name;
             return {
               productName: prod?.name || it.description || 'Product',
               sku: prod?.code || '',
+              article: art || '',
               description: it.description,
               qty: it.qty,
               unit: prod?.unit || 'pcs',
@@ -446,9 +459,11 @@ export function Approvals() {
           notes: pr.notes,
           items: (pr.items || []).map((it) => {
             const prod = products.find((p) => p.id === it.product_id);
+            const art = it.article_id || getArticleForProduct(it.product_id, products, productArticles) || prod?.article_name;
             return {
               productName: prod?.name || it.description || 'Product',
               sku: prod?.code || '',
+              article: art || '',
               description: it.description,
               qty: it.qty,
               unit: prod?.unit || 'pcs',
@@ -727,6 +742,16 @@ export function Approvals() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
+                          onClick={() => setPrintItem(item)}
+                          className="flex items-center gap-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-400 border border-amber-500/20 transition"
+                          title="Print / Preview Document"
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Print</span>
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => openReviewModal(item)}
                           className="flex items-center gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-200 transition"
                           title="View all details"
@@ -793,7 +818,17 @@ export function Approvals() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setPrintItem(selectedRequest)}
+                  className="flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition shadow-sm"
+                  title="Print / Save Executive Document"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span>Print Preview</span>
+                </button>
+
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
                     selectedRequest.status === 'APPROVED'
@@ -808,6 +843,7 @@ export function Approvals() {
                   {selectedRequest.status === 'PENDING' && <Clock className="h-3.5 w-3.5" />}
                   {selectedRequest.status}
                 </span>
+
                 <button
                   onClick={closeReviewModal}
                   className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-200 transition"
@@ -964,11 +1000,18 @@ export function Approvals() {
                               <span className="font-semibold text-slate-800 dark:text-slate-200 block">
                                 {item.productName}
                               </span>
-                              {item.sku && (
-                                <span className="text-[10px] text-slate-500 font-mono block">Code: {item.sku}</span>
-                              )}
+                              <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                                {item.sku && (
+                                  <span className="text-[10px] text-slate-500 font-mono">Code: {item.sku}</span>
+                                )}
+                                {item.article && (
+                                  <span className="inline-flex items-center rounded bg-amber-500/10 px-1.5 py-0.2 text-[9px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                    Article: {item.article}
+                                  </span>
+                                )}
+                              </div>
                               {item.description && item.description !== item.productName && (
-                                <span className="text-[10px] text-slate-400 block">{item.description}</span>
+                                <span className="text-[10px] text-slate-400 block mt-0.5">{item.description}</span>
                               )}
                             </td>
                             <td className="px-3 py-2 text-center font-bold text-slate-800 dark:text-slate-200">
@@ -1077,13 +1120,24 @@ export function Approvals() {
 
             {/* Modal Footer Actions */}
             <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-800 px-6 py-4 bg-slate-50/50 dark:bg-slate-800/40">
-              <button
-                type="button"
-                onClick={closeReviewModal}
-                className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-              >
-                Close Window
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={closeReviewModal}
+                  className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                >
+                  Close Window
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPrintItem(selectedRequest)}
+                  className="flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                >
+                  <Printer className="h-4 w-4 text-amber-500" />
+                  <span>Print Document</span>
+                </button>
+              </div>
 
               {selectedRequest.status === 'PENDING' && (
                 <div className="flex items-center gap-2">
@@ -1111,6 +1165,14 @@ export function Approvals() {
 
           </div>
         </div>
+      )}
+
+      {/* EXECUTIVE DOCUMENT PRINT MODAL */}
+      {printItem && (
+        <ApprovalDocumentPrint
+          item={printItem}
+          onClose={() => setPrintItem(null)}
+        />
       )}
     </div>
   );
