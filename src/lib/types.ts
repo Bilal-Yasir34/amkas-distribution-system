@@ -515,12 +515,30 @@ export interface PurchaseOrder {
   created_at: string;
 }
 
+export interface PurchaseInvoiceItem {
+  id: string;
+  purchase_invoice_id?: string;
+  product_id: string | null;
+  article_id?: string | null;
+  colour?: string | null;
+  description: string | null;
+  unit?: string;
+  base_unit?: string;
+  base_rate?: number;
+  qty: number;
+  rate: number;
+  discount: number;
+  tax_pct: number;
+  line_total: number;
+}
+
 export interface PurchaseInvoice {
   id: string;
   grn_no: string;
   invoice_no?: string;
   po_id: string | null;
   vendor_id: string | null;
+  vendor_invoice_no?: string | null;
   warehouse_id: string | null;
   received_date: string;
   document_date?: string;
@@ -534,6 +552,7 @@ export interface PurchaseInvoice {
   tax_total?: number;
   total_amount?: number;
   notes: string | null;
+  items?: PurchaseInvoiceItem[];
   created_at: string;
 }
 
@@ -794,7 +813,7 @@ export interface LoginLog {
 export interface ApprovalQueueItem {
   id: string;
   module?: string;
-  entity_type?: 'sales_invoice' | 'purchase_invoice' | 'vendor_bill' | 'sales_return' | 'purchase_return' | string;
+  entity_type?: 'sales_invoice' | 'purchase_invoice' | 'vendor_bill' | 'sales_return' | 'purchase_return' | 'customer_receipt' | 'vendor_payment' | string;
   record_id?: string;
   entity_id?: string;
   voucher_no?: string | null;
@@ -803,6 +822,8 @@ export interface ApprovalQueueItem {
   warehouse_id?: string | null;
   amount: number;
   requested_by: string | null;
+  requested_by_name?: string | null;
+  requested_by_role?: string | null;
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | string;
   reviewed_by?: string | null;
   review_note?: string | null;

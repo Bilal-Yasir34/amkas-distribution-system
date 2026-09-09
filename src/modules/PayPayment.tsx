@@ -1,11 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useDataStore } from '@/lib/dataStore';
+import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
-import { todayISO, safeUUID } from '@/lib/utils';
+import { todayISO, safeUUID, formatUserRequester } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
 
 export function PayPayment() {
   const toast = useToast();
+  const { profile } = useAuth();
   const {
     vendors = [],
     customers = [],
@@ -75,6 +77,8 @@ export function PayPayment() {
     );
     const fromAccId = fromAcc?.id || bankAccounts[0]?.id || 'ba1';
 
+    const requester = formatUserRequester(profile, 'Accountant');
+
     addVendorPayment({
       id: paymentId,
       payment_no: paymentNo,
@@ -87,7 +91,7 @@ export function PayPayment() {
       reference_no: finalRefNo,
       notes: notes || null,
       status: 'PENDING',
-      created_by: 'Cashier / User',
+      created_by: requester.formatted,
       created_at: new Date().toISOString(),
     });
 
@@ -99,7 +103,9 @@ export function PayPayment() {
       party_name: selectedParty?.name || 'Vendor',
       amount: amtNum,
       warehouse_id: null,
-      requested_by: 'Cashier / User',
+      requested_by: requester.formatted,
+      requested_by_name: requester.name,
+      requested_by_role: requester.role,
       status: 'PENDING',
       created_at: new Date().toISOString(),
       items_summary: null,

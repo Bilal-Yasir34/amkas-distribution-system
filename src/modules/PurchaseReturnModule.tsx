@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
-import { todayISO, safeUUID, formatDate } from '@/lib/utils';
+import { todayISO, safeUUID, formatDate, formatUserRequester } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
 import { useAuth } from '@/lib/auth';
 import { Plus, Edit, Trash2, X, ShoppingBag, Receipt, Sparkles, CheckCircle2, History, RotateCcw } from 'lucide-react';
@@ -9,7 +9,7 @@ import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/l
 
 export function PurchaseReturnModule() {
   const toast = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, profile } = useAuth();
   const {
     vendors,
     customers,
@@ -184,13 +184,7 @@ export function PurchaseReturnModule() {
 
   const openEditForm = (pr: any) => {
     setEditingId(pr.id);
-    const party = customers.find((c) => c.id === pr.vendor_id) || vendors.find((v) => v.id === pr.vendor_id);
-    let pType = 'Vendor';
-    if (party?.account_type) {
-      const matchingType = accountTypes.find(at => at.name.toLowerCase() === party?.account_type?.toLowerCase());
-      if (matchingType) pType = matchingType.name;
-    }
-    setPartyType(pType);
+    setPartyType('ALL');
     setVendorId(pr.vendor_id || '');
     setDocDate(pr.document_date || todayISO());
     setDueDate(pr.due_date || todayISO());
@@ -202,8 +196,8 @@ export function PurchaseReturnModule() {
         pr.items.map((item: any) => ({
           id: item.id || safeUUID(),
           product_id: item.product_id || '',
-            article_id: item.article_id || '',
-            description: item.description || '',
+          article_id: item.article_id || getArticleForProduct(item.product_id, products, productArticles) || '',
+          description: item.description || '',
           qty: item.qty || 1,
           rate: item.rate || 0,
           discount: item.discount || 0,
@@ -246,7 +240,7 @@ export function PurchaseReturnModule() {
       setLineItems((prev) => [...prev, newLine]);
     }
 
-    toast.success(`Added "${item.productName}" at purchased rate of Rs. ${item.boughtRate}`);
+    toast.success(`Added "${item.productName}" at invoice purchase rate of Rs. ${item.boughtRate}`);
   };
 
   const addLineItem = () => {
@@ -288,7 +282,7 @@ export function PurchaseReturnModule() {
             const currentArt = updated.article_id || getArticleForProduct(p.id, products, productArticles);
             updated.description = currentArt ? `[${currentArt}] ${p.name}` : (p.description || p.name);
             
-            // Check if this product was purchased from this vendor
+            // Check if this product was bought from this vendor
             const boughtMatch = boughtProductsFromParty.find(bp => bp.productId === p.id);
             if (boughtMatch) {
               updated.rate = boughtMatch.boughtRate;
@@ -296,7 +290,7 @@ export function PurchaseReturnModule() {
               updated.discount = boughtMatch.discount;
               if (boughtMatch.articleName) updated.article_id = boughtMatch.articleName;
             } else {
-              updated.rate = p.purchase_price || p.cost_price || 0;
+              updated.rate = p.purchase_price || p.cost_price || p.sale_price || 0;
               updated.tax_pct = p.tax_pct || 0;
             }
 
@@ -336,7 +330,7 @@ export function PurchaseReturnModule() {
   };
 
   const handleSaveRecord = (status: 'POSTED' | 'UNPOSTED') => {
-    if (!vendorId) return toast.error('Please select a party');
+    if (!vendorId) return toast.error('Please select a vendor');
     if (lineItems.some((i) => !i.product_id)) return toast.error('Please select valid products for all line items');
 
     const totals = calcTotals();
@@ -348,7 +342,7 @@ export function PurchaseReturnModule() {
       return {
         id: i.id,
         product_id: i.product_id,
-          article_id: i.article_id,
+        article_id: i.article_id,
         description: i.description,
         qty: i.qty,
         rate: i.rate,
@@ -385,6 +379,8 @@ export function PurchaseReturnModule() {
       const returnId = safeUUID();
       addPurchaseReturn({ id: returnId, ...payload, status: returnStatus });
 
+      const requester = formatUserRequester(profile, 'Procurement');
+
       // Queue into Approval Center
       addApprovalQueueItem({
         module: 'Purchase Return',
@@ -394,7 +390,9 @@ export function PurchaseReturnModule() {
         party_name: selectedPartyObj?.name || 'Vendor',
         warehouse_id: payload.warehouse_id,
         amount: totals.grandTotal,
-        requested_by: 'Procurement / User',
+        requested_by: requester.formatted,
+        requested_by_name: requester.name,
+        requested_by_role: requester.role,
         status: 'PENDING',
         created_at: new Date().toISOString(),
         items_summary: formattedItems.map(i => `${i.description || 'Product'} (Qty: ${i.qty})`).join(', ')
@@ -765,8 +763,12 @@ export function PurchaseReturnModule() {
                     <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
                       <td className="px-4 py-3">
                           {(() => {
-                            const currentArt = item.article_id || getArticleForProduct(item.product_id, products, productArticles);
-                            const availableProds = getProductsForArticle(currentArt, products, productArticles);
+                            const currentArt = item.article_id || getArticleForProduct(item.product_id, products, productArticles) || '';
+                            const artProds = currentArt ? getProductsForArticle(currentArt, products, productArticles) : [];
+                            const currentProdObj = products.find((p) => p.id === item.product_id);
+                            const availableProds = artProds.length > 0
+                              ? (currentProdObj && !artProds.some(p => p.id === currentProdObj.id) ? [currentProdObj, ...artProds] : artProds)
+                              : products;
 
                             // Filter bought products under this article if any
                             const boughtUnderArt = boughtProductsFromParty.filter(bp => !currentArt || bp.articleName === currentArt);
@@ -790,7 +792,7 @@ export function PurchaseReturnModule() {
                                     }}
                                     className="w-full rounded-xl border border-amber-300/80 bg-amber-50/40 p-2 text-xs font-semibold text-slate-800 dark:border-amber-600/40 dark:bg-amber-950/20 dark:text-slate-100 outline-none"
                                   >
-                                    <option value="">-- Select Article --</option>
+                                    <option value="">-- All / Select Article --</option>
                                     {allArticles.map((art) => (
                                       <option key={art} value={art}>
                                         {art}
@@ -805,18 +807,15 @@ export function PurchaseReturnModule() {
                                   </label>
                                   <select
                                     value={item.product_id}
-                                    disabled={!currentArt && availableProds.length === 0}
                                     onChange={(e) =>
                                       updateLineItem(item.id, {
                                         product_id: e.target.value,
                                         article_id: currentArt,
                                       })
                                     }
-                                    className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 disabled:opacity-50"
+                                    className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                                   >
-                                    <option value="">
-                                      {currentArt ? '-- Select Product under this Article --' : '-- Select Article first --'}
-                                    </option>
+                                    <option value="">-- Select Product --</option>
                                     {boughtUnderArt.length > 0 && (
                                       <optgroup label="★ Purchased from this Vendor (Bought Rate Auto-Applies)">
                                         {boughtUnderArt.map((bp) => (

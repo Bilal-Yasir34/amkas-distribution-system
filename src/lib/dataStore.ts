@@ -911,9 +911,31 @@ export const useDataStore = create<DataStoreState>()(
           ? { ...item, warehouse_id: null, items_summary: null }
           : item;
 
-        set((s) => ({
-          approvalQueue: [{ id, ...sanitizedItem, created_at: item.created_at || new Date().toISOString() }, ...s.approvalQueue]
-        }));
+        set((s) => {
+          const existingIdx = s.approvalQueue.findIndex(
+            (a) =>
+              (item.record_id && a.record_id === item.record_id) ||
+              (item.record_no && a.record_no === item.record_no && a.module === item.module)
+          );
+
+          if (existingIdx >= 0) {
+            const updatedQueue = [...s.approvalQueue];
+            updatedQueue[existingIdx] = {
+              ...updatedQueue[existingIdx],
+              ...sanitizedItem,
+              status: 'PENDING',
+              review_note: undefined,
+              reviewed_by: undefined,
+              reviewed_at: undefined,
+              created_at: new Date().toISOString(),
+            };
+            return { approvalQueue: updatedQueue };
+          }
+
+          return {
+            approvalQueue: [{ id, ...sanitizedItem, created_at: item.created_at || new Date().toISOString() }, ...s.approvalQueue],
+          };
+        });
         return id;
       },
 
@@ -1036,6 +1058,14 @@ export const useDataStore = create<DataStoreState>()(
                 newPurchaseInvoices = s.purchaseInvoices.map((p) =>
                   p.id === pi.id ? { ...p, status: 'POSTED' } : p
                 );
+                (pi.items || []).forEach((piItem) => {
+                  if (!piItem.product_id) return;
+                  newProducts = newProducts.map((p) =>
+                    p.id === piItem.product_id
+                      ? { ...p, stock_quantity: (p.stock_quantity || 0) + (piItem.qty || 0) }
+                      : p
+                  );
+                });
               }
             }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Printer, X, FileText } from 'lucide-react';
 import { useCustomers, useInvoiceItems, useProducts, useWarehouses } from '@/lib/queries';
+import { useDataStore } from '@/lib/dataStore';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type { SalesInvoice, SalesInvoiceItem } from '@/lib/types';
 import { Modal } from './Modal';
@@ -15,13 +16,20 @@ export function InvoicePrint({ invoice, onClose }: Props) {
   const { data: warehouses = [] } = useWarehouses();
   const { data: products = [] } = useProducts();
   const { data: fetchedItems = [] } = useInvoiceItems(invoice.id);
+  const { vendors = [], orgSettings, productArticles = [] } = useDataStore();
   const items: SalesInvoiceItem[] = (invoice.items && invoice.items.length > 0 ? invoice.items : fetchedItems) as SalesInvoiceItem[];
   const [mode, setMode] = useState<'invoice' | 'gatepass'>('invoice');
 
-  const customer = customers.find((c) => c.id === invoice.customer_id);
+  const customer = customers.find((c) => c.id === invoice.customer_id) || (vendors || []).find((v) => v.id === invoice.customer_id);
   const warehouse = warehouses.find((w) => w.id === invoice.warehouse_id);
   const productName = (id: string | null) => products.find((p) => p.id === id)?.name ?? '—';
-  const productArticle = (id: string | null) => products.find((p) => p.id === id)?.article_name;
+  const productArticle = (id: string | null) => {
+    if (!id) return undefined;
+    const p = products.find((prod) => prod.id === id);
+    if (p?.article_name) return p.article_name;
+    const pa = productArticles.find((a) => a.product_id === id);
+    return pa?.article_name;
+  };
 
   useEffect(() => {
     document.body.classList.add('overflow-hidden');

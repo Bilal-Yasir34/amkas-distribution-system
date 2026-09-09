@@ -221,3 +221,49 @@ export function getBranchName(id: string | null | undefined, branches: { id: str
   return b.is_active === false ? `${b.name} (Deactivated)` : b.name;
 }
 
+export function formatUserRequester(
+  profile: { full_name?: string; email?: string; role?: string } | null | undefined,
+  fallbackRole: string = 'User'
+) {
+  if (!profile) {
+    const role = fallbackRole;
+    return {
+      name: '',
+      role: role,
+      displayName: role,
+      formatted: role,
+    };
+  }
+
+  const rawRole = (profile.role || fallbackRole || 'user').trim();
+  const isAdmin = rawRole.toLowerCase().includes('admin');
+  const roleName = isAdmin ? 'Admin' : rawRole.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+  const rawName = (profile.full_name || '').trim();
+  const isGenericAdminName = rawName.toLowerCase() === 'super admin' || rawName.toLowerCase() === 'admin' || rawName.toLowerCase() === 'super_admin';
+
+  let finalName = '';
+  if (rawName && !isGenericAdminName) {
+    finalName = rawName;
+  } else if (!isAdmin && profile.email) {
+    finalName = profile.email.split('@')[0];
+  }
+
+  if (!finalName) {
+    return {
+      name: '',
+      role: roleName,
+      displayName: roleName,
+      formatted: roleName,
+    };
+  }
+
+  return {
+    name: finalName,
+    role: roleName,
+    displayName: `${finalName} (${roleName})`,
+    formatted: `${finalName} (${roleName})`,
+  };
+}
+
+

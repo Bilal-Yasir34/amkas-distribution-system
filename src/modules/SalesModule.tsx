@@ -20,7 +20,7 @@ import {
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
-import { todayISO, safeUUID, nextDocNumber, STANDARD_UNITS, convertUnitRate, formatDate } from '@/lib/utils';
+import { todayISO, safeUUID, nextDocNumber, STANDARD_UNITS, convertUnitRate, formatDate, formatUserRequester } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
 import { InvoicePrint } from '@/components/InvoicePrint';
 import type { SalesInvoice, Customer, Quotation, SalesOrder, QuotationItem, SalesOrderItem, CreditNote, CreditNoteItem, CustomerReceipt } from '@/lib/types';
@@ -28,7 +28,7 @@ import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/l
 
 export function SalesModule() {
   const toast = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, profile } = useAuth();
   const {
     customers = [],
     vendors = [],
@@ -113,11 +113,11 @@ export function SalesModule() {
   const availableParties = useMemo<any[]>(() => {
     const taggedCustomers = customers.map(c => ({ ...c, _origin: 'customer' }));
     const taggedVendors = vendors.map(v => ({ ...v, _origin: 'vendor' }));
-    const all = [...taggedCustomers, ...taggedVendors];
+    const all = [...taggedCustomers, ...taggedVendors].filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx);
     
     if (!invPartyType || invPartyType === 'ALL') return all;
     
-    return all.filter((c) => {
+    const filtered = all.filter((c) => {
       if (c.account_type) {
          if (invPartyType.toLowerCase() === 'supplier' || invPartyType.toLowerCase() === 'vendor') {
            return c.account_type.toLowerCase() === 'supplier' || c.account_type.toLowerCase() === 'vendor';
@@ -129,7 +129,14 @@ export function SalesModule() {
       if (invPartyType.toLowerCase() === 'supplier' || invPartyType.toLowerCase() === 'vendor') return c._origin === 'vendor';
       return false;
     });
-  }, [customers, vendors, invPartyType]);
+
+    if (invCustomerId && !filtered.some(p => p.id === invCustomerId)) {
+      const selected = all.find(p => p.id === invCustomerId);
+      if (selected) return [selected, ...filtered];
+    }
+
+    return filtered;
+  }, [customers, vendors, invPartyType, invCustomerId]);
 
   const allArticles = useMemo(
     () => getAllArticles(universalArticles, products, productArticles),
@@ -195,11 +202,12 @@ export function SalesModule() {
     setInvNotes('');
     setInvTermsConditions('');
     const firstProd = products[0];
+    const firstArt = firstProd ? getArticleForProduct(firstProd.id, products, productArticles) : '';
     setInvLineItems([
       {
         id: safeUUID(),
         product_id: firstProd?.id || '',
-        article_id: '',
+        article_id: firstArt || '',
         colour: '',
         description: firstProd?.name || '',
         unit: firstProd?.unit || 'pcs',
@@ -217,15 +225,7 @@ export function SalesModule() {
   const openEditInvoiceForm = (inv: SalesInvoice) => {
     setEditingInvoiceId(inv.id);
     setInvReferenceNo(inv.invoice_no || '');
-    const party = customers.find((c) => c.id === inv.customer_id) || vendors.find((v) => v.id === inv.customer_id);
-    let pType = 'Customer';
-    if (party?.account_type) {
-      const matchingType = accountTypes.find(at => at.name.toLowerCase() === party.account_type?.toLowerCase());
-      if (matchingType) pType = matchingType.name;
-    } else if (vendors.some((v) => v.id === inv.customer_id)) {
-      pType = 'Vendor';
-    }
-    setInvPartyType(pType);
+    setInvPartyType('ALL');
     setInvCustomerId(inv.customer_id || '');
     setInvDocDate(inv.invoice_date || todayISO());
     setInvDueDate(inv.due_date || todayISO());
@@ -242,27 +242,43 @@ export function SalesModule() {
 
     if (inv.items && inv.items.length > 0) {
       setInvLineItems(
-        inv.items.map((i) => {
+        inv.items.map((i: any) => {
           const p = products.find((x) => x.id === i.product_id);
+          const art = i.article_id || (p ? getArticleForProduct(p.id, products, productArticles) : '');
           return {
             id: i.id || safeUUID(),
-            product_id: i.product_id || '',
-            article_id: '',
-            colour: '',
-            description: i.description || '',
-            unit: p?.unit || 'pcs',
-            base_unit: p?.unit || 'pcs',
-            base_rate: p?.sale_price || i.rate || 0,
-            qty: i.qty || 1,
-            rate: i.rate || 0,
-            discount: i.discount || 0,
-            tax_pct: i.tax_pct || 0,
+            product_id: i.product_id || (p ? p.id : ''),
+            article_id: art || '',
+            colour: i.colour || '',
+            description: i.description || (p ? (art ? `[${art}] ${p.name}` : p.name) : ''),
+            unit: i.unit || p?.unit || 'pcs',
+            base_unit: i.base_unit || p?.unit || 'pcs',
+            base_rate: i.base_rate !== undefined ? i.base_rate : (p?.sale_price || i.rate || 0),
+            qty: Number(i.qty) || 1,
+            rate: Number(i.rate) || 0,
+            discount: Number(i.discount) || 0,
+            tax_pct: Number(i.tax_pct) || 0,
           };
         })
       );
     } else {
+      const firstProd = products[0];
+      const firstArt = firstProd ? getArticleForProduct(firstProd.id, products, productArticles) : '';
       setInvLineItems([
-        { id: safeUUID(), product_id: '', article_id: '', colour: '', description: '', unit: 'pcs', base_unit: 'pcs', base_rate: 0, qty: 1, rate: inv.subtotal || inv.total_amount || 0, discount: inv.discount_total || 0, tax_pct: 0 },
+        {
+          id: safeUUID(),
+          product_id: firstProd?.id || '',
+          article_id: firstArt || '',
+          colour: '',
+          description: firstProd?.name || 'Standard Sales Line',
+          unit: firstProd?.unit || 'pcs',
+          base_unit: firstProd?.unit || 'pcs',
+          base_rate: inv.subtotal || inv.total_amount || (firstProd ? firstProd.sale_price : 0),
+          qty: 1,
+          rate: inv.subtotal || inv.total_amount || (firstProd ? firstProd.sale_price : 0),
+          discount: inv.discount_total || 0,
+          tax_pct: 0,
+        },
       ]);
     }
     setInvoiceViewMode('form');
@@ -370,7 +386,12 @@ export function SalesModule() {
         id: item.id,
         sales_invoice_id: editingInvoiceId || '',
         product_id: item.product_id,
+        article_id: item.article_id || '',
+        colour: item.colour || '',
         description: item.description,
+        unit: item.unit || 'pcs',
+        base_unit: item.base_unit || 'pcs',
+        base_rate: item.base_rate || 0,
         qty: item.qty,
         length: 0,
         width: 0,
@@ -409,12 +430,16 @@ export function SalesModule() {
       });
 
       if (finalStatus === 'PENDING_APPROVAL') {
+        const requester = formatUserRequester(profile, 'Sales');
+
         addApprovalQueueItem({
           module: 'Sales',
           entity_type: 'sales_invoice',
           record_id: editingInvoiceId,
           record_no: invReferenceNo || 'Invoice',
-          requested_by: invSalesperson || 'admin',
+          requested_by: requester.formatted,
+          requested_by_name: requester.name,
+          requested_by_role: requester.role,
           amount: totals.grandTotal,
           status: 'PENDING',
           party_name: partyObj?.name || 'Customer',
@@ -457,12 +482,16 @@ export function SalesModule() {
       });
 
       if (finalStatus === 'PENDING_APPROVAL') {
+        const requester = formatUserRequester(profile, 'Sales');
+
         addApprovalQueueItem({
           module: 'Sales',
           entity_type: 'sales_invoice',
           record_id: invId,
           record_no: invoiceNo,
-          requested_by: invSalesperson || 'admin',
+          requested_by: requester.formatted,
+          requested_by_name: requester.name,
+          requested_by_role: requester.role,
           amount: totals.grandTotal,
           status: 'PENDING',
           party_name: partyObj?.name || 'Customer',
@@ -788,6 +817,8 @@ export function SalesModule() {
         created_at: new Date().toISOString(),
       });
 
+      const requester = formatUserRequester(profile, 'Accountant');
+
       addApprovalQueueItem({
         entity_type: 'customer_receipt',
         module: 'Sales / Receipts',
@@ -796,7 +827,9 @@ export function SalesModule() {
         party_name: party?.name || 'Customer',
         amount: amt,
         warehouse_id: null,
-        requested_by: 'Cashier / User',
+        requested_by: requester.formatted,
+        requested_by_name: requester.name,
+        requested_by_role: requester.role,
         status: 'PENDING',
         created_at: new Date().toISOString(),
         items_summary: null,
@@ -825,11 +858,12 @@ export function SalesModule() {
     setSalesDocBranchId(branches[0]?.id || 'b1');
     setSalesDocNotes('');
     const firstProd = products[0];
+    const firstArt = firstProd ? getArticleForProduct(firstProd.id, products, productArticles) : '';
     setSalesDocLineItems([
       {
         id: safeUUID(),
         product_id: firstProd?.id || '',
-        article_id: '',
+        article_id: firstArt || '',
         colour: '',
         description: firstProd?.name || '',
         unit: firstProd?.unit || 'pcs',
@@ -863,15 +897,16 @@ export function SalesModule() {
       setSalesDocLineItems(
         q.items.map((i) => {
           const p = products.find((x) => x.id === i.product_id);
+          const art = (i as any).article_id || (p ? getArticleForProduct(p.id, products, productArticles) : '');
           return {
             id: i.id || safeUUID(),
             product_id: i.product_id || '',
-            article_id: '',
-            colour: '',
-            description: i.description || '',
-            unit: p?.unit || 'pcs',
-            base_unit: p?.unit || 'pcs',
-            base_rate: p?.sale_price || i.rate || 0,
+            article_id: art || '',
+            colour: (i as any).colour || '',
+            description: i.description || (p ? p.name : ''),
+            unit: (i as any).unit || p?.unit || 'pcs',
+            base_unit: (i as any).base_unit || p?.unit || 'pcs',
+            base_rate: (i as any).base_rate || p?.sale_price || i.rate || 0,
             qty: i.qty || 1,
             rate: i.rate || 0,
             discount: i.discount || 0,
@@ -881,11 +916,12 @@ export function SalesModule() {
       );
     } else {
       const firstProd = products[0];
+      const firstArt = firstProd ? getArticleForProduct(firstProd.id, products, productArticles) : '';
       setSalesDocLineItems([
         {
           id: safeUUID(),
           product_id: firstProd?.id || '',
-          article_id: '',
+          article_id: firstArt || '',
           colour: '',
           description: firstProd?.name || 'Standard Quotation Line',
           unit: firstProd?.unit || 'pcs',
@@ -916,11 +952,12 @@ export function SalesModule() {
     setSalesDocBranchId(branches[0]?.id || 'b1');
     setSalesDocNotes('');
     const firstProd = products[0];
+    const firstArt = firstProd ? getArticleForProduct(firstProd.id, products, productArticles) : '';
     setSalesDocLineItems([
       {
         id: safeUUID(),
         product_id: firstProd?.id || '',
-        article_id: '',
+        article_id: firstArt || '',
         colour: '',
         description: firstProd?.name || '',
         unit: firstProd?.unit || 'pcs',
@@ -954,15 +991,16 @@ export function SalesModule() {
       setSalesDocLineItems(
         so.items.map((i) => {
           const p = products.find((x) => x.id === i.product_id);
+          const art = (i as any).article_id || (p ? getArticleForProduct(p.id, products, productArticles) : '');
           return {
             id: i.id || safeUUID(),
             product_id: i.product_id || '',
-            article_id: '',
-            colour: '',
-            description: i.description || '',
-            unit: p?.unit || 'pcs',
-            base_unit: p?.unit || 'pcs',
-            base_rate: p?.sale_price || i.rate || 0,
+            article_id: art || '',
+            colour: (i as any).colour || '',
+            description: i.description || (p ? p.name : ''),
+            unit: (i as any).unit || p?.unit || 'pcs',
+            base_unit: (i as any).base_unit || p?.unit || 'pcs',
+            base_rate: (i as any).base_rate || p?.sale_price || i.rate || 0,
             qty: i.qty || 1,
             rate: i.rate || 0,
             discount: i.discount || 0,
@@ -972,11 +1010,12 @@ export function SalesModule() {
       );
     } else {
       const firstProd = products[0];
+      const firstArt = firstProd ? getArticleForProduct(firstProd.id, products, productArticles) : '';
       setSalesDocLineItems([
         {
           id: safeUUID(),
           product_id: firstProd?.id || '',
-          article_id: '',
+          article_id: firstArt || '',
           colour: '',
           description: firstProd?.name || 'Standard Order Line',
           unit: firstProd?.unit || 'pcs',
@@ -991,6 +1030,8 @@ export function SalesModule() {
     }
     setSalesDocModalOpen(true);
   };
+
+
 
   const openGenericModal = () => {
     setGenericCustId(customers[0]?.id || '');
@@ -1558,7 +1599,20 @@ export function SalesModule() {
                               <td className="px-3 py-2">
                                 {(() => {
                                   const currentArt = item.article_id || getArticleForProduct(item.product_id, products, productArticles);
-                                  const availableProds = getProductsForArticle(currentArt, products, productArticles);
+                                  let availableProds = currentArt
+                                    ? getProductsForArticle(currentArt, products, productArticles)
+                                    : products;
+
+                                  if (availableProds.length === 0) {
+                                    availableProds = products;
+                                  }
+
+                                  if (item.product_id && !availableProds.some((p) => p.id === item.product_id)) {
+                                    const currentProd = products.find((p) => p.id === item.product_id);
+                                    if (currentProd) {
+                                      availableProds = [currentProd, ...availableProds];
+                                    }
+                                  }
 
                                   return (
                                     <div className="space-y-1.5 min-w-[210px]">
@@ -1570,16 +1624,18 @@ export function SalesModule() {
                                           value={currentArt}
                                           onChange={(e) => {
                                             const newArt = e.target.value;
+                                            const prodsForNewArt = getProductsForArticle(newArt, products, productArticles);
+                                            const firstP = prodsForNewArt[0];
                                             updateInvLineItem(item.id, {
                                               article_id: newArt,
-                                              product_id: '',
-                                              description: newArt ? `[${newArt}]` : '',
-                                              rate: 0,
+                                              product_id: firstP ? firstP.id : item.product_id,
+                                              description: firstP ? `[${newArt}] ${firstP.name}` : (newArt ? `[${newArt}]` : (item.description || '')),
+                                              rate: firstP ? firstP.sale_price : item.rate,
                                             });
                                           }}
                                           className="w-full rounded-lg border border-amber-300/80 bg-amber-50/40 p-1.5 text-xs font-semibold text-slate-800 dark:border-amber-600/40 dark:bg-amber-950/20 dark:text-slate-100 outline-none focus:border-amber-500"
                                         >
-                                          <option value="">-- Select Article --</option>
+                                          <option value="">-- All Articles / None --</option>
                                           {allArticles.map((art) => (
                                             <option key={art} value={art}>
                                               {art}
@@ -1594,18 +1650,18 @@ export function SalesModule() {
                                         </label>
                                         <select
                                           value={item.product_id}
-                                          disabled={!currentArt && availableProds.length === 0}
-                                          onChange={(e) =>
+                                          onChange={(e) => {
+                                            const pid = e.target.value;
+                                            const pObj = products.find((x) => x.id === pid);
+                                            const resolvedArt = currentArt || (pObj ? getArticleForProduct(pObj.id, products, productArticles) : '');
                                             updateInvLineItem(item.id, {
-                                              product_id: e.target.value,
-                                              article_id: currentArt,
-                                            })
-                                          }
-                                          className="w-full rounded-lg border border-slate-200 bg-white p-1.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 disabled:opacity-50"
+                                              product_id: pid,
+                                              article_id: resolvedArt,
+                                            });
+                                          }}
+                                          className="w-full rounded-lg border border-slate-200 bg-white p-1.5 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                                         >
-                                          <option value="">
-                                            {currentArt ? '-- Select Product under this Article --' : '-- Select Article first --'}
-                                          </option>
+                                          <option value="">-- Select Product --</option>
                                           {availableProds.map((p) => (
                                             <option key={p.id} value={p.id}>
                                               {p.name} [{p.code}] — Rs {p.sale_price}
@@ -3217,8 +3273,12 @@ export function SalesModule() {
                                 {/* Select Product */}
                                 <td className="p-2">
                                   {(() => {
-                                    const currentArt = item.article_id || getArticleForProduct(item.product_id, products, productArticles);
-                                    const availableProds = getProductsForArticle(currentArt, products, productArticles);
+                                    const currentArt = item.article_id || getArticleForProduct(item.product_id, products, productArticles) || '';
+                                    const artProds = currentArt ? getProductsForArticle(currentArt, products, productArticles) : [];
+                                    const currentProdObj = products.find((p) => p.id === item.product_id);
+                                    const availableProds = artProds.length > 0
+                                      ? (currentProdObj && !artProds.some(p => p.id === currentProdObj.id) ? [currentProdObj, ...artProds] : artProds)
+                                      : products;
 
                                     return (
                                       <div className="space-y-1.5 min-w-[200px]">
@@ -3239,7 +3299,7 @@ export function SalesModule() {
                                             }}
                                             className="w-full rounded-md border border-amber-300/80 bg-amber-50/40 p-1.5 text-xs font-semibold text-slate-800 dark:border-amber-600/40 dark:bg-amber-950/20 dark:text-slate-100 outline-none focus:border-amber-500"
                                           >
-                                            <option value="">-- Select Article --</option>
+                                            <option value="">-- All / Select Article --</option>
                                             {allArticles.map((art) => (
                                               <option key={art} value={art}>
                                                 {art}
@@ -3254,18 +3314,15 @@ export function SalesModule() {
                                           </label>
                                           <select
                                             value={item.product_id}
-                                            disabled={!currentArt && availableProds.length === 0}
                                             onChange={(e) =>
                                               updateSalesDocLine(item.id, {
                                                 product_id: e.target.value,
                                                 article_id: currentArt,
                                               })
                                             }
-                                            className="w-full rounded-md border border-slate-300 bg-white p-1.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 disabled:opacity-50"
+                                            className="w-full rounded-md border border-slate-300 bg-white p-1.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                                           >
-                                            <option value="">
-                                              {currentArt ? '-- Select Product under this Article --' : '-- Select Article first --'}
-                                            </option>
+                                            <option value="">-- Select Product --</option>
                                             {availableProds.map((p) => (
                                               <option key={p.id} value={p.id}>
                                                 {p.name} [{p.code}] — Rs {p.sale_price}

@@ -1,16 +1,17 @@
 import { useState, useMemo } from 'react';
-import { Plus, ShoppingCart, DollarSign, FileText, CheckCircle, Clock, X, Trash2, Edit } from 'lucide-react';
+import { Plus, ShoppingCart, DollarSign, FileText, CheckCircle, Clock, X, Trash2, Edit, Printer } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
-import { todayISO, safeUUID, nextDocNumber, formatDate } from '@/lib/utils';
+import { todayISO, safeUUID, nextDocNumber, formatDate, formatUserRequester } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
-import type { VendorBill, Vendor } from '@/lib/types';
+import type { VendorBill, Vendor, PurchaseInvoice } from '@/lib/types';
 import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
+import { PurchaseInvoicePrint } from '@/components/PurchaseInvoicePrint';
 
 export function PurchaseModule() {
   const toast = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, profile } = useAuth();
   const {
     vendors = [],
     customers = [],
@@ -71,6 +72,7 @@ export function PurchaseModule() {
   const [newBillOpen, setNewBillOpen] = useState(false);
   const [genericModalOpen, setGenericModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [printInvoice, setPrintInvoice] = useState<PurchaseInvoice | null>(null);
 
   // Generic Form State
   const [genericVendorId, setGenericVendorId] = useState('');
@@ -512,8 +514,8 @@ export function PurchaseModule() {
 
   const openCreatePIForm = () => {
     setEditingPIId(null);
-    setPiPartyType(accountTypes[0]?.name || 'ALL');
-    setPiVendorId(vendors[0]?.id || customers[0]?.id || '');
+    setPiPartyType('ALL');
+    setPiVendorId(availableVendors[0]?.id || vendors[0]?.id || customers[0]?.id || '');
     setPiDocDate(todayISO());
     setPiDueDate(todayISO());
     setPiWarehouseId(warehouses[0]?.id || 'w1');
@@ -524,17 +526,19 @@ export function PurchaseModule() {
     setPiVendorInvoiceNo('');
     const autoRef = nextDocNumber('PI', (purchaseInvoices || []).map((p) => p.invoice_no || ''), 2);
     setPiReferenceNo(autoRef);
+    const firstProd = products[0];
+    const firstArt = firstProd ? getArticleForProduct(firstProd.id, products, productArticles) : '';
     setPiLineItems([
       {
         id: safeUUID(),
-        product_id: products[0]?.id || '',
-        article_id: '',
+        product_id: firstProd?.id || '',
+        article_id: firstArt || '',
         colour: '',
-        description: products[0]?.name || '',
+        description: firstProd?.name || '',
         qty: 1,
-        rate: products[0]?.purchase_price || products[0]?.cost_price || 0,
+        rate: firstProd?.purchase_price || firstProd?.cost_price || 0,
         discount: 0,
-        tax_pct: products[0]?.tax_pct || 0,
+        tax_pct: firstProd?.tax_pct || 0,
       },
     ]);
     setPiViewMode('form');
@@ -543,11 +547,14 @@ export function PurchaseModule() {
   const openEditPIForm = (pi: any) => {
     setEditingPIId(pi.id);
     setPiReferenceNo(pi.invoice_no || pi.grn_no || '');
+    setPiVendorInvoiceNo(pi.vendor_invoice_no || '');
     const party = customers.find((c) => c.id === pi.vendor_id) || vendors.find((v) => v.id === pi.vendor_id);
-    let pType = 'Vendor';
+    let pType = 'ALL';
     if (party?.account_type) {
       const matchingType = accountTypes.find((at: any) => at.name.toLowerCase() === party?.account_type?.toLowerCase());
       if (matchingType) pType = matchingType.name;
+    } else if (vendors.some((v) => v.id === pi.vendor_id)) {
+      pType = 'Vendor';
     }
     setPiPartyType(pType);
     setPiVendorId(pi.vendor_id || '');
@@ -561,29 +568,35 @@ export function PurchaseModule() {
 
     if (pi.items && pi.items.length > 0) {
       setPiLineItems(
-        pi.items.map((i: any) => ({
-          id: i.id || safeUUID(),
-          product_id: i.product_id || '',
-          article_id: i.article_id || '',
-          colour: i.colour || '',
-          description: i.description || '',
-          qty: i.qty || 1,
-          rate: i.rate || 0,
-          discount: i.discount || 0,
-          tax_pct: i.tax_pct || 0,
-        }))
+        pi.items.map((i: any) => {
+          const p = products.find((x) => x.id === i.product_id);
+          const art = i.article_id || (p ? getArticleForProduct(p.id, products, productArticles) : '');
+          return {
+            id: i.id || safeUUID(),
+            product_id: i.product_id || '',
+            article_id: art || '',
+            colour: i.colour || '',
+            description: i.description || (p ? (art ? `[${art}] ${p.name}` : p.name) : ''),
+            qty: i.qty || 1,
+            rate: i.rate !== undefined ? i.rate : (p ? p.purchase_price || p.cost_price || p.sale_price : 0),
+            discount: i.discount || 0,
+            tax_pct: i.tax_pct || 0,
+          };
+        })
       );
     } else {
+      const defaultProd = products[0];
+      const defaultArt = defaultProd ? getArticleForProduct(defaultProd.id, products, productArticles) : '';
       setPiLineItems([
         {
           id: safeUUID(),
-          product_id: products[0]?.id || '',
-          article_id: '',
+          product_id: defaultProd?.id || '',
+          article_id: defaultArt || '',
           colour: '',
-          description: products[0]?.name || '',
+          description: defaultProd?.name || 'Standard Procurement Line',
           qty: 1,
-          rate: pi.total_amount || 0,
-          discount: 0,
+          rate: pi.subtotal || pi.total_amount || (defaultProd ? defaultProd.purchase_price || defaultProd.cost_price || 0 : 0),
+          discount: pi.discount_total || 0,
           tax_pct: 0,
         },
       ]);
@@ -681,7 +694,10 @@ export function PurchaseModule() {
       const lineTotal = (gross - (item.discount || 0)) * (1 + (item.tax_pct || 0) / 100);
       return {
         id: item.id,
+        purchase_invoice_id: editingPIId || '',
         product_id: item.product_id,
+        article_id: item.article_id || '',
+        colour: item.colour || '',
         description: item.description,
         qty: item.qty,
         rate: item.rate,
@@ -694,6 +710,8 @@ export function PurchaseModule() {
     const finalStatus = 'PENDING_APPROVAL';
     const partyObj = availableVendors.find((v) => v.id === piVendorId);
 
+    const requester = formatUserRequester(profile, 'Procurement');
+
     if (editingPIId) {
       updatePurchaseInvoice(editingPIId, {
         vendor_id: piVendorId,
@@ -704,18 +722,23 @@ export function PurchaseModule() {
         gate_pass_no: piGatePassNo,
         account_category: piAccountCategory,
         account_head: piAccountHead,
+        vendor_invoice_no: piVendorInvoiceNo,
         status: finalStatus,
         subtotal: totals.subtotal,
+        discount_total: totals.discountTotal,
         tax_total: totals.taxTotal,
         total_amount: totals.grandTotal,
         notes: piNotes,
+        items: formattedItems,
       });
       addApprovalQueueItem({
         module: 'Purchase',
         entity_type: 'purchase_invoice',
         record_id: editingPIId,
         record_no: piReferenceNo || 'PI',
-        requested_by: 'admin',
+        requested_by: requester.formatted,
+        requested_by_name: requester.name,
+        requested_by_role: requester.role,
         amount: totals.grandTotal,
         status: 'PENDING',
         party_name: partyObj?.name || 'Vendor',
@@ -739,11 +762,14 @@ export function PurchaseModule() {
         gate_pass_no: piGatePassNo,
         account_category: piAccountCategory,
         account_head: piAccountHead,
+        vendor_invoice_no: piVendorInvoiceNo,
         status: finalStatus,
         subtotal: totals.subtotal,
+        discount_total: totals.discountTotal,
         tax_total: totals.taxTotal,
         total_amount: totals.grandTotal,
         notes: piNotes,
+        items: formattedItems,
         created_at: new Date().toISOString(),
       });
       addApprovalQueueItem({
@@ -751,7 +777,9 @@ export function PurchaseModule() {
         entity_type: 'purchase_invoice',
         record_id: piId,
         record_no: piNo,
-        requested_by: 'admin',
+        requested_by: requester.formatted,
+        requested_by_name: requester.name,
+        requested_by_role: requester.role,
         amount: totals.grandTotal,
         status: 'PENDING',
         party_name: partyObj?.name || 'Vendor',
@@ -763,6 +791,7 @@ export function PurchaseModule() {
 
     setEditingPIId(null);
     setPiReferenceNo('');
+    setPiVendorInvoiceNo('');
     setPiViewMode('list');
   };
 
@@ -1437,7 +1466,9 @@ export function PurchaseModule() {
           entity_type: 'vendor_bill',
           record_id: billId,
           record_no: billNo,
-          requested_by: 'admin',
+          requested_by: requesterString,
+          requested_by_name: requesterName,
+          requested_by_role: requesterRole,
           amount: totals.grandTotal,
           status: 'PENDING',
           party_name: partyObj?.name || 'Vendor',
@@ -1464,7 +1495,7 @@ export function PurchaseModule() {
         department_id: 'd1',
         request_date: todayISO(),
         required_date: todayISO(),
-        requested_by: 'admin',
+        requested_by: requesterString,
         status: 'PENDING',
         notes: genericNotes,
         created_at: new Date().toISOString(),
@@ -1506,7 +1537,9 @@ export function PurchaseModule() {
         entity_type: 'purchase_invoice',
         record_id: piId,
         record_no: piNo,
-        requested_by: 'admin',
+        requested_by: requesterString,
+        requested_by_name: requesterName,
+        requested_by_role: requesterRole,
         amount: amountVal,
         status: 'PENDING',
         party_name: partyObj?.name || 'Vendor',
@@ -1533,7 +1566,9 @@ export function PurchaseModule() {
         entity_type: 'purchase_return',
         record_id: dnId,
         record_no: dnNo,
-        requested_by: 'admin',
+        requested_by: requesterString,
+        requested_by_name: requesterName,
+        requested_by_role: requesterRole,
         amount: amountVal,
         status: 'PENDING',
         party_name: partyObj?.name || 'Vendor',
@@ -1650,6 +1685,13 @@ export function PurchaseModule() {
                                 title="Edit Purchase Invoice"
                               >
                                 <Edit className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setPrintInvoice(pi)}
+                                className="p-1 text-slate-400 hover:text-white transition"
+                                title="Print Purchase Invoice"
+                              >
+                                <Printer className="h-3.5 w-3.5" />
                               </button>
                               <button
                                 onClick={() => {
@@ -1856,7 +1898,20 @@ export function PurchaseModule() {
                             <td className="px-4 py-3">
                               {(() => {
                                 const currentArt = item.article_id || getArticleForProduct(item.product_id, products, productArticles);
-                                const availableProds = getProductsForArticle(currentArt, products, productArticles);
+                                let availableProds = currentArt
+                                  ? getProductsForArticle(currentArt, products, productArticles)
+                                  : products;
+
+                                if (availableProds.length === 0) {
+                                  availableProds = products;
+                                }
+
+                                if (item.product_id && !availableProds.some((p) => p.id === item.product_id)) {
+                                  const currentProd = products.find((p) => p.id === item.product_id);
+                                  if (currentProd) {
+                                    availableProds = [currentProd, ...availableProds];
+                                  }
+                                }
 
                                 return (
                                   <div className="space-y-1.5 min-w-[210px]">
@@ -1868,16 +1923,18 @@ export function PurchaseModule() {
                                         value={currentArt}
                                         onChange={(e) => {
                                           const newArt = e.target.value;
+                                          const prodsForNewArt = getProductsForArticle(newArt, products, productArticles);
+                                          const firstP = prodsForNewArt[0];
                                           updatePILineItem(item.id, {
                                             article_id: newArt,
-                                            product_id: '',
-                                            description: newArt ? `[${newArt}]` : '',
-                                            rate: 0,
+                                            product_id: firstP ? firstP.id : item.product_id,
+                                            description: firstP ? `[${newArt}] ${firstP.name}` : (newArt ? `[${newArt}]` : (item.description || '')),
+                                            rate: firstP ? (firstP.purchase_price || firstP.cost_price || firstP.sale_price || 0) : item.rate,
                                           });
                                         }}
                                         className="w-full rounded-xl border border-amber-300/80 bg-amber-50/40 p-2 text-xs font-semibold text-slate-800 dark:border-amber-600/40 dark:bg-amber-950/20 dark:text-slate-100 outline-none"
                                       >
-                                        <option value="">-- Select Article --</option>
+                                        <option value="">-- All Articles / None --</option>
                                         {allArticles.map((art) => (
                                           <option key={art} value={art}>
                                             {art}
@@ -1892,18 +1949,18 @@ export function PurchaseModule() {
                                       </label>
                                       <select
                                         value={item.product_id}
-                                        disabled={!currentArt && availableProds.length === 0}
-                                        onChange={(e) =>
+                                        onChange={(e) => {
+                                          const pid = e.target.value;
+                                          const pObj = products.find((x) => x.id === pid);
+                                          const resolvedArt = currentArt || (pObj ? getArticleForProduct(pObj.id, products, productArticles) : '');
                                           updatePILineItem(item.id, {
-                                            product_id: e.target.value,
-                                            article_id: currentArt,
-                                          })
-                                        }
-                                        className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 disabled:opacity-50"
+                                            product_id: pid,
+                                            article_id: resolvedArt,
+                                          });
+                                        }}
+                                        className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 outline-none focus:border-amber-500"
                                       >
-                                        <option value="">
-                                          {currentArt ? '-- Select Product under this Article --' : '-- Select Article first --'}
-                                        </option>
+                                        <option value="">-- Select Product --</option>
                                         {availableProds.map((p) => (
                                           <option key={p.id} value={p.id}>
                                             {p.name} [{p.code}] — Rs {p.purchase_price || p.cost_price || p.sale_price}
@@ -2220,6 +2277,14 @@ export function PurchaseModule() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Purchase Invoice Print Modal */}
+      {printInvoice && (
+        <PurchaseInvoicePrint
+          invoice={printInvoice}
+          onClose={() => setPrintInvoice(null)}
+        />
       )}
     </div>
   );
