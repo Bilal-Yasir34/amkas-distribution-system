@@ -260,7 +260,7 @@ export async function pushStateToSupabase(): Promise<CloudSyncResult> {
         tax_id: c.tax_id || null,
         is_active: c.is_active ?? true,
       }));
-      const { error } = await supabase.from('customers').upsert(custRows, { onConflict: 'code' });
+      const { error } = await supabase.from('customers').upsert(custRows, { onConflict: 'id' });
       if (error) {
         if (error.code === '42501' || error.message.includes('row-level security')) isRls = true;
         else errors.push(`Customers: ${error.message}`);
@@ -283,7 +283,7 @@ export async function pushStateToSupabase(): Promise<CloudSyncResult> {
         tax_id: v.tax_id || null,
         is_active: v.is_active ?? true,
       }));
-      const { error } = await supabase.from('vendors').upsert(vendRows, { onConflict: 'code' });
+      const { error } = await supabase.from('vendors').upsert(vendRows, { onConflict: 'id' });
       if (error) {
         if (error.code === '42501' || error.message.includes('row-level security')) isRls = true;
         else errors.push(`Vendors: ${error.message}`);
@@ -308,7 +308,7 @@ export async function pushStateToSupabase(): Promise<CloudSyncResult> {
         is_active: p.is_active ?? true,
         article_name: p.article_name || null,
       }));
-      const { error } = await supabase.from('products').upsert(prodRows, { onConflict: 'code' });
+      const { error } = await supabase.from('products').upsert(prodRows, { onConflict: 'id' });
       if (error) {
         if (error.code === '42501' || error.message.includes('row-level security')) isRls = true;
         else errors.push(`Products: ${error.message}`);

@@ -492,6 +492,7 @@ export interface PurchaseRequest {
   total_amount?: number;
   purpose_reason?: string | null;
   notes?: string | null;
+  items?: { id: string; product_id: string; description: string; qty: number; rate: number; discount: number; tax_pct: number; line_total: number }[];
   created_at: string;
 }
 
@@ -512,6 +513,7 @@ export interface PurchaseOrder {
   tax_total?: number;
   total_amount: number;
   notes: string | null;
+  items?: { id: string; product_id: string; description: string; qty: number; rate: number; discount: number; tax_pct: number; line_total: number }[];
   created_at: string;
 }
 
@@ -613,6 +615,7 @@ export interface DebitNote {
   status: InvoiceStatus | DocStatus;
   total_amount: number;
   purpose_reason?: string | null;
+  items?: { id: string; product_id: string; description: string; qty: number; rate: number; discount: number; tax_pct: number; line_total: number }[];
   created_at: string;
 }
 

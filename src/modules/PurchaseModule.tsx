@@ -155,10 +155,10 @@ export function PurchaseModule() {
           id: i.id || safeUUID(),
           product_id: i.product_id || '',
           description: i.description || '',
-          qty: i.qty || 1,
-          rate: i.rate || 0,
-          discount: i.discount || 0,
-          tax_pct: i.tax_pct || 0,
+          qty: i.qty ?? 1,
+          rate: i.rate ?? 0,
+          discount: i.discount ?? 0,
+          tax_pct: i.tax_pct ?? 0,
         }))
       );
     } else {
@@ -243,6 +243,21 @@ export function PurchaseModule() {
   const handleSavePRRecord = () => {
     const totals = calcPRTotals();
 
+    const formattedItems = prLineItems.map((item) => {
+      const gross = (item.qty || 0) * (item.rate || 0);
+      const lineTotal = (gross - (item.discount || 0)) * (1 + (item.tax_pct || 0) / 100);
+      return {
+        id: item.id,
+        product_id: item.product_id,
+        description: item.description,
+        qty: item.qty,
+        rate: item.rate,
+        discount: item.discount,
+        tax_pct: item.tax_pct,
+        line_total: lineTotal,
+      };
+    });
+
     if (editingPRId) {
       updatePurchaseRequest(editingPRId, {
         request_date: prDocDate,
@@ -250,6 +265,7 @@ export function PurchaseModule() {
         required_date: prRequiredDate,
         status: prStatus as any,
         total_amount: totals.grandTotal,
+        items: formattedItems,
       });
       toast.success('Purchase Request updated successfully');
     } else {
@@ -263,6 +279,7 @@ export function PurchaseModule() {
         requested_by: 'admin',
         status: prStatus as any,
         total_amount: totals.grandTotal,
+        items: formattedItems,
         created_at: new Date().toISOString(),
       });
       toast.success(`Purchase Request ${prNo} saved successfully!`);
@@ -330,10 +347,10 @@ export function PurchaseModule() {
           id: i.id || safeUUID(),
           product_id: i.product_id || '',
           description: i.description || '',
-          qty: i.qty || 1,
-          rate: i.rate || 0,
-          discount: i.discount || 0,
-          tax_pct: i.tax_pct || 0,
+          qty: i.qty ?? 1,
+          rate: i.rate ?? 0,
+          discount: i.discount ?? 0,
+          tax_pct: i.tax_pct ?? 0,
         }))
       );
     } else {
@@ -449,6 +466,7 @@ export function PurchaseModule() {
         tax_total: totals.taxTotal,
         total_amount: totals.grandTotal,
         notes: poNotes,
+        items: formattedItems,
       });
       toast.success('Purchase Order updated successfully');
     } else {
@@ -469,6 +487,7 @@ export function PurchaseModule() {
         tax_total: totals.taxTotal,
         total_amount: totals.grandTotal,
         notes: poNotes,
+        items: formattedItems,
         created_at: new Date().toISOString(),
       });
       toast.success(`Purchase Order ${poNo} created successfully!`);
@@ -577,10 +596,10 @@ export function PurchaseModule() {
             article_id: art || '',
             colour: i.colour || '',
             description: i.description || (p ? (art ? `[${art}] ${p.name}` : p.name) : ''),
-            qty: i.qty || 1,
+            qty: i.qty ?? 1,
             rate: i.rate !== undefined ? i.rate : (p ? p.purchase_price || p.cost_price || p.sale_price : 0),
-            discount: i.discount || 0,
-            tax_pct: i.tax_pct || 0,
+            discount: i.discount ?? 0,
+            tax_pct: i.tax_pct ?? 0,
           };
         })
       );
@@ -743,7 +762,7 @@ export function PurchaseModule() {
         status: 'PENDING',
         party_name: partyObj?.name || 'Vendor',
         warehouse_id: piWarehouseId || 'w1',
-        items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+        items_summary: formattedItems.map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${formattedItems.length} items`,
       });
       toast.success('Purchase Invoice updated and submitted to Approval Center');
     } else {
@@ -784,7 +803,7 @@ export function PurchaseModule() {
         status: 'PENDING',
         party_name: partyObj?.name || 'Vendor',
         warehouse_id: piWarehouseId || 'w1',
-        items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+        items_summary: formattedItems.map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${formattedItems.length} items`,
       });
       toast.success(`Purchase Invoice ${piNo} submitted to Approval Center!`);
     }
@@ -862,10 +881,10 @@ export function PurchaseModule() {
           id: i.id || safeUUID(),
           product_id: i.product_id || '',
           description: i.description || '',
-          qty: i.qty || 1,
-          rate: i.rate || 0,
-          discount: i.discount || 0,
-          tax_pct: i.tax_pct || 0,
+          qty: i.qty ?? 1,
+          rate: i.rate ?? 0,
+          discount: i.discount ?? 0,
+          tax_pct: i.tax_pct ?? 0,
         }))
       );
     } else {
@@ -987,6 +1006,7 @@ export function PurchaseModule() {
         tax_total: totals.taxTotal,
         total_amount: totals.grandTotal,
         notes: vbNotes,
+        items: formattedItems,
       });
       addApprovalQueueItem({
         module: 'Purchase',
@@ -998,7 +1018,7 @@ export function PurchaseModule() {
         status: 'PENDING',
         party_name: partyObj?.name || 'Vendor',
         warehouse_id: vbWarehouseId || 'w1',
-        items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+        items_summary: formattedItems.map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${formattedItems.length} items`,
       });
       toast.success('Vendor Bill updated and submitted to Approval Center');
     } else {
@@ -1025,6 +1045,7 @@ export function PurchaseModule() {
         total_amount: totals.grandTotal,
         paid_amount: 0,
         notes: vbNotes,
+        items: formattedItems,
         created_at: new Date().toISOString(),
       });
       addApprovalQueueItem({
@@ -1037,7 +1058,7 @@ export function PurchaseModule() {
         status: 'PENDING',
         party_name: partyObj?.name || 'Vendor',
         warehouse_id: vbWarehouseId || 'w1',
-        items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+        items_summary: formattedItems.map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${formattedItems.length} items`,
       });
       toast.success(`Vendor Bill ${billNo} submitted to Approval Center!`);
     }
@@ -1096,10 +1117,10 @@ export function PurchaseModule() {
           id: i.id || safeUUID(),
           product_id: i.product_id || '',
           description: i.description || '',
-          qty: i.qty || 1,
-          rate: i.rate || 0,
-          discount: i.discount || 0,
-          tax_pct: i.tax_pct || 0,
+          qty: i.qty ?? 1,
+          rate: i.rate ?? 0,
+          discount: i.discount ?? 0,
+          tax_pct: i.tax_pct ?? 0,
         }))
       );
     } else {
@@ -1211,6 +1232,7 @@ export function PurchaseModule() {
         reason: dnPurposeReason || 'Purchase Return',
         status: finalStatus,
         total_amount: totals.grandTotal,
+        items: formattedItems,
       });
       addApprovalQueueItem({
         module: 'Purchase',
@@ -1222,7 +1244,7 @@ export function PurchaseModule() {
         status: 'PENDING',
         party_name: partyObj?.name || 'Vendor',
         warehouse_id: 'w1',
-        items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+        items_summary: formattedItems.map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${formattedItems.length} items`,
       });
       toast.success('Debit Note / Purchase Return updated and submitted to Approval Center');
     } else {
@@ -1238,6 +1260,7 @@ export function PurchaseModule() {
         reason: dnPurposeReason || 'Purchase Return',
         status: finalStatus,
         total_amount: totals.grandTotal,
+        items: formattedItems,
         created_at: new Date().toISOString(),
       });
       addApprovalQueueItem({
@@ -1250,7 +1273,7 @@ export function PurchaseModule() {
         status: 'PENDING',
         party_name: partyObj?.name || 'Vendor',
         warehouse_id: 'w1',
-        items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+        items_summary: formattedItems.map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${formattedItems.length} items`,
       });
       toast.success(`Debit Note / Purchase Return ${dnNo} submitted to Approval Center!`);
     }
@@ -1404,6 +1427,22 @@ export function PurchaseModule() {
     if (!vendorId) return toast.error('Please select a vendor');
     const finalStatus = status === 'UNPOSTED' ? 'UNPOSTED' : 'PENDING_APPROVAL';
     const partyObj = availableVendors.find((v) => v.id === vendorId);
+    const requester = formatUserRequester(profile, 'Procurement');
+
+    const formattedBillItems = lineItems.map((item) => {
+      const gross = (item.qty || 0) * (item.rate || 0);
+      const lineTotal = gross * (1 + (item.tax_pct || 0) / 100);
+      return {
+        id: item.id,
+        product_id: item.product_id,
+        description: item.description,
+        qty: item.qty,
+        rate: item.rate,
+        discount: 0,
+        tax_pct: item.tax_pct,
+        line_total: lineTotal,
+      };
+    });
 
     if (editingId) {
       updateVendorBill(editingId, {
@@ -1417,6 +1456,7 @@ export function PurchaseModule() {
         tax_total: totals.taxTotal,
         total_amount: totals.grandTotal,
         notes,
+        items: formattedBillItems,
       });
       if (finalStatus === 'PENDING_APPROVAL') {
         addApprovalQueueItem({
@@ -1457,6 +1497,7 @@ export function PurchaseModule() {
         total_amount: totals.grandTotal,
         paid_amount: 0,
         notes,
+        items: formattedBillItems,
         created_by: 'admin',
         created_at: new Date().toISOString(),
       });
@@ -1466,9 +1507,9 @@ export function PurchaseModule() {
           entity_type: 'vendor_bill',
           record_id: billId,
           record_no: billNo,
-          requested_by: requesterString,
-          requested_by_name: requesterName,
-          requested_by_role: requesterRole,
+          requested_by: requester.formatted,
+          requested_by_name: requester.name,
+          requested_by_role: requester.role,
           amount: totals.grandTotal,
           status: 'PENDING',
           party_name: partyObj?.name || 'Vendor',
@@ -1487,6 +1528,7 @@ export function PurchaseModule() {
   const handleSaveGenericRecord = () => {
     const amountVal = Number(genericAmount) || 1000;
     const partyObj = availableVendors.find((v) => v.id === genericVendorId);
+    const requester = formatUserRequester(profile, 'Procurement');
 
     if (activeSubTab === 'Requests') {
       const prNo = nextDocNumber('PR', (purchaseRequests || []).map((p) => p.request_no), 2);
@@ -1495,7 +1537,7 @@ export function PurchaseModule() {
         department_id: 'd1',
         request_date: todayISO(),
         required_date: todayISO(),
-        requested_by: requesterString,
+        requested_by: requester.formatted,
         status: 'PENDING',
         notes: genericNotes,
         created_at: new Date().toISOString(),
@@ -1537,9 +1579,9 @@ export function PurchaseModule() {
         entity_type: 'purchase_invoice',
         record_id: piId,
         record_no: piNo,
-        requested_by: requesterString,
-        requested_by_name: requesterName,
-        requested_by_role: requesterRole,
+        requested_by: requester.formatted,
+        requested_by_name: requester.name,
+        requested_by_role: requester.role,
         amount: amountVal,
         status: 'PENDING',
         party_name: partyObj?.name || 'Vendor',
@@ -1566,9 +1608,9 @@ export function PurchaseModule() {
         entity_type: 'purchase_return',
         record_id: dnId,
         record_no: dnNo,
-        requested_by: requesterString,
-        requested_by_name: requesterName,
-        requested_by_role: requesterRole,
+        requested_by: requester.formatted,
+        requested_by_name: requester.name,
+        requested_by_role: requester.role,
         amount: amountVal,
         status: 'PENDING',
         party_name: partyObj?.name || 'Vendor',
