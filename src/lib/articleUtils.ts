@@ -67,7 +67,7 @@ export function getProductsForArticle(
  * Resolves the primary article name for a given product ID.
  */
 export function getArticleForProduct(
-  productId: string,
+  productId: string | null | undefined,
   products: Product[] = [],
   productArticles: ProductArticle[] = []
 ): string {

@@ -51,7 +51,7 @@ export function PurchaseInvoicePrint({ invoice: initialInvoice, onClose }: Props
     const rawItems: PurchaseInvoiceItem[] = (invoice.items && invoice.items.length > 0 ? invoice.items : []) as PurchaseInvoiceItem[];
     return rawItems.map((it, idx) => {
       const prod = products.find((p) => p.id === it.product_id);
-      const artName = it.article_id || getArticleForProduct(it.product_id, products, productArticles) || prod?.article_name;
+      const artName = it.article_id || (it.product_id ? getArticleForProduct(it.product_id, products, productArticles) : '') || prod?.article_name;
       const name = prod?.name || it.description || `Item #${idx + 1}`;
       const code = prod?.code || '';
       const unit = it.unit || prod?.unit || 'pcs';
