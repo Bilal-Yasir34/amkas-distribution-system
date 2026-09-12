@@ -774,7 +774,10 @@ export function PurchaseModule() {
       });
       toast.success('Purchase Invoice updated and submitted to Approval Center');
     } else {
-      const piNo = piReferenceNo || nextDocNumber('PI', (purchaseInvoices || []).map((p) => p.invoice_no || ''), 2);
+      let piNo = piReferenceNo.trim();
+      if (!piNo || purchaseInvoices.some((p) => p.invoice_no === piNo || p.grn_no === piNo)) {
+        piNo = nextDocNumber('PI', (purchaseInvoices || []).map((p) => p.invoice_no || p.grn_no || ''), 2);
+      }
       addPurchaseInvoice({
         id: targetPIId,
         grn_no: piNo,
@@ -820,6 +823,7 @@ export function PurchaseModule() {
     setEditingPIId(null);
     setPiReferenceNo('');
     setPiVendorInvoiceNo('');
+    setPurchaseStatusFilter('ALL');
     setPiViewMode('list');
   };
 

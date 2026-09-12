@@ -913,9 +913,7 @@ export const useDataStore = create<DataStoreState>()(
 
         set((s) => {
           const existingIdx = s.approvalQueue.findIndex(
-            (a) =>
-              (item.record_id && a.record_id === item.record_id) ||
-              (item.record_no && a.record_no === item.record_no && a.module === item.module)
+            (a) => item.record_id && a.record_id === item.record_id
           );
 
           if (existingIdx >= 0) {

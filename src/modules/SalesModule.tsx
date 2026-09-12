@@ -198,7 +198,8 @@ export function SalesModule() {
 
   const openCreateInvoiceForm = () => {
     setEditingInvoiceId(null);
-    setInvReferenceNo('');
+    const autoRef = nextDocNumber('SL', (invoices || []).map((i) => i.invoice_no), 2);
+    setInvReferenceNo(autoRef);
     const defaultParty = availableParties[0]?.id || customers[0]?.id || vendors[0]?.id || '';
     setInvPartyType('ALL');
     setInvCustomerId(defaultParty);
@@ -470,7 +471,10 @@ export function SalesModule() {
         toast.success(`Invoice updated (Draft)`);
       }
     } else {
-      const invoiceNo = invReferenceNo.trim() || nextDocNumber('SL', (invoices || []).map((i) => i.invoice_no), 2);
+      let invoiceNo = invReferenceNo.trim();
+      if (!invoiceNo || invoices.some((i) => i.invoice_no === invoiceNo)) {
+        invoiceNo = nextDocNumber('SL', (invoices || []).map((i) => i.invoice_no), 2);
+      }
       const invId = safeUUID();
       addInvoice({
         id: invId,
@@ -527,6 +531,7 @@ export function SalesModule() {
 
     setEditingInvoiceId(null);
     setInvReferenceNo('');
+    setSalesStatusFilter('ALL');
     setInvoiceViewMode('list');
   };
 
@@ -2913,7 +2918,7 @@ export function SalesModule() {
                 {quotations.length === 0 ? (
                   <p className="text-[11px] text-slate-400 italic">No open quotations</p>
                 ) : (
-                  quotations.slice(0, 4).map((q) => (
+                  quotations.map((q) => (
                     <div key={q.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/40">
                       <p className="text-xs font-bold text-amber-500">{q.quotation_no}</p>
                       <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{q.salesperson || 'Salesperson'}</p>
@@ -2939,7 +2944,7 @@ export function SalesModule() {
                 {salesOrders.length === 0 ? (
                   <p className="text-[11px] text-slate-400 italic">No active sales orders</p>
                 ) : (
-                  salesOrders.slice(0, 4).map((so) => (
+                  salesOrders.map((so) => (
                     <div key={so.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/40">
                       <p className="text-xs font-bold text-sky-500">{so.order_no}</p>
                       <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{so.salesperson || 'Salesperson'}</p>
@@ -2961,11 +2966,11 @@ export function SalesModule() {
                 </span>
               </div>
               <p className="text-xs text-slate-400">Billed to customer</p>
-              <div className="space-y-2 pt-2">
+              <div className="space-y-2 pt-2 max-h-96 overflow-y-auto">
                 {invoices.length === 0 ? (
                   <p className="text-[11px] text-slate-400 italic">No invoices</p>
                 ) : (
-                  invoices.slice(0, 4).map((inv) => (
+                  invoices.map((inv) => (
                     <div key={inv.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/40">
                       <p className="text-xs font-bold text-purple-500">{inv.invoice_no}</p>
                       <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{inv.salesperson || 'Salesperson'}</p>
@@ -2987,11 +2992,11 @@ export function SalesModule() {
                 </span>
               </div>
               <p className="text-xs text-slate-400">Payments collected</p>
-              <div className="space-y-2 pt-2">
+              <div className="space-y-2 pt-2 max-h-96 overflow-y-auto">
                 {customerReceipts.length === 0 ? (
                   <p className="text-[11px] text-slate-400 italic">No receipts</p>
                 ) : (
-                  customerReceipts.slice(0, 4).map((cr) => (
+                  customerReceipts.map((cr) => (
                     <div key={cr.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/40">
                       <p className="text-xs font-bold text-amber-500">{cr.receipt_no}</p>
                       <p className="mt-1 text-xs font-mono font-semibold text-slate-900 dark:text-slate-100">

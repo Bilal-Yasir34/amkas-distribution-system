@@ -64,6 +64,101 @@ export function formatDate(date: string | Date | number | null | undefined): str
   return '—';
 }
 
+/**
+ * Formats a date string or Date object into full DD/MM/YYYY format for editable inputs.
+ */
+export function formatDateFull(date: string | Date | number | null | undefined): string {
+  if (!date && date !== 0) return '';
+  if (typeof date === 'string') {
+    const trimmed = date.trim();
+    if (!trimmed || trimmed === '—' || trimmed === '-') return '';
+    const ymdMatch = trimmed.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+    if (ymdMatch) {
+      const year = ymdMatch[1];
+      const month = ymdMatch[2].padStart(2, '0');
+      const day = ymdMatch[3].padStart(2, '0');
+      return `${day}/${month}/${year}`;
+    }
+    const dmyMatch = trimmed.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/);
+    if (dmyMatch) {
+      const day = dmyMatch[1].padStart(2, '0');
+      const month = dmyMatch[2].padStart(2, '0');
+      let year = dmyMatch[3];
+      if (year.length === 2) {
+        const yNum = parseInt(year, 10);
+        year = String(yNum > 50 ? 1900 + yNum : 2000 + yNum);
+      }
+      return `${day}/${month}/${year}`;
+    }
+  }
+  const d = date instanceof Date ? date : new Date(date as any);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = String(d.getFullYear());
+    return `${day}/${month}/${year}`;
+  }
+  return '';
+}
+
+/**
+ * Intelligently parses user-typed date inputs (DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, DDMMYYYY, etc.)
+ * into canonical ISO format (YYYY-MM-DD).
+ */
+export function parseInputDateToISO(input: string): string | null {
+  if (!input) return null;
+  const trimmed = input.trim();
+  if (!trimmed || trimmed === '—' || trimmed === '-') return null;
+
+  // 1. ISO format: YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD
+  const ymdMatch = trimmed.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  if (ymdMatch) {
+    const y = parseInt(ymdMatch[1], 10);
+    const m = parseInt(ymdMatch[2], 10);
+    const d = parseInt(ymdMatch[3], 10);
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+  }
+
+  // 2. Day-Month-Year format: DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY (or with 2-digit year)
+  const dmyMatch = trimmed.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);
+  if (dmyMatch) {
+    const d = parseInt(dmyMatch[1], 10);
+    const m = parseInt(dmyMatch[2], 10);
+    let y = parseInt(dmyMatch[3], 10);
+    if (y < 100) {
+      y = y > 50 ? 1900 + y : 2000 + y;
+    }
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+  }
+
+  // 3. Compact digits: DDMMYYYY (8 digits)
+  if (/^\d{8}$/.test(trimmed)) {
+    const d = parseInt(trimmed.slice(0, 2), 10);
+    const m = parseInt(trimmed.slice(2, 4), 10);
+    const y = parseInt(trimmed.slice(4, 8), 10);
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+  }
+
+  // 4. Compact digits: DDMMYY (6 digits)
+  if (/^\d{6}$/.test(trimmed)) {
+    const d = parseInt(trimmed.slice(0, 2), 10);
+    const m = parseInt(trimmed.slice(2, 4), 10);
+    let y = parseInt(trimmed.slice(4, 6), 10);
+    y = y > 50 ? 1900 + y : 2000 + y;
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+  }
+
+  return null;
+}
+
 export function todayISO(): string {
   return new Date().toISOString().split('T')[0];
 }
