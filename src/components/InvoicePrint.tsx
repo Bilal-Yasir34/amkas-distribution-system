@@ -172,7 +172,7 @@ export function InvoicePrint({ invoice: initialInvoice, onClose }: Props) {
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
               {mode === 'invoice' ? 'BILL TO (CUSTOMER)' : 'CONSIGNEE / DISPATCH TO'}
             </p>
-            <p className="text-sm font-bold text-slate-900">{customer?.name || '—'}</p>
+            <p className="text-sm font-bold text-slate-900">{customer?.name || invoice.customer_name || invoice.party_name || '—'}</p>
             {customer?.company_name && <p className="font-medium text-slate-700">{customer.company_name}</p>}
             {customer?.address && <p className="text-slate-600 mt-0.5">{customer.address}</p>}
             {customer?.city && <p className="text-slate-600">{customer.city}</p>}

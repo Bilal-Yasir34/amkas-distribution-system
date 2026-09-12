@@ -213,6 +213,7 @@ export interface SalesInvoice {
   invoice_no: string;
   customer_id: string | null;
   customer_name?: string;
+  party_name?: string;
   warehouse_id: string | null;
   branch_id?: string | null;
   invoice_date: string;
@@ -540,6 +541,8 @@ export interface PurchaseInvoice {
   invoice_no?: string;
   po_id: string | null;
   vendor_id: string | null;
+  vendor_name?: string | null;
+  party_name?: string | null;
   vendor_invoice_no?: string | null;
   warehouse_id: string | null;
   received_date: string;

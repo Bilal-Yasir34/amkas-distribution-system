@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, ShoppingCart, DollarSign, FileText, CheckCircle, Clock, X, Trash2, Edit, Printer } from 'lucide-react';
+import { Plus, ShoppingCart, DollarSign, FileText, CheckCircle, Clock, X, Trash2, Edit, Printer, Send } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
@@ -68,6 +68,7 @@ export function PurchaseModule() {
   }, [customers]);
 
   const [activeSubTab, setActiveSubTab] = useState<'Purchases' | 'Requests' | 'Purchase Orders' | 'Purchase Invoices' | 'Debit Notes' | 'Payments'>('Purchases');
+  const [purchaseStatusFilter, setPurchaseStatusFilter] = useState<'ALL' | 'POSTED' | 'PENDING_APPROVAL'>('ALL');
 
   const [newBillOpen, setNewBillOpen] = useState(false);
   const [genericModalOpen, setGenericModalOpen] = useState(false);
@@ -708,12 +709,19 @@ export function PurchaseModule() {
     if (!piVendorId) return toast.error('Please select a vendor');
     const totals = calcPITotals();
 
+    const partyObj =
+      vendors.find((v) => v.id === piVendorId) ||
+      customers.find((c) => c.id === piVendorId) ||
+      availableVendors.find((v) => v.id === piVendorId);
+    const resolvedVendorName = partyObj?.name || (piVendorId ? piVendorId : 'Vendor');
+    const targetPIId = editingPIId || safeUUID();
+
     const formattedItems = piLineItems.map((item) => {
       const gross = (item.qty || 0) * (item.rate || 0);
       const lineTotal = (gross - (item.discount || 0)) * (1 + (item.tax_pct || 0) / 100);
       return {
-        id: item.id,
-        purchase_invoice_id: editingPIId || '',
+        id: item.id || safeUUID(),
+        purchase_invoice_id: targetPIId,
         product_id: item.product_id,
         article_id: item.article_id || '',
         colour: item.colour || '',
@@ -727,13 +735,13 @@ export function PurchaseModule() {
     });
 
     const finalStatus = 'PENDING_APPROVAL';
-    const partyObj = availableVendors.find((v) => v.id === piVendorId);
-
     const requester = formatUserRequester(profile, 'Procurement');
 
     if (editingPIId) {
       updatePurchaseInvoice(editingPIId, {
         vendor_id: piVendorId,
+        vendor_name: resolvedVendorName,
+        party_name: resolvedVendorName,
         warehouse_id: piWarehouseId,
         received_date: piDocDate,
         document_date: piDocDate,
@@ -760,20 +768,21 @@ export function PurchaseModule() {
         requested_by_role: requester.role,
         amount: totals.grandTotal,
         status: 'PENDING',
-        party_name: partyObj?.name || 'Vendor',
+        party_name: resolvedVendorName,
         warehouse_id: piWarehouseId || 'w1',
         items_summary: formattedItems.map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${formattedItems.length} items`,
       });
       toast.success('Purchase Invoice updated and submitted to Approval Center');
     } else {
       const piNo = piReferenceNo || nextDocNumber('PI', (purchaseInvoices || []).map((p) => p.invoice_no || ''), 2);
-      const piId = safeUUID();
       addPurchaseInvoice({
-        id: piId,
+        id: targetPIId,
         grn_no: piNo,
         invoice_no: piNo,
         po_id: null,
         vendor_id: piVendorId,
+        vendor_name: resolvedVendorName,
+        party_name: resolvedVendorName,
         warehouse_id: piWarehouseId,
         received_date: piDocDate,
         document_date: piDocDate,
@@ -794,14 +803,14 @@ export function PurchaseModule() {
       addApprovalQueueItem({
         module: 'Purchase',
         entity_type: 'purchase_invoice',
-        record_id: piId,
+        record_id: targetPIId,
         record_no: piNo,
         requested_by: requester.formatted,
         requested_by_name: requester.name,
         requested_by_role: requester.role,
         amount: totals.grandTotal,
         status: 'PENDING',
-        party_name: partyObj?.name || 'Vendor',
+        party_name: resolvedVendorName,
         warehouse_id: piWarehouseId || 'w1',
         items_summary: formattedItems.map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${formattedItems.length} items`,
       });
@@ -1668,17 +1677,39 @@ export function PurchaseModule() {
       {activeSubTab === 'Purchases' && (
         <div className="space-y-6">
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PROCUREMENT WORKFLOW</p>
                 <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Purchase register</h2>
               </div>
-              <button
-                onClick={openCreatePIForm}
-                className="flex items-center gap-2 btn-primary shadow-sm"
-              >
-                <Plus className="h-4 w-4" /> New Purchase
-              </button>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="inline-flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800 text-xs">
+                  <button
+                    onClick={() => setPurchaseStatusFilter('ALL')}
+                    className={`px-3 py-1 rounded-md font-semibold transition ${purchaseStatusFilter === 'ALL' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+                  >
+                    All ({(purchaseInvoices || []).length})
+                  </button>
+                  <button
+                    onClick={() => setPurchaseStatusFilter('POSTED')}
+                    className={`px-3 py-1 rounded-md font-semibold transition ${purchaseStatusFilter === 'POSTED' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+                  >
+                    Accepted / Posted ({(purchaseInvoices || []).filter(p => p.status === 'POSTED').length})
+                  </button>
+                  <button
+                    onClick={() => setPurchaseStatusFilter('PENDING_APPROVAL')}
+                    className={`px-3 py-1 rounded-md font-semibold transition ${purchaseStatusFilter === 'PENDING_APPROVAL' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+                  >
+                    Pending Approval ({(purchaseInvoices || []).filter(p => p.status === 'PENDING_APPROVAL').length})
+                  </button>
+                </div>
+                <button
+                  onClick={openCreatePIForm}
+                  className="flex items-center gap-2 btn-primary shadow-sm"
+                >
+                  <Plus className="h-4 w-4" /> New Purchase
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
@@ -1695,28 +1726,45 @@ export function PurchaseModule() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {(purchaseInvoices || []).length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                        No purchases recorded yet. Click New Purchase to create one.
-                      </td>
-                    </tr>
-                  ) : (
-                    (purchaseInvoices || []).map((pi) => {
+                  {(() => {
+                    const filteredPIs = (purchaseInvoices || []).filter((pi) => {
+                      if (purchaseStatusFilter === 'POSTED') return pi.status === 'POSTED';
+                      if (purchaseStatusFilter === 'PENDING_APPROVAL') return pi.status === 'PENDING_APPROVAL';
+                      return true;
+                    });
+                    if (filteredPIs.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                            No purchases recorded for this filter. Click New Purchase to create one.
+                          </td>
+                        </tr>
+                      );
+                    }
+                    return filteredPIs.map((pi) => {
                       const party = vendors.find((v) => v.id === pi.vendor_id) || customers.find((c) => c.id === pi.vendor_id);
                       const wh = warehouses.find((w) => w.id === pi.warehouse_id);
+                      const partyDisplayName = party?.name || (pi as any).vendor_name || (pi as any).party_name || 'Vendor / Party';
+                      const isPosted = pi.status === 'POSTED';
+                      const isPending = pi.status === 'PENDING_APPROVAL';
                       return (
                         <tr key={pi.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                           <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{pi.grn_no || pi.invoice_no}</td>
                           <td className="px-4 py-3 text-slate-400">{formatDate(pi.received_date || pi.document_date || '')}</td>
-                          <td className="px-4 py-3 font-medium text-slate-200">{party?.name || 'Party'}</td>
+                          <td className="px-4 py-3 font-medium text-slate-200">{partyDisplayName}</td>
                           <td className="px-4 py-3 text-slate-400">{wh?.name || 'Main Warehouse'}</td>
                           <td className="px-4 py-3 font-mono font-semibold text-amber-400">
                             Rs. {(pi.total_amount || 0).toLocaleString()}
                           </td>
                           <td className="px-4 py-3">
-                            <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500">
-                              {pi.status || 'POSTED'}
+                            <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold border ${
+                              isPosted
+                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                : isPending
+                                ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                : 'bg-slate-500/15 text-slate-300 border-slate-700'
+                            }`}>
+                              {isPosted ? 'ACCEPTED (POSTED)' : isPending ? 'PENDING APPROVAL' : (pi.status || 'DRAFT')}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -1748,8 +1796,8 @@ export function PurchaseModule() {
                           </td>
                         </tr>
                       );
-                    })
-                  )}
+                    });
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -1822,8 +1870,20 @@ export function PurchaseModule() {
                           {(() => {
                             const all = [...customers, ...vendors.map(v => ({ ...v, _origin: 'vendor' as const }))];
                             const unique = all.filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx);
-                            if (!piPartyType || piPartyType === 'ALL') return unique;
-                            return unique.filter(c => c.account_type?.toLowerCase() === piPartyType.toLowerCase());
+                            let list = (!piPartyType || piPartyType === 'ALL')
+                              ? unique
+                              : unique.filter(c => c.account_type?.toLowerCase() === piPartyType.toLowerCase());
+                            if (piVendorId && !list.some(p => p.id === piVendorId)) {
+                              const found = unique.find(p => p.id === piVendorId);
+                              if (found) {
+                                list = [found, ...list];
+                              } else {
+                                const fromPI = purchaseInvoices.find(p => p.vendor_id === piVendorId || p.id === editingPIId);
+                                const partyName = fromPI?.vendor_name || (fromPI as any)?.party_name || piVendorId;
+                                list = [{ id: piVendorId, name: partyName } as any, ...list];
+                              }
+                            }
+                            return list;
                           })().map((c) => (
                             <option key={c.id} value={c.id}>{c.name}</option>
                           ))}
@@ -1898,9 +1958,9 @@ export function PurchaseModule() {
                       <button
                         type="button"
                         onClick={() => handleSavePIRecord('POSTED')}
-                        className="btn-primary text-xs px-5"
+                        className="btn-primary text-xs px-5 flex items-center gap-2"
                       >
-                        Submit for Approval
+                        <Send className="h-4 w-4" /> Send to Approval Center
                       </button>
                     </div>
                   </div>
@@ -1952,6 +2012,8 @@ export function PurchaseModule() {
                                   const currentProd = products.find((p) => p.id === item.product_id);
                                   if (currentProd) {
                                     availableProds = [currentProd, ...availableProds];
+                                  } else {
+                                    availableProds = [{ id: item.product_id, name: item.description || 'Product', purchase_price: item.rate, cost_price: item.rate, sale_price: item.rate } as any, ...availableProds];
                                   }
                                 }
 

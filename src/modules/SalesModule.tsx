@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Building,
   Layers,
+  Send,
 } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
@@ -110,12 +111,21 @@ export function SalesModule() {
   const [invPartyType, setInvPartyType] = useState<string>('ALL');
   const [invCustomerId, setInvCustomerId] = useState('');
 
+  const [salesStatusFilter, setSalesStatusFilter] = useState<'ALL' | 'POSTED' | 'PENDING_APPROVAL'>('ALL');
+
   const availableParties = useMemo<any[]>(() => {
     const taggedCustomers = customers.map(c => ({ ...c, _origin: 'customer' }));
     const taggedVendors = vendors.map(v => ({ ...v, _origin: 'vendor' }));
     const all = [...taggedCustomers, ...taggedVendors].filter((item, idx, arr) => arr.findIndex(x => x.id === item.id) === idx);
     
-    if (!invPartyType || invPartyType === 'ALL') return all;
+    if (!invPartyType || invPartyType === 'ALL') {
+      if (invCustomerId && !all.some(p => p.id === invCustomerId)) {
+        const fromInv = invoices.find(i => i.customer_id === invCustomerId);
+        const partyName = fromInv?.customer_name || (fromInv as any)?.party_name || invCustomerId;
+        return [{ id: invCustomerId, name: partyName, _origin: 'customer' }, ...all];
+      }
+      return all;
+    }
     
     const filtered = all.filter((c) => {
       if (c.account_type) {
@@ -133,10 +143,13 @@ export function SalesModule() {
     if (invCustomerId && !filtered.some(p => p.id === invCustomerId)) {
       const selected = all.find(p => p.id === invCustomerId);
       if (selected) return [selected, ...filtered];
+      const fromInv = invoices.find(i => i.customer_id === invCustomerId);
+      const partyName = fromInv?.customer_name || (fromInv as any)?.party_name || invCustomerId;
+      return [{ id: invCustomerId, name: partyName, _origin: 'customer' }, ...filtered];
     }
 
     return filtered;
-  }, [customers, vendors, invPartyType, invCustomerId]);
+  }, [customers, vendors, invoices, invPartyType, invCustomerId]);
 
   const allArticles = useMemo(
     () => getAllArticles(universalArticles, products, productArticles),
@@ -403,11 +416,17 @@ export function SalesModule() {
     });
 
     const finalStatus = actionStatus === 'UNPOSTED' ? 'UNPOSTED' : 'PENDING_APPROVAL';
-    const partyObj = customers.find((c) => c.id === invCustomerId) || vendors.find((v) => v.id === invCustomerId);
+    const partyObj =
+      customers.find((c) => c.id === invCustomerId) ||
+      vendors.find((v) => v.id === invCustomerId) ||
+      availableParties.find((p) => p.id === invCustomerId);
+    const resolvedCustomerName = partyObj?.name || (invCustomerId ? invCustomerId : 'Customer');
 
     if (editingInvoiceId) {
       updateInvoice(editingInvoiceId, {
         customer_id: invCustomerId,
+        customer_name: resolvedCustomerName,
+        party_name: resolvedCustomerName,
         warehouse_id: invWarehouseId || warehouses[0]?.id || 'w1',
         invoice_date: invDocDate,
         due_date: invDueDate,
@@ -426,7 +445,7 @@ export function SalesModule() {
         notes: invNotes,
         terms_conditions: invTermsConditions,
         commission_rate: invCommissionRate,
-        items: formattedItems,
+        items: formattedItems.map((it) => ({ ...it, sales_invoice_id: editingInvoiceId })),
       });
 
       if (finalStatus === 'PENDING_APPROVAL') {
@@ -442,9 +461,9 @@ export function SalesModule() {
           requested_by_role: requester.role,
           amount: totals.grandTotal,
           status: 'PENDING',
-          party_name: partyObj?.name || 'Customer',
+          party_name: resolvedCustomerName,
           warehouse_id: invWarehouseId || 'w1',
-          items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+          items_summary: formattedItems.map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${formattedItems.length} items`,
         });
         toast.success(`Invoice updated and submitted to Approval Center`);
       } else {
@@ -457,6 +476,8 @@ export function SalesModule() {
         id: invId,
         invoice_no: invoiceNo,
         customer_id: invCustomerId,
+        customer_name: resolvedCustomerName,
+        party_name: resolvedCustomerName,
         warehouse_id: invWarehouseId || warehouses[0]?.id || 'w1',
         invoice_date: invDocDate,
         due_date: invDueDate,
@@ -476,7 +497,7 @@ export function SalesModule() {
         notes: invNotes,
         terms_conditions: invTermsConditions,
         commission_rate: invCommissionRate,
-        items: formattedItems,
+        items: formattedItems.map((it) => ({ ...it, sales_invoice_id: invId })),
         created_by: 'admin',
         created_at: new Date().toISOString(),
       });
@@ -494,9 +515,9 @@ export function SalesModule() {
           requested_by_role: requester.role,
           amount: totals.grandTotal,
           status: 'PENDING',
-          party_name: partyObj?.name || 'Customer',
+          party_name: resolvedCustomerName,
           warehouse_id: invWarehouseId || 'w1',
-          items_summary: formattedItems.map((it) => `${it.qty}x`).join(', ') || `${formattedItems.length} items`,
+          items_summary: formattedItems.map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${formattedItems.length} items`,
         });
         toast.success(`Invoice ${invoiceNo} submitted to Approval Center!`);
       } else {
@@ -1314,17 +1335,39 @@ export function SalesModule() {
       {activeSubTab === 'Sales' && (
         <div className="space-y-6">
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SALES WORKFLOW</p>
                 <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Sales register</h2>
               </div>
-              <button
-                onClick={openCreateInvoiceForm}
-                className="flex items-center gap-2 btn-primary shadow-sm"
-              >
-                <Plus className="h-4 w-4" /> New Sales
-              </button>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="inline-flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800 text-xs">
+                  <button
+                    onClick={() => setSalesStatusFilter('ALL')}
+                    className={`px-3 py-1 rounded-md font-semibold transition ${salesStatusFilter === 'ALL' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+                  >
+                    All ({invoices.length})
+                  </button>
+                  <button
+                    onClick={() => setSalesStatusFilter('POSTED')}
+                    className={`px-3 py-1 rounded-md font-semibold transition ${salesStatusFilter === 'POSTED' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+                  >
+                    Accepted / Posted ({invoices.filter(i => i.status === 'POSTED').length})
+                  </button>
+                  <button
+                    onClick={() => setSalesStatusFilter('PENDING_APPROVAL')}
+                    className={`px-3 py-1 rounded-md font-semibold transition ${salesStatusFilter === 'PENDING_APPROVAL' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+                  >
+                    Pending Approval ({invoices.filter(i => i.status === 'PENDING_APPROVAL').length})
+                  </button>
+                </div>
+                <button
+                  onClick={openCreateInvoiceForm}
+                  className="flex items-center gap-2 btn-primary shadow-sm"
+                >
+                  <Plus className="h-4 w-4" /> New Sales
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
@@ -1340,36 +1383,51 @@ export function SalesModule() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {invoices.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                        No sales recorded yet. Click New Sales to create one.
-                      </td>
-                    </tr>
-                  ) : (
-                    invoices.map((inv) => {
+                  {(() => {
+                    const filteredInvoices = invoices.filter((inv) => {
+                      if (salesStatusFilter === 'POSTED') return inv.status === 'POSTED';
+                      if (salesStatusFilter === 'PENDING_APPROVAL') return inv.status === 'PENDING_APPROVAL';
+                      return true;
+                    });
+                    if (filteredInvoices.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                            No sales records found for this filter. Click New Sales to create one.
+                          </td>
+                        </tr>
+                      );
+                    }
+                    return filteredInvoices.map((inv) => {
                       const party = customers.find((c) => c.id === inv.customer_id) || vendors.find((v) => v.id === inv.customer_id);
+                      const partyDisplayName = party?.name || inv.customer_name || (inv as any).party_name || 'Customer';
+                      const isPosted = inv.status === 'POSTED';
+                      const isPending = inv.status === 'PENDING_APPROVAL';
                       return (
                         <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                           <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{inv.invoice_no}</td>
                           <td className="px-4 py-3 text-slate-400">{formatDate(inv.invoice_date)}</td>
-                          <td className="px-4 py-3 font-medium text-slate-200">{party?.name || 'Party'}</td>
+                          <td className="px-4 py-3 font-medium text-slate-200">{partyDisplayName}</td>
                           <td className="px-4 py-3 font-mono font-semibold text-slate-100">
                             {inv.currency || 'Rs.'} {inv.total_amount?.toLocaleString()}
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${inv.status === 'POSTED' ? 'bg-amber-500/15 text-amber-500' : 'bg-amber-500/10 text-amber-500'}`}>
-                              {inv.status}
+                            <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold border ${
+                              isPosted
+                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                : isPending
+                                ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                : 'bg-slate-500/15 text-slate-300 border-slate-700'
+                            }`}>
+                              {isPosted ? 'ACCEPTED (POSTED)' : isPending ? 'PENDING APPROVAL' : inv.status}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              {isAdmin && (
-                                <button onClick={() => openEditInvoiceForm(inv)} className="p-1 text-slate-400 hover:text-amber-400" title="Edit Invoice">
-                                  <Edit className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                              <button onClick={() => setPrintInvoice(inv)} className="p-1 text-slate-400 hover:text-white" title="Print Invoice">
+                              <button onClick={() => openEditInvoiceForm(inv)} className="p-1 text-slate-400 hover:text-amber-400 transition" title="Edit Invoice">
+                                <Edit className="h-3.5 w-3.5" />
+                              </button>
+                              <button onClick={() => setPrintInvoice(inv)} className="p-1 text-slate-400 hover:text-white transition" title="Print Invoice">
                                 <Printer className="h-3.5 w-3.5" />
                               </button>
                               {isAdmin && (
@@ -1381,8 +1439,8 @@ export function SalesModule() {
                           </td>
                         </tr>
                       );
-                    })
-                  )}
+                    });
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -1540,9 +1598,9 @@ export function SalesModule() {
                     <div className="space-y-2 pt-4">
                       <button
                         onClick={() => handleSaveSalesInvoiceRecord('POSTED')}
-                        className="w-full btn-primary py-3 text-xs font-bold tracking-wide shadow-md"
+                        className="w-full btn-primary py-3 text-xs font-bold tracking-wide shadow-md flex items-center justify-center gap-2"
                       >
-                        Submit for Approval
+                        <Send className="h-4 w-4" /> Send to Approval Center
                       </button>
                       <button
                         onClick={() => handleSaveSalesInvoiceRecord('UNPOSTED')}
@@ -1611,6 +1669,8 @@ export function SalesModule() {
                                     const currentProd = products.find((p) => p.id === item.product_id);
                                     if (currentProd) {
                                       availableProds = [currentProd, ...availableProds];
+                                    } else {
+                                      availableProds = [{ id: item.product_id, name: item.description || 'Product', sale_price: item.rate, unit: item.unit } as any, ...availableProds];
                                     }
                                   }
 

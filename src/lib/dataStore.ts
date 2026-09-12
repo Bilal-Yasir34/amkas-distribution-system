@@ -1019,7 +1019,7 @@ export const useDataStore = create<DataStoreState>()(
             let newBankAccounts = [...s.bankAccounts];
             let newJournalEntries = [...s.journalEntries];
 
-            // 1. Sales Invoice Approved -> status POSTED, decrement product inventory
+            // 1. Sales Invoice Approved -> status POSTED, decrement product inventory, post journal entry
             if (item.entity_type === 'sales_invoice') {
               const inv = s.invoices.find((i) => i.id === item.record_id || i.invoice_no === item.record_no);
               if (inv) {
@@ -1034,10 +1034,25 @@ export const useDataStore = create<DataStoreState>()(
                       : p
                   );
                 });
+
+                if (!newJournalEntries.some((je) => je.reference_no === inv.invoice_no)) {
+                  newJournalEntries.unshift({
+                    id: crypto.randomUUID(),
+                    entry_no: `JV-${inv.invoice_no}`,
+                    entry_date: inv.invoice_date,
+                    reference_no: inv.invoice_no,
+                    source: 'Sales Invoice',
+                    narration: `Sales Invoice ${inv.invoice_no} approved & posted to ${inv.account_head || 'Sales Revenue'}`,
+                    total_debit: inv.total_amount,
+                    total_credit: inv.total_amount,
+                    status: 'POSTED',
+                    created_at: new Date().toISOString(),
+                  });
+                }
               }
             }
 
-            // 2. Vendor Bill / Purchase Invoice Approved -> status POSTED, increment product inventory
+            // 2. Vendor Bill / Purchase Invoice Approved -> status POSTED, increment product inventory, post journal entry
             else if (item.entity_type === 'vendor_bill' || item.entity_type === 'purchase_invoice') {
               const bill = s.vendorBills.find((b) => b.id === item.record_id || b.bill_no === item.record_no);
               if (bill) {
@@ -1053,7 +1068,7 @@ export const useDataStore = create<DataStoreState>()(
                   );
                 });
               }
-              const pi = s.purchaseInvoices.find((p) => p.id === item.record_id || p.grn_no === item.record_no);
+              const pi = s.purchaseInvoices.find((p) => p.id === item.record_id || p.grn_no === item.record_no || p.invoice_no === item.record_no);
               if (pi) {
                 newPurchaseInvoices = s.purchaseInvoices.map((p) =>
                   p.id === pi.id ? { ...p, status: 'POSTED' } : p
@@ -1066,6 +1081,22 @@ export const useDataStore = create<DataStoreState>()(
                       : p
                   );
                 });
+
+                const refDoc = pi.grn_no || pi.invoice_no;
+                if (refDoc && !newJournalEntries.some((je) => je.reference_no === refDoc)) {
+                  newJournalEntries.unshift({
+                    id: crypto.randomUUID(),
+                    entry_no: `JV-${refDoc}`,
+                    entry_date: pi.received_date || pi.document_date || new Date().toISOString().split('T')[0],
+                    reference_no: refDoc,
+                    source: 'Purchase Invoice',
+                    narration: `Purchase Invoice ${refDoc} approved & posted to ${pi.account_head || 'Inventory Purchases'}`,
+                    total_debit: pi.total_amount || 0,
+                    total_credit: pi.total_amount || 0,
+                    status: 'POSTED',
+                    created_at: new Date().toISOString(),
+                  });
+                }
               }
             }
 

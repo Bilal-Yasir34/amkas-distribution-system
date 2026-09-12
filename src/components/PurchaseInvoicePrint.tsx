@@ -182,7 +182,7 @@ export function PurchaseInvoicePrint({ invoice: initialInvoice, onClose }: Props
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
               {mode === 'invoice' ? 'SUPPLIER / VENDOR (CONSIGNOR)' : 'GOODS DISPATCHED BY'}
             </p>
-            <p className="text-sm font-bold text-slate-900">{vendor?.name || '—'}</p>
+            <p className="text-sm font-bold text-slate-900">{vendor?.name || (invoice as any).vendor_name || (invoice as any).party_name || '—'}</p>
             {vendor?.company_name && <p className="font-medium text-slate-700">{vendor.company_name}</p>}
             {vendor?.address && <p className="text-slate-600 mt-0.5">{vendor.address}</p>}
             {vendor?.city && <p className="text-slate-600">{vendor.city}</p>}
