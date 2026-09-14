@@ -8,6 +8,7 @@ import { DateInput } from '@/components/DateInput';
 import type { VendorBill, Vendor, PurchaseInvoice } from '@/lib/types';
 import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
 import { PurchaseInvoicePrint } from '@/components/PurchaseInvoicePrint';
+import { DeleteConfirmationModal } from '@/components/DeleteConfirmationModal';
 
 export function PurchaseModule() {
   const toast = useToast();
@@ -74,6 +75,7 @@ export function PurchaseModule() {
   const [genericModalOpen, setGenericModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [printInvoice, setPrintInvoice] = useState<PurchaseInvoice | null>(null);
+  const [purchaseToDelete, setPurchaseToDelete] = useState<PurchaseInvoice | null>(null);
 
   // Generic Form State
   const [genericVendorId, setGenericVendorId] = useState('');
@@ -1788,13 +1790,13 @@ export function PurchaseModule() {
                                 <Printer className="h-3.5 w-3.5" />
                               </button>
                               <button
-                                onClick={() => {
-                                  deletePurchaseInvoice(pi.id);
-                                  toast.success('Purchase Invoice deleted');
-                                }}
-                                className="text-xs text-rose-500 hover:underline"
+                                type="button"
+                                onClick={() => setPurchaseToDelete(pi)}
+                                className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold text-rose-500 hover:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20 transition"
+                                title="Delete Purchase Invoice System-Wide"
                               >
-                                Delete
+                                <Trash2 className="h-3 w-3" />
+                                <span>Delete</span>
                               </button>
                             </div>
                           </td>
@@ -1806,6 +1808,30 @@ export function PurchaseModule() {
               </table>
             </div>
           </div>
+
+          {/* SYSTEM-WIDE DELETE CONFIRMATION MODAL */}
+          {purchaseToDelete && (
+            <DeleteConfirmationModal
+              isOpen={Boolean(purchaseToDelete)}
+              onClose={() => setPurchaseToDelete(null)}
+              onConfirm={() => {
+                const docNo = purchaseToDelete.grn_no || purchaseToDelete.invoice_no || '';
+                deletePurchaseInvoice(purchaseToDelete.id);
+                toast.success(`Purchase Invoice ${docNo} deleted system-wide!`);
+                setPurchaseToDelete(null);
+              }}
+              title="Delete Purchase Invoice"
+              recordType="Purchase Invoice"
+              recordNo={purchaseToDelete.grn_no || purchaseToDelete.invoice_no}
+              partyName={
+                purchaseToDelete.vendor_name ||
+                vendors.find((v) => v.id === purchaseToDelete.vendor_id)?.name ||
+                customers.find((c) => c.id === purchaseToDelete.vendor_id)?.name
+              }
+              amount={purchaseToDelete.total_amount}
+              date={purchaseToDelete.received_date || purchaseToDelete.document_date}
+            />
+          )}
 
           {/* NEW / EDIT PURCHASE INVOICE MODAL */}
           {piViewMode === 'form' && (

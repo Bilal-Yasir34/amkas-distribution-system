@@ -70,7 +70,44 @@ CREATE TABLE IF NOT EXISTS public.purchase_returns (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3. Grant full permissions & disable RLS on all public tables to allow syncing between Localhost and Live URL
+CREATE TABLE IF NOT EXISTS public.approval_queue (
+  id TEXT PRIMARY KEY,
+  record_id TEXT,
+  record_no TEXT,
+  module TEXT,
+  entity_type TEXT,
+  requested_by TEXT,
+  amount NUMERIC DEFAULT 0,
+  status TEXT DEFAULT 'PENDING',
+  party_name TEXT,
+  warehouse_id TEXT,
+  items_summary TEXT,
+  review_note TEXT,
+  reviewed_by TEXT,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 3. Drop restrictive foreign key constraints on sales_invoices to allow unlimited transactions
+ALTER TABLE IF EXISTS public.sales_invoices DROP CONSTRAINT IF EXISTS sales_invoices_customer_id_fkey;
+ALTER TABLE IF EXISTS public.sales_invoices DROP CONSTRAINT IF EXISTS sales_invoices_warehouse_id_fkey;
+ALTER TABLE IF EXISTS public.sales_invoice_items DROP CONSTRAINT IF EXISTS sales_invoice_items_sales_invoice_id_fkey;
+ALTER TABLE IF EXISTS public.sales_invoice_items DROP CONSTRAINT IF EXISTS sales_invoice_items_product_id_fkey;
+
+-- 4. Enable Supabase Realtime broadcast for instant multi-device synchronization
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+    AND schemaname = 'public' 
+    AND tablename = 'cloud_sync_state'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.cloud_sync_state;
+  END IF;
+END $$;
+
+-- 5. Grant full permissions & disable RLS on all public tables
 DO $$
 DECLARE
     tbl text;
@@ -87,13 +124,271 @@ END $$;
 `;
 
 /**
+ * Merges two item arrays by unique key selector, ensuring no records from either device are lost.
+ */
+function mergeCollection<T>(
+  localList: T[] = [],
+  remoteList: T[] = [],
+  keySelector: (item: T) => string,
+  deletedSet?: Set<string>
+): T[] {
+  const isDeleted = (item: any, key: string) => {
+    if (!deletedSet || deletedSet.size === 0) return false;
+    if (deletedSet.has(key)) return true;
+    if (item.id && deletedSet.has(item.id)) return true;
+    if (item.record_id && deletedSet.has(item.record_id)) return true;
+    if (item.entity_id && deletedSet.has(item.entity_id)) return true;
+    if (item.invoice_no && deletedSet.has(item.invoice_no)) return true;
+    if (item.grn_no && deletedSet.has(item.grn_no)) return true;
+    if (item.bill_no && deletedSet.has(item.bill_no)) return true;
+    if (item.record_no && deletedSet.has(item.record_no)) return true;
+    if (item.voucher_no && deletedSet.has(item.voucher_no)) return true;
+    return false;
+  };
+
+  const map = new Map<string, T>();
+
+  // 1. Index remote items
+  for (const item of (remoteList || [])) {
+    if (!item) continue;
+    const key = keySelector(item);
+    if (!key || isDeleted(item, key)) continue;
+    map.set(key, item);
+  }
+
+  // 2. Merge local items
+  for (const item of (localList || [])) {
+    if (!item) continue;
+    const key = keySelector(item);
+    if (!key || isDeleted(item, key)) continue;
+
+    if (!map.has(key)) {
+      // Exists only locally -> preserve it!
+      map.set(key, item);
+    } else {
+      // Exists in both -> preserve the most recently updated or posted status
+      const remoteItem = map.get(key)!;
+      const remoteTime = new Date(
+        (remoteItem as any).updated_at ||
+        (remoteItem as any).reviewed_at ||
+        (remoteItem as any).created_at ||
+        0
+      ).getTime();
+      const localTime = new Date(
+        (item as any).updated_at ||
+        (item as any).reviewed_at ||
+        (item as any).created_at ||
+        0
+      ).getTime();
+
+      if (localTime >= remoteTime) {
+        map.set(key, { ...remoteItem, ...item });
+      } else {
+        map.set(key, { ...item, ...remoteItem });
+      }
+    }
+  }
+
+  return Array.from(map.values());
+}
+
+/**
+ * Intelligently combines two complete store states so that transactions added on
+ * any device (invoices, queue items, purchases, etc.) are preserved and never clobbered.
+ */
+export function mergeStores(local: any, remote: any): any {
+  if (!remote) return local;
+  if (!local) return remote;
+
+  const merged = { ...local, ...remote };
+
+  const deletedIds = new Set<string>([
+    ...(local.deletedRecordIds || []),
+    ...(remote.deletedRecordIds || []),
+  ]);
+  merged.deletedRecordIds = Array.from(deletedIds);
+
+  // Invoices
+  merged.invoices = mergeCollection(
+    local.invoices,
+    remote.invoices,
+    (i) => i.invoice_no || i.id || '',
+    deletedIds
+  );
+
+  // Approval Queue
+  merged.approvalQueue = mergeCollection(
+    local.approvalQueue,
+    remote.approvalQueue,
+    (a) => a.id || a.record_id || a.record_no || '',
+    deletedIds
+  );
+
+  // Purchases & Bills
+  merged.purchaseInvoices = mergeCollection(
+    local.purchaseInvoices,
+    remote.purchaseInvoices,
+    (p) => p.invoice_no || p.grn_no || p.id || '',
+    deletedIds
+  );
+  merged.vendorBills = mergeCollection(
+    local.vendorBills,
+    remote.vendorBills,
+    (b) => b.bill_no || b.id || '',
+    deletedIds
+  );
+
+  // Receipts & Payments
+  merged.customerReceipts = mergeCollection(
+    local.customerReceipts,
+    remote.customerReceipts,
+    (r) => r.receipt_no || r.id || '',
+    deletedIds
+  );
+  merged.vendorPayments = mergeCollection(
+    local.vendorPayments,
+    remote.vendorPayments,
+    (vp) => vp.payment_no || vp.id || '',
+    deletedIds
+  );
+
+  // Returns
+  merged.salesReturns = mergeCollection(
+    local.salesReturns,
+    remote.salesReturns,
+    (sr) => sr.return_no || sr.id || '',
+    deletedIds
+  );
+  merged.purchaseReturns = mergeCollection(
+    local.purchaseReturns,
+    remote.purchaseReturns,
+    (pr) => pr.return_no || pr.id || '',
+    deletedIds
+  );
+
+  // Quotations, Orders, Notes
+  merged.quotations = mergeCollection(
+    local.quotations,
+    remote.quotations,
+    (q) => q.quotation_no || q.id || '',
+    deletedIds
+  );
+  merged.salesOrders = mergeCollection(
+    local.salesOrders,
+    remote.salesOrders,
+    (so) => so.order_no || so.id || '',
+    deletedIds
+  );
+  merged.creditNotes = mergeCollection(
+    local.creditNotes,
+    remote.creditNotes,
+    (cn) => cn.credit_note_no || cn.id || '',
+    deletedIds
+  );
+  merged.debitNotes = mergeCollection(
+    local.debitNotes,
+    remote.debitNotes,
+    (dn) => dn.debit_note_no || dn.id || '',
+    deletedIds
+  );
+
+  // Journal entries
+  merged.journalEntries = mergeCollection(
+    local.journalEntries,
+    remote.journalEntries,
+    (je) => je.entry_no || je.id || '',
+    deletedIds
+  );
+
+  // Master Data
+  merged.customers = mergeCollection(
+    local.customers,
+    remote.customers,
+    (c) => c.code || c.id || c.name || ''
+  );
+  merged.vendors = mergeCollection(
+    local.vendors,
+    remote.vendors,
+    (v) => v.code || v.id || v.name || ''
+  );
+  merged.products = mergeCollection(
+    local.products,
+    remote.products,
+    (p) => p.code || p.id || p.name || ''
+  );
+  merged.categories = mergeCollection(
+    local.categories,
+    remote.categories,
+    (c) => c.name || c.id || ''
+  );
+  merged.warehouses = mergeCollection(
+    local.warehouses,
+    remote.warehouses,
+    (w) => w.code || w.id || w.name || ''
+  );
+  merged.chartOfAccounts = mergeCollection(
+    local.chartOfAccounts,
+    remote.chartOfAccounts,
+    (coa) => coa.code || coa.id || ''
+  );
+  merged.accountTypes = mergeCollection(
+    local.accountTypes,
+    remote.accountTypes,
+    (at) => at.code || at.id || at.name || ''
+  );
+  merged.productArticles = mergeCollection(
+    local.productArticles,
+    remote.productArticles,
+    (pa) => pa.id || pa.article_name || ''
+  );
+
+  merged.universalArticles = Array.from(
+    new Set([...(local.universalArticles || []), ...(remote.universalArticles || [])])
+  );
+
+  if (local.users?.length > 0 && (!remote.users || remote.users.length === 0)) {
+    merged.users = local.users;
+  }
+  if (local.organizations?.length > 0 && (!remote.organizations || remote.organizations.length === 0)) {
+    merged.organizations = local.organizations;
+  }
+  if (local.branches?.length > 0 && (!remote.branches || remote.branches.length === 0)) {
+    merged.branches = local.branches;
+  }
+
+  return merged;
+}
+
+/**
  * Pushes the current active Zustand store state into Supabase tables & cloud snapshot.
+ * Performs a smart pre-merge with any concurrent remote changes to guarantee no data loss.
  */
 export async function pushStateToSupabase(): Promise<CloudSyncResult> {
   try {
-    const state = useDataStore.getState();
+    let state = useDataStore.getState();
     const errors: string[] = [];
     let isRls = false;
+
+    // 0. Pre-merge remote snapshot to prevent overwriting concurrent records added by other devices
+    try {
+      const { data: remoteSnap } = await supabase
+        .from('cloud_sync_state')
+        .select('state_json')
+        .eq('id', 'primary_state')
+        .maybeSingle();
+
+      if (remoteSnap?.state_json) {
+        const merged = mergeStores(state, remoteSnap.state_json);
+        syncEngine.isReceivingRemote = true;
+        useDataStore.setState(merged);
+        state = useDataStore.getState();
+        setTimeout(() => {
+          syncEngine.isReceivingRemote = false;
+        }, 300);
+      }
+    } catch {
+      // Continue with push of current store state
+    }
 
     // 1. Primary Sync: Push complete JSON snapshot into cloud_sync_state
     try {
@@ -315,22 +610,71 @@ export async function pushStateToSupabase(): Promise<CloudSyncResult> {
       }
     }
 
-    // 10. Sync Sales Invoices
+    // 10. Sync Sales Invoices (Safe foreign key mapping for unlimited party types)
     if (state.invoices?.length > 0) {
-      const invRows = state.invoices.map((inv) => ({
-        id: toValidUuid(inv.id),
-        invoice_no: inv.invoice_no,
-        customer_id: toValidUuid(inv.customer_id),
-        warehouse_id: inv.warehouse_id ? toValidUuid(inv.warehouse_id) : null,
-        invoice_date: inv.invoice_date || new Date().toISOString().slice(0, 10),
-        status: inv.status || 'UNPOSTED',
-        total_amount: inv.total_amount || 0,
-        gate_pass_no: inv.gate_pass_no || null,
-      }));
+      let validCustIds = new Set<string>();
+      try {
+        const { data: dbCusts } = await supabase.from('customers').select('id');
+        if (dbCusts) validCustIds = new Set(dbCusts.map((c) => c.id));
+      } catch {
+        // ignore
+      }
+
+      const invRows = state.invoices.map((inv) => {
+        const rawCustId = toValidUuid(inv.customer_id);
+        const safeCustId = validCustIds.size === 0 || validCustIds.has(rawCustId) ? rawCustId : null;
+        return {
+          id: toValidUuid(inv.id),
+          invoice_no: inv.invoice_no,
+          customer_id: safeCustId,
+          warehouse_id: inv.warehouse_id ? toValidUuid(inv.warehouse_id) : null,
+          invoice_date: inv.invoice_date || new Date().toISOString().slice(0, 10),
+          status: inv.status || 'UNPOSTED',
+          total_amount: inv.total_amount || 0,
+          gate_pass_no: inv.gate_pass_no || null,
+        };
+      });
       const { error } = await supabase.from('sales_invoices').upsert(invRows, { onConflict: 'invoice_no' });
       if (error) {
         if (error.code === '42501' || error.message.includes('row-level security')) isRls = true;
         else errors.push(`Sales Invoices: ${error.message}`);
+      }
+    }
+
+    // 11. Sync Approval Queue (if table exists)
+    if (state.approvalQueue?.length > 0) {
+      try {
+        const queueRows = state.approvalQueue.map((q) => ({
+          id: toValidUuid(q.id),
+          record_id: q.record_id || null,
+          record_no: q.record_no || null,
+          module: q.module || 'Sales',
+          entity_type: q.entity_type || 'sales_invoice',
+          requested_by: q.requested_by || 'admin',
+          amount: q.amount || 0,
+          status: q.status || 'PENDING',
+          party_name: q.party_name || null,
+          warehouse_id: q.warehouse_id || null,
+          items_summary: q.items_summary || null,
+          review_note: q.review_note || null,
+          reviewed_by: q.reviewed_by || null,
+          reviewed_at: q.reviewed_at || null,
+          created_at: q.created_at || new Date().toISOString(),
+        }));
+        await supabase.from('approval_queue').upsert(queueRows, { onConflict: 'id' });
+      } catch {
+        // Table might be optional
+      }
+    }
+
+    // Clean up deleted records in Supabase tables
+    if (state.deletedRecordIds && state.deletedRecordIds.length > 0) {
+      try {
+        const delList = state.deletedRecordIds.slice(0, 100);
+        await supabase.from('sales_invoices').delete().in('invoice_no', delList);
+        await supabase.from('approval_queue').delete().in('record_no', delList);
+      } catch {
+        // ignore
       }
     }
 
@@ -361,6 +705,7 @@ export async function pushStateToSupabase(): Promise<CloudSyncResult> {
         categories: state.categories?.length || 0,
         warehouses: state.warehouses?.length || 0,
         invoices: state.invoices?.length || 0,
+        approvalQueue: state.approvalQueue?.length || 0,
         salesReturns: state.salesReturns?.length || 0,
         purchaseReturns: state.purchaseReturns?.length || 0,
         chartOfAccounts: state.chartOfAccounts?.length || 0,
@@ -380,7 +725,8 @@ export async function pushStateToSupabase(): Promise<CloudSyncResult> {
 }
 
 /**
- * Pulls latest records from Supabase tables and populates the Zustand store.
+ * Pulls latest records from Supabase tables, smartly merges with active store,
+ * and populates the Zustand store without triggering an immediate push echo loop.
  */
 export async function pullStateFromSupabase(): Promise<CloudSyncResult> {
   try {
@@ -397,17 +743,27 @@ export async function pullStateFromSupabase(): Promise<CloudSyncResult> {
       if (!snapErr && snapshotData?.state_json) {
         const cloudState = snapshotData.state_json;
         if (cloudState.products || cloudState.customers || cloudState.invoices || cloudState.organizations) {
-          useDataStore.setState(cloudState);
+          // Smart union merge with current active store state
+          syncEngine.isReceivingRemote = true;
+          const merged = mergeStores(store, cloudState);
+          useDataStore.setState(merged);
+
+          setTimeout(() => {
+            syncEngine.isReceivingRemote = false;
+            setSyncStatus('synced');
+          }, 800);
+
           return {
             success: true,
-            message: 'Successfully pulled full system snapshot from Supabase Cloud!',
+            message: 'Successfully pulled and merged system snapshot from Supabase Cloud!',
             counts: {
-              products: cloudState.products?.length || 0,
-              customers: cloudState.customers?.length || 0,
-              vendors: cloudState.vendors?.length || 0,
-              invoices: cloudState.invoices?.length || 0,
-              salesReturns: cloudState.salesReturns?.length || 0,
-              purchaseReturns: cloudState.purchaseReturns?.length || 0,
+              products: merged.products?.length || 0,
+              customers: merged.customers?.length || 0,
+              vendors: merged.vendors?.length || 0,
+              invoices: merged.invoices?.length || 0,
+              approvalQueue: merged.approvalQueue?.length || 0,
+              salesReturns: merged.salesReturns?.length || 0,
+              purchaseReturns: merged.purchaseReturns?.length || 0,
             },
           };
         }
@@ -602,8 +958,10 @@ export function initAutoCloudSync() {
               syncEngine.isReceivingRemote = true;
               setSyncStatus('syncing');
 
-              // Apply remote state to local Zustand store
-              useDataStore.setState(incomingState);
+              // Smartly merge remote state into local Zustand store
+              const currentStore = useDataStore.getState();
+              const merged = mergeStores(currentStore, incomingState);
+              useDataStore.setState(merged);
 
               setTimeout(() => {
                 syncEngine.isReceivingRemote = false;

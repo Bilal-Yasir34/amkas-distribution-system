@@ -19,12 +19,14 @@ import {
   AlertCircle,
   Tag,
   Printer,
+  Trash2,
 } from 'lucide-react';
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { ApprovalQueueItem } from '@/lib/types';
 import { ApprovalDocumentPrint } from '@/components/ApprovalDocumentPrint';
+import { DeleteConfirmationModal } from '@/components/DeleteConfirmationModal';
 import { getArticleForProduct } from '@/lib/articleUtils';
 
 export function Approvals() {
@@ -45,6 +47,8 @@ export function Approvals() {
     products = [],
     productArticles = [],
     bankAccounts = [],
+    deleteInvoice,
+    deletePurchaseInvoice,
   } = useDataStore();
 
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
@@ -52,6 +56,7 @@ export function Approvals() {
   const [selectedRequest, setSelectedRequest] = useState<ApprovalQueueItem | null>(null);
   const [reviewNote, setReviewNote] = useState('');
   const [printItem, setPrintItem] = useState<ApprovalQueueItem | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<ApprovalQueueItem | null>(null);
 
   const handleApprove = (id: string, recordNo: string, entityType?: string, customNote?: string) => {
     reviewApproval(id, 'APPROVED', customNote || 'Approved by administrator');
@@ -71,26 +76,223 @@ export function Approvals() {
     }
   };
 
+  const handleReopenToPending = (id: string, recordNo: string, entityType?: string) => {
+    const item = approvalQueue.find((a) => a.id === id);
+    if (!item) return;
+
+    const now = new Date().toISOString();
+    useDataStore.setState((s) => {
+      const updatedQueue = s.approvalQueue.map((a) =>
+        a.id === id
+          ? {
+              ...a,
+              status: 'PENDING',
+              review_note: undefined,
+              reviewed_by: undefined,
+              reviewed_at: undefined,
+              created_at: now,
+              updated_at: now,
+            }
+          : a
+      );
+
+      let newInvoices = s.invoices;
+      let newVendorBills = s.vendorBills;
+      let newPurchaseInvoices = s.purchaseInvoices;
+      let newSalesReturns = s.salesReturns;
+      let newPurchaseReturns = s.purchaseReturns;
+
+      if (item.entity_type === 'sales_invoice') {
+        newInvoices = s.invoices.map((inv) =>
+          inv.id === item.record_id || inv.invoice_no === item.record_no
+            ? { ...inv, status: 'PENDING_APPROVAL', updated_at: now }
+            : inv
+        );
+      } else if (item.entity_type === 'vendor_bill' || item.entity_type === 'purchase_invoice') {
+        newVendorBills = s.vendorBills.map((b) =>
+          b.id === item.record_id || b.bill_no === item.record_no
+            ? { ...b, status: 'PENDING_APPROVAL', updated_at: now }
+            : b
+        );
+        newPurchaseInvoices = s.purchaseInvoices.map((p) =>
+          p.id === item.record_id || p.grn_no === item.record_no
+            ? { ...p, status: 'PENDING_APPROVAL', updated_at: now }
+            : p
+        );
+      } else if (item.entity_type === 'sales_return') {
+        newSalesReturns = s.salesReturns.map((sr) =>
+          sr.id === item.record_id || sr.return_no === item.record_no
+            ? { ...sr, status: 'PENDING_APPROVAL' }
+            : sr
+        );
+      } else if (item.entity_type === 'purchase_return') {
+        newPurchaseReturns = s.purchaseReturns.map((pr) =>
+          pr.id === item.record_id || pr.return_no === item.record_no
+            ? { ...pr, status: 'PENDING_APPROVAL' }
+            : pr
+        );
+      }
+
+      return {
+        approvalQueue: updatedQueue,
+        invoices: newInvoices,
+        vendorBills: newVendorBills,
+        purchaseInvoices: newPurchaseInvoices,
+        salesReturns: newSalesReturns,
+        purchaseReturns: newPurchaseReturns,
+      };
+    });
+
+    const label = entityType ? entityType.replace('_', ' ').toUpperCase() : 'Document';
+    toast.success(`${label} ${recordNo} moved back to Pending!`);
+    if (selectedRequest && selectedRequest.id === id) {
+      setSelectedRequest((prev) => (prev ? { ...prev, status: 'PENDING', review_note: undefined, reviewed_by: undefined, reviewed_at: undefined } : null));
+    }
+  };
+
+  const handleDeleteRequest = (item: ApprovalQueueItem) => {
+    const et = (item.entity_type || '').toLowerCase();
+    const recNo = item.record_no || '';
+    const recId = item.record_id || item.entity_id || item.id;
+
+    if (et === 'sales_invoice' || item.module === 'Sales' || recNo.toLowerCase().startsWith('sl-')) {
+      deleteInvoice(recId);
+    } else if (
+      et === 'purchase_invoice' ||
+      et === 'vendor_bill' ||
+      recNo.toLowerCase().startsWith('pur-') ||
+      recNo.toLowerCase().startsWith('pi-')
+    ) {
+      deletePurchaseInvoice(recId);
+    } else {
+      useDataStore.setState((s) => ({
+        approvalQueue: s.approvalQueue.filter((a) => a.id !== item.id && a.record_no !== recNo),
+        deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), item.id, recNo].filter(Boolean) as string[])),
+      }));
+    }
+
+    toast.success(`Request ${recNo || ''} deleted system-wide!`);
+    if (selectedRequest && selectedRequest.id === item.id) {
+      setSelectedRequest(null);
+    }
+    setItemToDelete(null);
+  };
+
   const pendingCount = useMemo(() => approvalQueue.filter((a) => a.status === 'PENDING').length, [approvalQueue]);
   const approvedCount = useMemo(() => approvalQueue.filter((a) => a.status === 'APPROVED').length, [approvalQueue]);
   const rejectedCount = useMemo(() => approvalQueue.filter((a) => a.status === 'REJECTED').length, [approvalQueue]);
 
+  const parseToTimestamp = (dateStr?: string | null): number => {
+    if (!dateStr) return 0;
+    const trimmed = dateStr.trim();
+    if (!trimmed || trimmed === '—' || trimmed === '-') return 0;
+
+    const d = new Date(trimmed);
+    const time = d.getTime();
+    if (!isNaN(time) && time > 0) return time;
+
+    const dmyMatch = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+    if (dmyMatch) {
+      const day = parseInt(dmyMatch[1], 10);
+      const month = parseInt(dmyMatch[2], 10) - 1;
+      let year = parseInt(dmyMatch[3], 10);
+      if (year < 100) year += 2000;
+      const parsed = new Date(year, month, day).getTime();
+      if (!isNaN(parsed)) return parsed;
+    }
+
+    return 0;
+  };
+
+  const extractRecordNumber = (recNo?: string | null): number => {
+    if (!recNo) return 0;
+    const match = recNo.match(/\d+/g);
+    if (!match) return 0;
+    return parseInt(match[match.length - 1], 10) || 0;
+  };
+
+  const getApprovalItemDate = (item: ApprovalQueueItem): string => {
+    if (item.created_at && item.created_at.trim() && item.created_at !== '—') {
+      return item.created_at;
+    }
+    const et = (item.entity_type || '').toLowerCase();
+    const recId = item.record_id || item.entity_id;
+    const recNo = item.record_no || item.voucher_no;
+
+    if (et === 'sales_invoice' || item.module === 'Sales' || recNo?.toLowerCase().startsWith('sl-')) {
+      const doc = invoices.find((i) => i.id === recId || i.invoice_no === recNo);
+      if (doc) return (doc as any).created_at || doc.invoice_date || '';
+    } else if (et === 'purchase_invoice' || et === 'vendor_bill' || recNo?.toLowerCase().startsWith('pur-')) {
+      const doc = purchaseInvoices.find((p) => p.id === recId || p.grn_no === recNo || p.invoice_no === recNo);
+      if (doc) return (doc as any).created_at || doc.received_date || doc.document_date || '';
+    } else if (et === 'sales_return' || recNo?.toLowerCase().startsWith('sr-')) {
+      const doc = salesReturns.find((r) => r.id === recId || r.return_no === recNo);
+      if (doc) return (doc as any).created_at || (doc as any).return_date || doc.document_date || '';
+    } else if (et === 'purchase_return' || recNo?.toLowerCase().startsWith('pr-')) {
+      const doc = purchaseReturns.find((r) => r.id === recId || r.return_no === recNo);
+      if (doc) return (doc as any).created_at || (doc as any).return_date || doc.document_date || '';
+    } else if (et === 'customer_receipt' || recNo?.toLowerCase().startsWith('cr-')) {
+      const doc = customerReceipts.find((c) => c.id === recId || c.receipt_no === recNo);
+      if (doc) return (doc as any).created_at || doc.receipt_date || '';
+    } else if (et === 'vendor_payment' || recNo?.toLowerCase().startsWith('cp-') || recNo?.toLowerCase().startsWith('pay-')) {
+      const doc = vendorPayments.find((p) => p.id === recId || p.payment_no === recNo);
+      if (doc) return (doc as any).created_at || doc.payment_date || '';
+    }
+    return '';
+  };
+
   const filtered = useMemo(() => {
-    return approvalQueue.filter((item) => {
-      const matchStatus = filterStatus === 'ALL' || item.status === filterStatus;
-      const q = searchTerm.toLowerCase();
-      const matchSearch =
-        !searchTerm ||
-        (item.record_no || '').toLowerCase().includes(q) ||
-        (item.party_name || '').toLowerCase().includes(q) ||
-        (item.module || '').toLowerCase().includes(q) ||
-        (item.entity_type || '').toLowerCase().includes(q) ||
-        (item.requested_by || '').toLowerCase().includes(q) ||
-        (item.requested_by_name || '').toLowerCase().includes(q) ||
-        (item.requested_by_role || '').toLowerCase().includes(q);
-      return matchStatus && matchSearch;
-    });
-  }, [approvalQueue, filterStatus, searchTerm]);
+    return approvalQueue
+      .filter((item) => {
+        const matchStatus = filterStatus === 'ALL' || item.status === filterStatus;
+        const q = searchTerm.toLowerCase();
+        const matchSearch =
+          !searchTerm ||
+          (item.record_no || '').toLowerCase().includes(q) ||
+          (item.party_name || '').toLowerCase().includes(q) ||
+          (item.module || '').toLowerCase().includes(q) ||
+          (item.entity_type || '').toLowerCase().includes(q) ||
+          (item.requested_by || '').toLowerCase().includes(q) ||
+          (item.requested_by_name || '').toLowerCase().includes(q) ||
+          (item.requested_by_role || '').toLowerCase().includes(q);
+        return matchStatus && matchSearch;
+      })
+      .sort((a, b) => {
+        const dateA = getApprovalItemDate(a) || a.created_at;
+        const dateB = getApprovalItemDate(b) || b.created_at;
+        const timeA = parseToTimestamp(dateA);
+        const timeB = parseToTimestamp(dateB);
+
+        // Sort descending: newest requests on top
+        if (timeB !== timeA) {
+          return timeB - timeA;
+        }
+
+        // Secondary tiebreaker: numeric part of record_no (e.g. SL-08 before SL-07)
+        const numA = extractRecordNumber(a.record_no);
+        const numB = extractRecordNumber(b.record_no);
+        if (numA !== numB) {
+          return numB - numA;
+        }
+
+        // Tertiary tiebreaker: lexical record_no descending
+        const recComp = (b.record_no || '').localeCompare(a.record_no || '');
+        if (recComp !== 0) return recComp;
+
+        // Fallback: ID descending
+        return (b.id || '').localeCompare(a.id || '');
+      });
+  }, [
+    approvalQueue,
+    filterStatus,
+    searchTerm,
+    invoices,
+    purchaseInvoices,
+    salesReturns,
+    purchaseReturns,
+    customerReceipts,
+    vendorPayments,
+  ]);
 
   // Helper to parse Requester Name & Role based strictly on login / registration state
   const getRequesterInfo = (item: ApprovalQueueItem) => {
@@ -280,7 +482,7 @@ export function Approvals() {
           termsConditions: inv.terms_conditions,
           items: (inv.items || []).map((it) => {
             const prod = products.find((p) => p.id === it.product_id);
-            const art = it.article_id || getArticleForProduct(it.product_id, products, productArticles) || prod?.article_name;
+            const art = (it as any).article_id || getArticleForProduct(it.product_id, products, productArticles) || prod?.article_name;
             return {
               productName: prod?.name || it.description || 'Product',
               sku: prod?.code || '',
@@ -415,7 +617,7 @@ export function Approvals() {
           notes: sr.notes || sr.reason,
           items: (sr.items || []).map((it) => {
             const prod = products.find((p) => p.id === it.product_id);
-            const art = it.article_id || getArticleForProduct(it.product_id, products, productArticles) || prod?.article_name;
+            const art = (it as any).article_id || getArticleForProduct(it.product_id, products, productArticles) || prod?.article_name;
             return {
               productName: prod?.name || it.description || 'Product',
               sku: prod?.code || '',
@@ -459,7 +661,7 @@ export function Approvals() {
           notes: pr.notes,
           items: (pr.items || []).map((it) => {
             const prod = products.find((p) => p.id === it.product_id);
-            const art = it.article_id || getArticleForProduct(it.product_id, products, productArticles) || prod?.article_name;
+            const art = (it as any).article_id || getArticleForProduct(it.product_id, products, productArticles) || prod?.article_name;
             return {
               productName: prod?.name || it.description || 'Product',
               sku: prod?.code || '',
@@ -698,7 +900,7 @@ export function Approvals() {
                       )}
                     </td>
                     <td className="px-3 py-2 text-slate-400 whitespace-nowrap text-[11px]">
-                      {formatDate(item.created_at || '')}
+                      {formatDate(getApprovalItemDate(item) || item.created_at || '')}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       <div className="flex flex-col">
@@ -777,11 +979,30 @@ export function Approvals() {
                               Reject
                             </button>
                           </>
+                        ) : item.status === 'REJECTED' ? (
+                          <button
+                            type="button"
+                            onClick={() => handleReopenToPending(item.id, item.record_no || '', item.entity_type)}
+                            className="rounded-lg bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 text-[11px] font-bold text-amber-500 hover:bg-amber-500/25 transition"
+                            title="Restore back to Pending"
+                          >
+                            Re-open
+                          </button>
                         ) : (
                           <span className="text-[10px] text-slate-500 pl-1">
                             {item.reviewed_by || 'Admin'}
                           </span>
                         )}
+
+                        <button
+                          type="button"
+                          onClick={() => setItemToDelete(item)}
+                          className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-rose-500 hover:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20 transition"
+                          title="Delete Request System-Wide"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Delete</span>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -1137,6 +1358,16 @@ export function Approvals() {
                   <Printer className="h-4 w-4 text-amber-500" />
                   <span>Print Document</span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setItemToDelete(selectedRequest)}
+                  className="flex items-center gap-1.5 rounded-xl border border-rose-300 dark:border-rose-800/60 bg-rose-50/50 dark:bg-rose-950/20 px-3.5 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition"
+                  title="Delete this record permanently system-wide"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Delete Record</span>
+                </button>
               </div>
 
               {selectedRequest.status === 'PENDING' && (
@@ -1161,17 +1392,46 @@ export function Approvals() {
                   </button>
                 </div>
               )}
+
+              {selectedRequest.status === 'REJECTED' && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleReopenToPending(selectedRequest.id, selectedRequest.record_no || '', selectedRequest.entity_type);
+                    }}
+                    className="flex items-center gap-1.5 rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-amber-700 transition"
+                  >
+                    <Clock className="h-4 w-4" /> Move Back to Pending
+                  </button>
+                </div>
+              )}
             </div>
 
           </div>
         </div>
       )}
 
-      {/* EXECUTIVE DOCUMENT PRINT MODAL */}
+      {/* PRINT PREVIEW COMPONENT */}
       {printItem && (
         <ApprovalDocumentPrint
           item={printItem}
           onClose={() => setPrintItem(null)}
+        />
+      )}
+
+      {/* SYSTEM-WIDE DELETE CONFIRMATION MODAL */}
+      {itemToDelete && (
+        <DeleteConfirmationModal
+          isOpen={Boolean(itemToDelete)}
+          onClose={() => setItemToDelete(null)}
+          onConfirm={() => handleDeleteRequest(itemToDelete)}
+          title="Delete Request System-Wide"
+          recordType={itemToDelete.entity_type ? itemToDelete.entity_type.replace('_', ' ').toUpperCase() : 'Approval Request'}
+          recordNo={itemToDelete.record_no}
+          partyName={itemToDelete.party_name}
+          amount={itemToDelete.amount}
+          date={itemToDelete.created_at}
         />
       )}
     </div>

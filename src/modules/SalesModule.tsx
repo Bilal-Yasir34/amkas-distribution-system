@@ -24,6 +24,7 @@ import { useAuth } from '@/lib/auth';
 import { todayISO, safeUUID, nextDocNumber, STANDARD_UNITS, convertUnitRate, formatDate, formatUserRequester } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
 import { InvoicePrint } from '@/components/InvoicePrint';
+import { DeleteConfirmationModal } from '@/components/DeleteConfirmationModal';
 import type { SalesInvoice, Customer, Quotation, SalesOrder, QuotationItem, SalesOrderItem, CreditNote, CreditNoteItem, CustomerReceipt } from '@/lib/types';
 import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
 
@@ -79,6 +80,7 @@ export function SalesModule() {
   const [genericModalOpen, setGenericModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [printInvoice, setPrintInvoice] = useState<SalesInvoice | null>(null);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<SalesInvoice | null>(null);
 
   // Generic Form State
   const [genericCustId, setGenericCustId] = useState('');
@@ -111,7 +113,7 @@ export function SalesModule() {
   const [invPartyType, setInvPartyType] = useState<string>('ALL');
   const [invCustomerId, setInvCustomerId] = useState('');
 
-  const [salesStatusFilter, setSalesStatusFilter] = useState<'ALL' | 'POSTED' | 'PENDING_APPROVAL'>('ALL');
+  const [salesStatusFilter, setSalesStatusFilter] = useState<'ALL' | 'POSTED' | 'PENDING_APPROVAL' | 'REJECTED'>('ALL');
 
   const availableParties = useMemo<any[]>(() => {
     const taggedCustomers = customers.map(c => ({ ...c, _origin: 'customer' }));
@@ -533,6 +535,31 @@ export function SalesModule() {
     setInvReferenceNo('');
     setSalesStatusFilter('ALL');
     setInvoiceViewMode('list');
+  };
+
+  const handleResubmitInvoice = (inv: SalesInvoice) => {
+    const now = new Date().toISOString();
+    updateInvoice(inv.id, { status: 'PENDING_APPROVAL', updated_at: now } as any);
+    const requester = formatUserRequester(profile, 'Sales');
+    const party = customers.find((c) => c.id === inv.customer_id) || vendors.find((v) => v.id === inv.customer_id);
+    const resolvedCustomerName = party?.name || inv.customer_name || 'Customer';
+
+    addApprovalQueueItem({
+      module: 'Sales',
+      entity_type: 'sales_invoice',
+      record_id: inv.id,
+      record_no: inv.invoice_no,
+      requested_by: requester.formatted,
+      requested_by_name: requester.name,
+      requested_by_role: requester.role,
+      amount: inv.total_amount,
+      status: 'PENDING',
+      party_name: resolvedCustomerName,
+      warehouse_id: inv.warehouse_id || 'w1',
+      items_summary: (inv.items || []).map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${inv.items?.length || 0} items`,
+      created_at: now,
+    });
+    toast.success(`Invoice ${inv.invoice_no} re-submitted to Approval Center!`);
   };
 
   // Credit Note Form State (matching screenshots)
@@ -1365,6 +1392,12 @@ export function SalesModule() {
                   >
                     Pending Approval ({invoices.filter(i => i.status === 'PENDING_APPROVAL').length})
                   </button>
+                  <button
+                    onClick={() => setSalesStatusFilter('REJECTED')}
+                    className={`px-3 py-1 rounded-md font-semibold transition ${salesStatusFilter === 'REJECTED' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
+                  >
+                    Rejected ({invoices.filter(i => i.status === 'REJECTED').length})
+                  </button>
                 </div>
                 <button
                   onClick={openCreateInvoiceForm}
@@ -1392,6 +1425,7 @@ export function SalesModule() {
                     const filteredInvoices = invoices.filter((inv) => {
                       if (salesStatusFilter === 'POSTED') return inv.status === 'POSTED';
                       if (salesStatusFilter === 'PENDING_APPROVAL') return inv.status === 'PENDING_APPROVAL';
+                      if (salesStatusFilter === 'REJECTED') return inv.status === 'REJECTED';
                       return true;
                     });
                     if (filteredInvoices.length === 0) {
@@ -1408,6 +1442,7 @@ export function SalesModule() {
                       const partyDisplayName = party?.name || inv.customer_name || (inv as any).party_name || 'Customer';
                       const isPosted = inv.status === 'POSTED';
                       const isPending = inv.status === 'PENDING_APPROVAL';
+                      const isRejected = inv.status === 'REJECTED';
                       return (
                         <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                           <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{inv.invoice_no}</td>
@@ -1422,24 +1457,39 @@ export function SalesModule() {
                                 ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                                 : isPending
                                 ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                : isRejected
+                                ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
                                 : 'bg-slate-500/15 text-slate-300 border-slate-700'
                             }`}>
-                              {isPosted ? 'ACCEPTED (POSTED)' : isPending ? 'PENDING APPROVAL' : inv.status}
+                              {isPosted ? 'ACCEPTED (POSTED)' : isPending ? 'PENDING APPROVAL' : isRejected ? 'REJECTED' : inv.status}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-2">
+                              {isRejected && (
+                                <button
+                                  onClick={() => handleResubmitInvoice(inv)}
+                                  className="rounded-md bg-amber-500/15 px-2 py-1 text-[11px] font-bold text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 transition flex items-center gap-1"
+                                  title="Re-submit to Approval Center"
+                                >
+                                  <Send className="h-3 w-3" /> Re-submit
+                                </button>
+                              )}
                               <button onClick={() => openEditInvoiceForm(inv)} className="p-1 text-slate-400 hover:text-amber-400 transition" title="Edit Invoice">
                                 <Edit className="h-3.5 w-3.5" />
                               </button>
                               <button onClick={() => setPrintInvoice(inv)} className="p-1 text-slate-400 hover:text-white transition" title="Print Invoice">
                                 <Printer className="h-3.5 w-3.5" />
                               </button>
-                              {isAdmin && (
-                                <button onClick={() => { deleteInvoice(inv.id); toast.success('Invoice deleted'); }} className="text-xs text-rose-500 hover:underline">
-                                  Delete
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => setInvoiceToDelete(inv)}
+                                className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold text-rose-500 hover:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20 transition"
+                                title="Delete Sales Invoice System-Wide"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                <span>Delete</span>
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -1450,6 +1500,30 @@ export function SalesModule() {
               </table>
             </div>
           </div>
+
+          {/* SYSTEM-WIDE DELETE CONFIRMATION MODAL */}
+          {invoiceToDelete && (
+            <DeleteConfirmationModal
+              isOpen={Boolean(invoiceToDelete)}
+              onClose={() => setInvoiceToDelete(null)}
+              onConfirm={() => {
+                const invNo = invoiceToDelete.invoice_no || '';
+                deleteInvoice(invoiceToDelete.id);
+                toast.success(`Sales Invoice ${invNo} deleted system-wide!`);
+                setInvoiceToDelete(null);
+              }}
+              title="Delete Sales Invoice"
+              recordType="Sales Invoice"
+              recordNo={invoiceToDelete.invoice_no}
+              partyName={
+                invoiceToDelete.customer_name ||
+                customers.find((c) => c.id === invoiceToDelete.customer_id)?.name ||
+                vendors.find((v) => v.id === invoiceToDelete.customer_id)?.name
+              }
+              amount={invoiceToDelete.total_amount}
+              date={invoiceToDelete.invoice_date}
+            />
+          )}
 
           {/* NEW SALES INVOICE FORM MODAL */}
           {invoiceViewMode === 'form' && (

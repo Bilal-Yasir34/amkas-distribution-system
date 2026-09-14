@@ -123,6 +123,7 @@ interface DataStoreState {
   rolePermissions: Record<Role, ModuleKey[]>;
   expenseRecords: ExpenseRecord[];
   incomeRecords: IncomeRecord[];
+  deletedRecordIds: string[];
 
   // Maintenance Mode State
   isMaintenanceMode: boolean;
@@ -350,6 +351,7 @@ export const useDataStore = create<DataStoreState>()(
       ],
       chartOfAccounts: initialCOA,
       approvalQueue: initialApprovals,
+      deletedRecordIds: [],
       organizations: [
         {
           id: 'org1',
@@ -730,7 +732,33 @@ export const useDataStore = create<DataStoreState>()(
           };
         }),
       updateInvoice: (id, patch) => set((s) => ({ invoices: s.invoices.map((i) => (i.id === id ? { ...i, ...patch } : i)) })),
-      deleteInvoice: (id) => set((s) => ({ invoices: s.invoices.filter((i) => i.id !== id) })),
+      deleteInvoice: (id) =>
+        set((s) => {
+          const target = s.invoices.find((i) => i.id === id || i.invoice_no === id);
+          const invNo = target?.invoice_no;
+          const idsToDelete = [id, invNo].filter(Boolean) as string[];
+
+          return {
+            invoices: s.invoices.filter((i) => i.id !== id && (!invNo || i.invoice_no !== invNo)),
+            approvalQueue: s.approvalQueue.filter(
+              (a) =>
+                a.id !== id &&
+                a.record_id !== id &&
+                a.entity_id !== id &&
+                (!invNo || a.record_no !== invNo)
+            ),
+            commissions: (s.commissions || []).filter(
+              (c) => c.invoice_id !== id && (!invNo || c.invoice_no !== invNo)
+            ),
+            journalEntries: (s.journalEntries || []).filter(
+              (je) =>
+                je.reference_no !== id &&
+                (!invNo || je.reference_no !== invNo) &&
+                (!invNo || je.entry_no !== `JV-${invNo}`)
+            ),
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), ...idsToDelete])),
+          };
+        }),
 
       addQuotation: (q) => set((s) => ({ quotations: [{ id: crypto.randomUUID(), ...q }, ...s.quotations] })),
       updateQuotation: (id, patch) => set((s) => ({ quotations: s.quotations.map((q) => (q.id === id ? { ...q, ...patch } : q)) })),
@@ -827,7 +855,40 @@ export const useDataStore = create<DataStoreState>()(
 
       addPurchaseInvoice: (pi) => set((s) => ({ purchaseInvoices: [{ id: (pi as any).id || crypto.randomUUID(), ...pi }, ...s.purchaseInvoices] })),
       updatePurchaseInvoice: (id, patch) => set((s) => ({ purchaseInvoices: s.purchaseInvoices.map((pi) => (pi.id === id ? { ...pi, ...patch } : pi)) })),
-      deletePurchaseInvoice: (id) => set((s) => ({ purchaseInvoices: s.purchaseInvoices.filter((pi) => pi.id !== id) })),
+      deletePurchaseInvoice: (id) =>
+        set((s) => {
+          const target = s.purchaseInvoices.find(
+            (p) => p.id === id || p.grn_no === id || p.invoice_no === id
+          );
+          const targetIdentifiers = [
+            id,
+            target?.grn_no,
+            target?.invoice_no,
+            (target as any)?.bill_no,
+          ].filter(Boolean) as string[];
+
+          return {
+            purchaseInvoices: s.purchaseInvoices.filter(
+              (p) =>
+                !targetIdentifiers.includes(p.id) &&
+                (!p.grn_no || !targetIdentifiers.includes(p.grn_no)) &&
+                (!p.invoice_no || !targetIdentifiers.includes(p.invoice_no))
+            ),
+            approvalQueue: s.approvalQueue.filter(
+              (a) =>
+                !targetIdentifiers.includes(a.id) &&
+                (!a.record_id || !targetIdentifiers.includes(a.record_id)) &&
+                (!a.entity_id || !targetIdentifiers.includes(a.entity_id)) &&
+                (!a.record_no || !targetIdentifiers.includes(a.record_no))
+            ),
+            journalEntries: (s.journalEntries || []).filter(
+              (je) =>
+                !targetIdentifiers.includes(je.reference_no || '') &&
+                !targetIdentifiers.some((ident) => je.entry_no === `JV-${ident}`)
+            ),
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), ...targetIdentifiers])),
+          };
+        }),
 
       addVendorBill: (vb) => set((s) => ({ vendorBills: [{ id: (vb as any).id || crypto.randomUUID(), ...vb }, ...s.vendorBills] })),
       updateVendorBill: (id, patch) => set((s) => ({ vendorBills: s.vendorBills.map((vb) => (vb.id === id ? { ...vb, ...patch } : vb)) })),
