@@ -25,6 +25,13 @@ function toValidUuid(id: string | undefined | null): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
+export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isValidUUID(id?: string | null): boolean {
+  if (!id || typeof id !== 'string') return false;
+  return UUID_REGEX.test(id.trim());
+}
+
 export const SUPABASE_FIX_SQL = `-- AMKAS ERP - Supabase Full Cloud Sync Fix Script
 -- Run this script in Supabase Dashboard -> SQL Editor -> Click 'Run'
 
@@ -221,17 +228,19 @@ export function mergeStores(local: any, remote: any): any {
     remotePurchaseInvoices: (remote.purchaseInvoices || []).length,
   });
 
-  const deletedIds = new Set<string>([
+  const rawDeleted = [
     ...(local.deletedRecordIds || []),
     ...(remote.deletedRecordIds || []),
-  ]);
-  merged.deletedRecordIds = Array.from(deletedIds);
+  ];
+  const cleanDeleted = Array.from(new Set(rawDeleted.filter((id) => isValidUUID(id))));
+  const deletedIds = new Set<string>(cleanDeleted);
+  merged.deletedRecordIds = cleanDeleted;
 
   // Invoices
   merged.invoices = mergeCollection(
     local.invoices,
     remote.invoices,
-    (i) => i.invoice_no || i.id || '',
+    (i) => i.id || i.invoice_no || '',
     deletedIds,
     'INVOICES'
   );
@@ -1056,10 +1065,13 @@ export async function pullStateFromSupabase(): Promise<CloudSyncResult> {
       // Fallback to table-by-table sync below
     }
 
+    const deletedFallbackSet = new Set<string>((store.deletedRecordIds || []).filter((id: string) => isValidUUID(id)));
+
     // 2. Fetch Products
     const { data: prods } = await supabase.from('products').select('*');
     if (prods && prods.length > 0) {
       prods.forEach((p: Product) => {
+        if (deletedFallbackSet.has(p.id)) return;
         const existing = store.products?.find((ep) => ep.id === p.id || ep.code === p.code);
         if (existing) {
           store.updateProduct(existing.id, { ...existing, ...p });
@@ -1073,6 +1085,7 @@ export async function pullStateFromSupabase(): Promise<CloudSyncResult> {
     const { data: custs } = await supabase.from('customers').select('*');
     if (custs && custs.length > 0) {
       custs.forEach((c: Customer) => {
+        if (deletedFallbackSet.has(c.id)) return;
         const existing = store.customers?.find((ec) => ec.id === c.id || ec.code === c.code);
         if (existing) {
           store.updateCustomer(existing.id, { ...existing, ...c });
@@ -1086,6 +1099,7 @@ export async function pullStateFromSupabase(): Promise<CloudSyncResult> {
     const { data: vends } = await supabase.from('vendors').select('*');
     if (vends && vends.length > 0) {
       vends.forEach((v: Vendor) => {
+        if (deletedFallbackSet.has(v.id)) return;
         const existing = store.vendors?.find((ev) => ev.id === v.id || ev.code === v.code);
         if (existing) {
           store.updateVendor(existing.id, { ...existing, ...v });
@@ -1099,6 +1113,7 @@ export async function pullStateFromSupabase(): Promise<CloudSyncResult> {
     const { data: cats } = await supabase.from('categories').select('*');
     if (cats && cats.length > 0) {
       cats.forEach((cat: Category) => {
+        if (deletedFallbackSet.has(cat.id)) return;
         const existing = store.categories?.find((ec) => ec.id === cat.id || ec.name === cat.name);
         if (existing) {
           store.updateCategory(existing.id, { ...existing, ...cat });
@@ -1112,6 +1127,7 @@ export async function pullStateFromSupabase(): Promise<CloudSyncResult> {
     const { data: whs } = await supabase.from('warehouses').select('*');
     if (whs && whs.length > 0) {
       whs.forEach((wh: Warehouse) => {
+        if (deletedFallbackSet.has(wh.id)) return;
         const existing = store.warehouses?.find((ewh) => ewh.id === wh.id || ewh.code === wh.code);
         if (existing) {
           store.updateWarehouse(existing.id, { ...existing, ...wh });
