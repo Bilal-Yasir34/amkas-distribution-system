@@ -3,7 +3,7 @@ import { Plus, ShoppingCart, DollarSign, FileText, CheckCircle, Clock, X, Trash2
 import { useDataStore } from '@/lib/dataStore';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
-import { todayISO, safeUUID, nextDocNumber, formatDate, formatUserRequester } from '@/lib/utils';
+import { todayISO, safeUUID, nextDocNumber, formatDate, formatCurrency, formatUserRequester } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
 import type { VendorBill, Vendor, PurchaseInvoice } from '@/lib/types';
 import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
