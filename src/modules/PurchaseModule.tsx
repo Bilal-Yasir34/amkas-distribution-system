@@ -69,7 +69,7 @@ export function PurchaseModule() {
   }, [customers]);
 
   const [activeSubTab, setActiveSubTab] = useState<'Purchases' | 'Requests' | 'Purchase Orders' | 'Purchase Invoices' | 'Debit Notes' | 'Payments'>('Purchases');
-  const [purchaseStatusFilter, setPurchaseStatusFilter] = useState<'ALL' | 'POSTED' | 'PENDING_APPROVAL'>('ALL');
+  const [purchaseStatusFilter, setPurchaseStatusFilter] = useState<'ALL' | 'POSTED' | 'PENDING_APPROVAL' | 'REJECTED'>('ALL');
 
   const [newBillOpen, setNewBillOpen] = useState(false);
   const [genericModalOpen, setGenericModalOpen] = useState(false);
@@ -93,6 +93,18 @@ export function PurchaseModule() {
   const [lineItems, setLineItems] = useState([
     { id: '1', product_id: '', article_id: '', colour: '', description: '', qty: 1, rate: 0, tax_pct: 0 },
   ]);
+
+  const handleResubmitPI = (pi: PurchaseInvoice) => {
+    updatePurchaseInvoice(pi.id, { status: 'PENDING_APPROVAL' });
+    useDataStore.setState((s) => ({
+      approvalQueue: s.approvalQueue.map((a) =>
+        a.record_id === pi.id || a.record_no === pi.grn_no || a.record_no === pi.invoice_no
+          ? { ...a, status: 'PENDING', review_note: undefined, reviewed_by: undefined, reviewed_at: undefined }
+          : a
+      ),
+    }));
+    toast.success(`Purchase Invoice ${pi.grn_no || pi.invoice_no || ''} re-submitted to Approval Center!`);
+  };
 
   const openCreateBill = () => {
     setEditingId(null);
@@ -1708,6 +1720,25 @@ export function PurchaseModule() {
                   >
                     Pending Approval ({(purchaseInvoices || []).filter(p => p.status === 'PENDING_APPROVAL').length})
                   </button>
+                  <button
+                    onClick={() => setPurchaseStatusFilter('REJECTED')}
+                    className={`px-3 py-1 rounded-md font-semibold transition flex items-center gap-1.5 ${
+                      purchaseStatusFilter === 'REJECTED'
+                        ? 'bg-rose-600 text-white shadow-sm'
+                        : 'text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300'
+                    }`}
+                  >
+                    <span>Rejected</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        purchaseStatusFilter === 'REJECTED'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-rose-500/15 text-rose-500 border border-rose-500/20'
+                      }`}
+                    >
+                      {(purchaseInvoices || []).filter((p) => p.status === 'REJECTED').length}
+                    </span>
+                  </button>
                 </div>
                 <button
                   onClick={openCreatePIForm}
@@ -1736,6 +1767,7 @@ export function PurchaseModule() {
                     const filteredPIs = (purchaseInvoices || []).filter((pi) => {
                       if (purchaseStatusFilter === 'POSTED') return pi.status === 'POSTED';
                       if (purchaseStatusFilter === 'PENDING_APPROVAL') return pi.status === 'PENDING_APPROVAL';
+                      if (purchaseStatusFilter === 'REJECTED') return pi.status === 'REJECTED';
                       return true;
                     });
                     if (filteredPIs.length === 0) {
@@ -1753,28 +1785,40 @@ export function PurchaseModule() {
                       const partyDisplayName = party?.name || (pi as any).vendor_name || (pi as any).party_name || 'Vendor / Party';
                       const isPosted = pi.status === 'POSTED';
                       const isPending = pi.status === 'PENDING_APPROVAL';
+                      const isRejected = pi.status === 'REJECTED';
+                      const vendorName = pi.vendor_name || pi.party_name || vendors.find(v => v.id === pi.vendor_id)?.name || customers.find(c => c.id === pi.vendor_id)?.name || 'Vendor';
+
                       return (
-                        <tr key={pi.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                          <td className="px-4 py-3 font-semibold text-amber-500 font-mono">{pi.grn_no || pi.invoice_no}</td>
-                          <td className="px-4 py-3 text-slate-400">{formatDate(pi.received_date || pi.document_date || '')}</td>
-                          <td className="px-4 py-3 font-medium text-slate-200">{partyDisplayName}</td>
-                          <td className="px-4 py-3 text-slate-400">{wh?.name || 'Main Warehouse'}</td>
-                          <td className="px-4 py-3 font-mono font-semibold text-amber-400">
-                            Rs. {(pi.total_amount || 0).toLocaleString()}
-                          </td>
+                        <tr key={pi.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition font-medium">
+                          <td className="px-4 py-3 font-mono font-bold text-amber-500">{pi.grn_no || pi.invoice_no}</td>
+                          <td className="px-4 py-3 text-slate-400">{formatDate(pi.received_date || pi.document_date)}</td>
+                          <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">{vendorName}</td>
+                          <td className="px-4 py-3 text-slate-400">{wh ? `${wh.code} - ${wh.name}` : (pi.warehouse_id || 'w1')}</td>
+                          <td className="px-4 py-3 font-mono font-bold text-slate-800 dark:text-slate-100">{formatCurrency(pi.total_amount)}</td>
                           <td className="px-4 py-3">
-                            <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold border ${
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${
                               isPosted
                                 ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                                 : isPending
                                 ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                : isRejected
+                                ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
                                 : 'bg-slate-500/15 text-slate-300 border-slate-700'
                             }`}>
-                              {isPosted ? 'ACCEPTED (POSTED)' : isPending ? 'PENDING APPROVAL' : (pi.status || 'DRAFT')}
+                              {isPosted ? 'ACCEPTED (POSTED)' : isPending ? 'PENDING APPROVAL' : isRejected ? 'REJECTED' : (pi.status || 'DRAFT')}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-2">
+                              {isRejected && (
+                                <button
+                                  onClick={() => handleResubmitPI(pi)}
+                                  className="rounded-md bg-amber-500/15 px-2 py-1 text-[11px] font-bold text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 transition flex items-center gap-1"
+                                  title="Re-submit to Approval Center"
+                                >
+                                  <Send className="h-3 w-3" /> Re-submit
+                                </button>
+                              )}
                               <button
                                 onClick={() => openEditPIForm(pi)}
                                 className="p-1 text-slate-400 hover:text-amber-400 transition"

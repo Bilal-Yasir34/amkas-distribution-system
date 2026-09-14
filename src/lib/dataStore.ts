@@ -508,7 +508,7 @@ export const useDataStore = create<DataStoreState>()(
             salesOrders: s.salesOrders.map((so) => so.customer_id === id ? { ...so, customer_id: null } : so),
             creditNotes: (s.creditNotes || []).map((cn) => cn.customer_id === id ? { ...cn, customer_id: null } : cn),
             customerReceipts: (s.customerReceipts || []).map((r) => r.customer_id === id ? { ...r, customer_id: null } : r),
-            // Log deletion
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
             auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Customers', action: 'Delete', description: `Customer deleted: ${cust?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
@@ -522,6 +522,7 @@ export const useDataStore = create<DataStoreState>()(
       deleteAccountType: (id) =>
         set((s) => ({
           accountTypes: (s.accountTypes || []).filter((at) => at.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
         })),
 
       // Vendor Actions
@@ -544,6 +545,7 @@ export const useDataStore = create<DataStoreState>()(
             vendorBills: s.vendorBills.map((vb) => vb.vendor_id === id ? { ...vb, vendor_id: null } : vb),
             debitNotes: s.debitNotes.map((dn) => dn.vendor_id === id ? { ...dn, vendor_id: null } : dn),
             vendorPayments: s.vendorPayments.map((vp) => vp.vendor_id === id ? { ...vp, vendor_id: null } : vp),
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
             auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Vendors', action: 'Delete', description: `Vendor deleted: ${vend?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
@@ -595,6 +597,7 @@ export const useDataStore = create<DataStoreState>()(
             batches: s.batches.filter((b) => b.product_id !== id),
             serials: s.serials.filter((sr) => sr.product_id !== id),
             productArticles: s.productArticles.filter((a) => a.product_id !== id),
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
             auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Products', action: 'Delete', description: `Product deleted: ${prod?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
@@ -626,7 +629,11 @@ export const useDataStore = create<DataStoreState>()(
             universalArticles,
           };
         }),
-      deleteProductArticle: (id) => set((s) => ({ productArticles: s.productArticles.filter((a) => a.id !== id) })),
+      deleteProductArticle: (id) =>
+        set((s) => ({
+          productArticles: s.productArticles.filter((a) => a.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
       addUniversalArticle: (name) =>
         set((s) => {
           const trimmed = name.trim();
@@ -662,6 +669,7 @@ export const useDataStore = create<DataStoreState>()(
             products: s.products.map((p) =>
               p.category === cat?.name ? { ...p, category: null } : p
             ),
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
             auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Categories', action: 'Delete', description: `Category deleted: ${cat?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
@@ -683,6 +691,7 @@ export const useDataStore = create<DataStoreState>()(
               : st
             ),
             stockAdjustments: s.stockAdjustments.map((sa) => sa.warehouse_id === id ? { ...sa, warehouse_id: null } : sa),
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
             auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Warehouses', action: 'Delete', description: `Warehouse deleted: ${wh?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
@@ -692,6 +701,7 @@ export const useDataStore = create<DataStoreState>()(
         set((s) => {
           const newInv = { id: (inv as any).id || crypto.randomUUID(), ...inv };
           const newInvoices = [newInv, ...s.invoices];
+          console.log('[STORE-DEBUG] addInvoice called, invoice_no=', inv.invoice_no, 'new total=', newInvoices.length, 'status=', inv.status);
           let newCommissions = [...s.commissions];
           let newJournalEntries = [...s.journalEntries];
 
@@ -735,38 +745,48 @@ export const useDataStore = create<DataStoreState>()(
       deleteInvoice: (id) =>
         set((s) => {
           const target = s.invoices.find((i) => i.id === id || i.invoice_no === id);
+          const targetId = target?.id || id;
           const invNo = target?.invoice_no;
-          const idsToDelete = [id, invNo].filter(Boolean) as string[];
 
           return {
-            invoices: s.invoices.filter((i) => i.id !== id && (!invNo || i.invoice_no !== invNo)),
+            invoices: s.invoices.filter((i) => i.id !== targetId && (!invNo || i.invoice_no !== invNo)),
             approvalQueue: s.approvalQueue.filter(
               (a) =>
-                a.id !== id &&
-                a.record_id !== id &&
-                a.entity_id !== id &&
+                a.id !== targetId &&
+                a.record_id !== targetId &&
+                a.entity_id !== targetId &&
                 (!invNo || a.record_no !== invNo)
             ),
             commissions: (s.commissions || []).filter(
-              (c) => c.invoice_id !== id && (!invNo || c.invoice_no !== invNo)
+              (c) => c.invoice_id !== targetId && (!invNo || c.invoice_no !== invNo)
             ),
             journalEntries: (s.journalEntries || []).filter(
               (je) =>
-                je.reference_no !== id &&
+                je.reference_no !== targetId &&
                 (!invNo || je.reference_no !== invNo) &&
                 (!invNo || je.entry_no !== `JV-${invNo}`)
             ),
-            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), ...idsToDelete])),
+            // ONLY tombstone the UUID id — never tombstone document numbers like 'SL-02'
+            // because those get reused by new records
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), targetId])),
           };
         }),
 
       addQuotation: (q) => set((s) => ({ quotations: [{ id: crypto.randomUUID(), ...q }, ...s.quotations] })),
       updateQuotation: (id, patch) => set((s) => ({ quotations: s.quotations.map((q) => (q.id === id ? { ...q, ...patch } : q)) })),
-      deleteQuotation: (id) => set((s) => ({ quotations: s.quotations.filter((q) => q.id !== id) })),
+      deleteQuotation: (id) =>
+        set((s) => ({
+          quotations: s.quotations.filter((q) => q.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addSalesOrder: (so) => set((s) => ({ salesOrders: [{ id: crypto.randomUUID(), ...so }, ...s.salesOrders] })),
       updateSalesOrder: (id, patch) => set((s) => ({ salesOrders: s.salesOrders.map((so) => (so.id === id ? { ...so, ...patch } : so)) })),
-      deleteSalesOrder: (id) => set((s) => ({ salesOrders: s.salesOrders.filter((so) => so.id !== id) })),
+      deleteSalesOrder: (id) =>
+        set((s) => ({
+          salesOrders: s.salesOrders.filter((so) => so.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addCreditNote: (cn) =>
         set((s) => {
@@ -795,11 +815,19 @@ export const useDataStore = create<DataStoreState>()(
           };
         }),
       updateCreditNote: (id, patch) => set((s) => ({ creditNotes: (s.creditNotes || []).map((cn) => (cn.id === id ? { ...cn, ...patch } : cn)) })),
-      deleteCreditNote: (id) => set((s) => ({ creditNotes: (s.creditNotes || []).filter((cn) => cn.id !== id) })),
+      deleteCreditNote: (id) =>
+        set((s) => ({
+          creditNotes: (s.creditNotes || []).filter((cn) => cn.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addCommission: (c) => set((s) => ({ commissions: [{ id: crypto.randomUUID(), ...c }, ...(s.commissions || [])] })),
       updateCommission: (id, patch) => set((s) => ({ commissions: (s.commissions || []).map((comm) => (comm.id === id ? { ...comm, ...patch } : comm)) })),
-      deleteCommission: (id) => set((s) => ({ commissions: (s.commissions || []).filter((comm) => comm.id !== id) })),
+      deleteCommission: (id) =>
+        set((s) => ({
+          commissions: (s.commissions || []).filter((comm) => comm.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addCustomerReceipt: (r) =>
         set((s) => {
@@ -842,16 +870,28 @@ export const useDataStore = create<DataStoreState>()(
           };
         }),
       updateCustomerReceipt: (id, patch) => set((s) => ({ customerReceipts: (s.customerReceipts || []).map((r) => (r.id === id ? { ...r, ...patch } : r)) })),
-      deleteCustomerReceipt: (id) => set((s) => ({ customerReceipts: (s.customerReceipts || []).filter((r) => r.id !== id) })),
+      deleteCustomerReceipt: (id) =>
+        set((s) => ({
+          customerReceipts: (s.customerReceipts || []).filter((r) => r.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       // Purchase Actions
       addPurchaseRequest: (pr) => set((s) => ({ purchaseRequests: [{ id: (pr as any).id || crypto.randomUUID(), ...pr }, ...s.purchaseRequests] })),
       updatePurchaseRequest: (id, patch) => set((s) => ({ purchaseRequests: s.purchaseRequests.map((pr) => (pr.id === id ? { ...pr, ...patch } : pr)) })),
-      deletePurchaseRequest: (id) => set((s) => ({ purchaseRequests: s.purchaseRequests.filter((pr) => pr.id !== id) })),
+      deletePurchaseRequest: (id) =>
+        set((s) => ({
+          purchaseRequests: s.purchaseRequests.filter((pr) => pr.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addPurchaseOrder: (po) => set((s) => ({ purchaseOrders: [{ id: (po as any).id || crypto.randomUUID(), ...po }, ...s.purchaseOrders] })),
       updatePurchaseOrder: (id, patch) => set((s) => ({ purchaseOrders: s.purchaseOrders.map((po) => (po.id === id ? { ...po, ...patch } : po)) })),
-      deletePurchaseOrder: (id) => set((s) => ({ purchaseOrders: s.purchaseOrders.filter((po) => po.id !== id) })),
+      deletePurchaseOrder: (id) =>
+        set((s) => ({
+          purchaseOrders: s.purchaseOrders.filter((po) => po.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addPurchaseInvoice: (pi) => set((s) => ({ purchaseInvoices: [{ id: (pi as any).id || crypto.randomUUID(), ...pi }, ...s.purchaseInvoices] })),
       updatePurchaseInvoice: (id, patch) => set((s) => ({ purchaseInvoices: s.purchaseInvoices.map((pi) => (pi.id === id ? { ...pi, ...patch } : pi)) })),
@@ -860,8 +900,9 @@ export const useDataStore = create<DataStoreState>()(
           const target = s.purchaseInvoices.find(
             (p) => p.id === id || p.grn_no === id || p.invoice_no === id
           );
+          const targetId = target?.id || id;
           const targetIdentifiers = [
-            id,
+            targetId,
             target?.grn_no,
             target?.invoice_no,
             (target as any)?.bill_no,
@@ -886,64 +927,117 @@ export const useDataStore = create<DataStoreState>()(
                 !targetIdentifiers.includes(je.reference_no || '') &&
                 !targetIdentifiers.some((ident) => je.entry_no === `JV-${ident}`)
             ),
-            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), ...targetIdentifiers])),
+            // ONLY tombstone the UUID id — never tombstone document numbers
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), targetId])),
           };
         }),
 
       addVendorBill: (vb) => set((s) => ({ vendorBills: [{ id: (vb as any).id || crypto.randomUUID(), ...vb }, ...s.vendorBills] })),
       updateVendorBill: (id, patch) => set((s) => ({ vendorBills: s.vendorBills.map((vb) => (vb.id === id ? { ...vb, ...patch } : vb)) })),
-      deleteVendorBill: (id) => set((s) => ({ vendorBills: s.vendorBills.filter((vb) => vb.id !== id) })),
+      deleteVendorBill: (id) =>
+        set((s) => ({
+          vendorBills: s.vendorBills.filter((vb) => vb.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addDebitNote: (dn) => set((s) => ({ debitNotes: [{ id: (dn as any).id || crypto.randomUUID(), ...dn }, ...s.debitNotes] })),
       updateDebitNote: (id, patch) => set((s) => ({ debitNotes: s.debitNotes.map((dn) => (dn.id === id ? { ...dn, ...patch } : dn)) })),
-      deleteDebitNote: (id) => set((s) => ({ debitNotes: s.debitNotes.filter((dn) => dn.id !== id) })),
+      deleteDebitNote: (id) =>
+        set((s) => ({
+          debitNotes: s.debitNotes.filter((dn) => dn.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addSalesReturn: (sr) => set((s) => ({ salesReturns: [{ id: (sr as any).id || crypto.randomUUID(), ...sr }, ...s.salesReturns] })),
       updateSalesReturn: (id, patch) => set((s) => ({ salesReturns: s.salesReturns.map((sr) => (sr.id === id ? { ...sr, ...patch } : sr)) })),
-      deleteSalesReturn: (id) => set((s) => ({ salesReturns: s.salesReturns.filter((sr) => sr.id !== id) })),
+      deleteSalesReturn: (id) =>
+        set((s) => ({
+          salesReturns: s.salesReturns.filter((sr) => sr.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addPurchaseReturn: (pr) => set((s) => ({ purchaseReturns: [{ id: (pr as any).id || crypto.randomUUID(), ...pr }, ...s.purchaseReturns] })),
       updatePurchaseReturn: (id, patch) => set((s) => ({ purchaseReturns: s.purchaseReturns.map((pr) => (pr.id === id ? { ...pr, ...patch } : pr)) })),
-      deletePurchaseReturn: (id) => set((s) => ({ purchaseReturns: s.purchaseReturns.filter((pr) => pr.id !== id) })),
+      deletePurchaseReturn: (id) =>
+        set((s) => ({
+          purchaseReturns: s.purchaseReturns.filter((pr) => pr.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addVendorPayment: (vp) => set((s) => ({ vendorPayments: [{ id: (vp as any).id || crypto.randomUUID(), ...vp }, ...s.vendorPayments] })),
       updateVendorPayment: (id, patch) => set((s) => ({ vendorPayments: s.vendorPayments.map((vp) => (vp.id === id ? { ...vp, ...patch } : vp)) })),
-      deleteVendorPayment: (id) => set((s) => ({ vendorPayments: s.vendorPayments.filter((vp) => vp.id !== id) })),
+      deleteVendorPayment: (id) =>
+        set((s) => ({
+          vendorPayments: s.vendorPayments.filter((vp) => vp.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       // Inventory Actions
       addStockTransfer: (st) => set((s) => ({ stockTransfers: [{ id: crypto.randomUUID(), ...st }, ...s.stockTransfers] })),
       updateStockTransfer: (id, patch) => set((s) => ({ stockTransfers: s.stockTransfers.map((st) => (st.id === id ? { ...st, ...patch } : st)) })),
-      deleteStockTransfer: (id) => set((s) => ({ stockTransfers: s.stockTransfers.filter((st) => st.id !== id) })),
+      deleteStockTransfer: (id) =>
+        set((s) => ({
+          stockTransfers: s.stockTransfers.filter((st) => st.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addStockAdjustment: (sa) => set((s) => ({ stockAdjustments: [{ id: crypto.randomUUID(), ...sa }, ...s.stockAdjustments] })),
       updateStockAdjustment: (id, patch) => set((s) => ({ stockAdjustments: s.stockAdjustments.map((sa) => (sa.id === id ? { ...sa, ...patch } : sa)) })),
-      deleteStockAdjustment: (id) => set((s) => ({ stockAdjustments: s.stockAdjustments.filter((sa) => sa.id !== id) })),
+      deleteStockAdjustment: (id) =>
+        set((s) => ({
+          stockAdjustments: s.stockAdjustments.filter((sa) => sa.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addBatch: (b) => set((s) => ({ batches: [{ id: crypto.randomUUID(), ...b }, ...s.batches] })),
       updateBatch: (id, patch) => set((s) => ({ batches: s.batches.map((b) => (b.id === id ? { ...b, ...patch } : b)) })),
-      deleteBatch: (id) => set((s) => ({ batches: s.batches.filter((b) => b.id !== id) })),
+      deleteBatch: (id) =>
+        set((s) => ({
+          batches: s.batches.filter((b) => b.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addSerial: (sr) => set((s) => ({ serials: [{ id: crypto.randomUUID(), ...sr }, ...s.serials] })),
       updateSerial: (id, patch) => set((s) => ({ serials: s.serials.map((sr) => (sr.id === id ? { ...sr, ...patch } : sr)) })),
-      deleteSerial: (id) => set((s) => ({ serials: s.serials.filter((sr) => sr.id !== id) })),
+      deleteSerial: (id) =>
+        set((s) => ({
+          serials: s.serials.filter((sr) => sr.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       // Banking Actions
       addBankAccount: (ba) => set((s) => ({ bankAccounts: [{ id: crypto.randomUUID(), ...ba }, ...s.bankAccounts] })),
       updateBankAccount: (id, patch) => set((s) => ({ bankAccounts: s.bankAccounts.map((ba) => (ba.id === id ? { ...ba, ...patch } : ba)) })),
-      deleteBankAccount: (id) => set((s) => ({ bankAccounts: s.bankAccounts.filter((ba) => ba.id !== id) })),
+      deleteBankAccount: (id) =>
+        set((s) => ({
+          bankAccounts: s.bankAccounts.filter((ba) => ba.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       // Accounting & COA Actions
       addJournalEntry: (je) => set((s) => ({ journalEntries: [{ id: crypto.randomUUID(), ...je }, ...s.journalEntries] })),
       updateJournalEntry: (id, patch) => set((s) => ({ journalEntries: s.journalEntries.map((je) => (je.id === id ? { ...je, ...patch } : je)) })),
-      deleteJournalEntry: (id) => set((s) => ({ journalEntries: s.journalEntries.filter((je) => je.id !== id) })),
+      deleteJournalEntry: (id) =>
+        set((s) => ({
+          journalEntries: s.journalEntries.filter((je) => je.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addCOAccount: (coa) => set((s) => ({ chartOfAccounts: [{ id: crypto.randomUUID(), ...coa }, ...s.chartOfAccounts] })),
       updateCOAccount: (id, patch) => set((s) => ({ chartOfAccounts: s.chartOfAccounts.map((c) => (c.id === id ? { ...c, ...patch } : c)) })),
-      deleteCOAccount: (id) => set((s) => ({ chartOfAccounts: s.chartOfAccounts.filter((c) => c.id !== id) })),
+      deleteCOAccount: (id) =>
+        set((s) => ({
+          chartOfAccounts: s.chartOfAccounts.filter((c) => c.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       addFinancialYear: (fy) => set((s) => ({ financialYears: [{ id: (fy as any).id || crypto.randomUUID(), ...fy }, ...s.financialYears] })),
       updateFinancialYear: (id, patch) => set((s) => ({ financialYears: s.financialYears.map((fy) => (fy.id === id ? { ...fy, ...patch } : fy)) })),
-      deleteFinancialYear: (id) => set((s) => ({ financialYears: s.financialYears.filter((fy) => fy.id !== id) })),
+      deleteFinancialYear: (id) =>
+        set((s) => ({
+          financialYears: s.financialYears.filter((fy) => fy.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       // Approvals Action
       addApprovalQueueItem: (item) => {
@@ -1359,6 +1453,7 @@ export const useDataStore = create<DataStoreState>()(
             branches: s.branches.map((b) => b.org_id === id ? { ...b, org_id: null } : b),
             quotations: s.quotations.map((q) => q.org_id === id ? { ...q, org_id: null } : q),
             salesOrders: s.salesOrders.map((so) => so.org_id === id ? { ...so, org_id: null } : so),
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
             auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Organizations', action: 'Delete', description: `Organization deleted: ${org?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
@@ -1386,6 +1481,7 @@ export const useDataStore = create<DataStoreState>()(
             users: s.users.map((u) => u.branch_id === id ? { ...u, branch_id: null } : u),
             quotations: s.quotations.map((q) => q.branch_id === id ? { ...q, branch_id: null } : q),
             salesOrders: s.salesOrders.map((so) => so.branch_id === id ? { ...so, branch_id: null } : so),
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
             auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Branches', action: 'Delete', description: `Branch deleted: ${br?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
@@ -1399,13 +1495,18 @@ export const useDataStore = create<DataStoreState>()(
             departments: s.departments.filter((d) => d.id !== id),
             // Null out department_id in users
             users: s.users.map((u) => u.department_id === id ? { ...u, department_id: null } : u),
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
             auditLogs: [{ id: crypto.randomUUID(), username: 'admin', module: 'Departments', action: 'Delete', description: `Department deleted: ${dept?.name || id}`, ip_address: '127.0.0.1', timestamp: new Date().toISOString() }, ...s.auditLogs],
           };
         }),
 
       addUser: (u) => set((s) => ({ users: [{ id: crypto.randomUUID(), ...u }, ...s.users] })),
       updateUser: (id, patch) => set((s) => ({ users: s.users.map((u) => (u.id === id ? { ...u, ...patch } : u)) })),
-      deleteUser: (id) => set((s) => ({ users: s.users.filter((u) => u.id !== id) })),
+      deleteUser: (id) =>
+        set((s) => ({
+          users: s.users.filter((u) => u.id !== id),
+          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
+        })),
 
       // Audit & Security Actions
       addAuditLog: (log) => set((s) => ({ auditLogs: [{ id: crypto.randomUUID(), ...log }, ...s.auditLogs] })),
@@ -1503,6 +1604,10 @@ export const useDataStore = create<DataStoreState>()(
       name: 'amkas-erp-data-store',
       onRehydrateStorage: () => (state) => {
         if (state) {
+          if (state.deletedRecordIds) {
+            const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            state.deletedRecordIds = state.deletedRecordIds.filter((id: string) => UUID_REGEX.test(id));
+          }
           if (state.organizations) {
             state.organizations = state.organizations.map((o) =>
               o.name === 'AMKAS INTERNATIONAL' ? { ...o, name: 'NICE ENTERPRISES' } : o

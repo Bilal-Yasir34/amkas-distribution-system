@@ -130,19 +130,15 @@ function mergeCollection<T>(
   localList: T[] = [],
   remoteList: T[] = [],
   keySelector: (item: T) => string,
-  deletedSet?: Set<string>
+  deletedSet?: Set<string>,
+  _debugLabel?: string
 ): T[] {
   const isDeleted = (item: any, key: string) => {
     if (!deletedSet || deletedSet.size === 0) return false;
-    if (deletedSet.has(key)) return true;
+    // ONLY match on the unique record ID (UUID). Never match on document numbers
+    // (invoice_no, grn_no, bill_no, record_no, etc.) because those get reused
+    // when new records are created with auto-incrementing numbers.
     if (item.id && deletedSet.has(item.id)) return true;
-    if (item.record_id && deletedSet.has(item.record_id)) return true;
-    if (item.entity_id && deletedSet.has(item.entity_id)) return true;
-    if (item.invoice_no && deletedSet.has(item.invoice_no)) return true;
-    if (item.grn_no && deletedSet.has(item.grn_no)) return true;
-    if (item.bill_no && deletedSet.has(item.bill_no)) return true;
-    if (item.record_no && deletedSet.has(item.record_no)) return true;
-    if (item.voucher_no && deletedSet.has(item.voucher_no)) return true;
     return false;
   };
 
@@ -152,18 +148,27 @@ function mergeCollection<T>(
   for (const item of (remoteList || [])) {
     if (!item) continue;
     const key = keySelector(item);
-    if (!key || isDeleted(item, key)) continue;
+    if (!key || isDeleted(item, key)) {
+      if (_debugLabel) console.log(`[MERGE-DEBUG] ${_debugLabel} REMOTE item SKIPPED: key="${key}", deleted=${isDeleted(item, key)}`);
+      continue;
+    }
     map.set(key, item);
   }
+
+  if (_debugLabel) console.log(`[MERGE-DEBUG] ${_debugLabel} after indexing remote: map size=${map.size}, remote keys=`, Array.from(map.keys()));
 
   // 2. Merge local items
   for (const item of (localList || [])) {
     if (!item) continue;
     const key = keySelector(item);
-    if (!key || isDeleted(item, key)) continue;
+    if (!key || isDeleted(item, key)) {
+      if (_debugLabel) console.log(`[MERGE-DEBUG] ${_debugLabel} LOCAL item SKIPPED: key="${key}", id=${(item as any).id}, deleted=${isDeleted(item, key)}`, deletedSet ? `deletedSet has key=${deletedSet.has(key)}, has id=${deletedSet.has((item as any).id || '')}` : 'no deletedSet');
+      continue;
+    }
 
     if (!map.has(key)) {
       // Exists only locally -> preserve it!
+      if (_debugLabel) console.log(`[MERGE-DEBUG] ${_debugLabel} LOCAL-ONLY item PRESERVED: key="${key}"`);
       map.set(key, item);
     } else {
       // Exists in both -> preserve the most recently updated or posted status
@@ -189,6 +194,8 @@ function mergeCollection<T>(
     }
   }
 
+  if (_debugLabel) console.log(`[MERGE-DEBUG] ${_debugLabel} FINAL result: size=${map.size}, keys=`, Array.from(map.keys()));
+
   return Array.from(map.values());
 }
 
@@ -200,7 +207,19 @@ export function mergeStores(local: any, remote: any): any {
   if (!remote) return local;
   if (!local) return remote;
 
-  const merged = { ...local, ...remote };
+  // CRITICAL: Spread remote FIRST, then local on top.
+  // This guarantees local (in-memory) state always wins over stale remote snapshots.
+  // Specific arrays are then union-merged below to also preserve remote-only records.
+  const merged = { ...remote, ...local };
+
+  console.log('[SYNC-DEBUG] mergeStores called', {
+    localInvoices: (local.invoices || []).length,
+    remoteInvoices: (remote.invoices || []).length,
+    localApprovalQueue: (local.approvalQueue || []).length,
+    remoteApprovalQueue: (remote.approvalQueue || []).length,
+    localPurchaseInvoices: (local.purchaseInvoices || []).length,
+    remotePurchaseInvoices: (remote.purchaseInvoices || []).length,
+  });
 
   const deletedIds = new Set<string>([
     ...(local.deletedRecordIds || []),
@@ -213,7 +232,8 @@ export function mergeStores(local: any, remote: any): any {
     local.invoices,
     remote.invoices,
     (i) => i.invoice_no || i.id || '',
-    deletedIds
+    deletedIds,
+    'INVOICES'
   );
 
   // Approval Queue
@@ -221,20 +241,22 @@ export function mergeStores(local: any, remote: any): any {
     local.approvalQueue,
     remote.approvalQueue,
     (a) => a.id || a.record_id || a.record_no || '',
-    deletedIds
+    deletedIds,
+    'APPROVAL_QUEUE'
   );
 
   // Purchases & Bills
   merged.purchaseInvoices = mergeCollection(
     local.purchaseInvoices,
     remote.purchaseInvoices,
-    (p) => p.invoice_no || p.grn_no || p.id || '',
-    deletedIds
+    (pi) => pi.id || pi.grn_no || pi.invoice_no || '',
+    deletedIds,
+    'PURCHASE_INVOICES'
   );
   merged.vendorBills = mergeCollection(
     local.vendorBills,
     remote.vendorBills,
-    (b) => b.bill_no || b.id || '',
+    (vb) => vb.id || vb.bill_no || '',
     deletedIds
   );
 
@@ -242,13 +264,13 @@ export function mergeStores(local: any, remote: any): any {
   merged.customerReceipts = mergeCollection(
     local.customerReceipts,
     remote.customerReceipts,
-    (r) => r.receipt_no || r.id || '',
+    (cr) => cr.id || cr.receipt_no || '',
     deletedIds
   );
   merged.vendorPayments = mergeCollection(
     local.vendorPayments,
     remote.vendorPayments,
-    (vp) => vp.payment_no || vp.id || '',
+    (vp) => vp.id || vp.payment_no || '',
     deletedIds
   );
 
@@ -256,13 +278,13 @@ export function mergeStores(local: any, remote: any): any {
   merged.salesReturns = mergeCollection(
     local.salesReturns,
     remote.salesReturns,
-    (sr) => sr.return_no || sr.id || '',
+    (sr) => sr.id || sr.return_no || '',
     deletedIds
   );
   merged.purchaseReturns = mergeCollection(
     local.purchaseReturns,
     remote.purchaseReturns,
-    (pr) => pr.return_no || pr.id || '',
+    (pr) => pr.id || pr.return_no || '',
     deletedIds
   );
 
@@ -270,25 +292,25 @@ export function mergeStores(local: any, remote: any): any {
   merged.quotations = mergeCollection(
     local.quotations,
     remote.quotations,
-    (q) => q.quotation_no || q.id || '',
+    (q) => q.id || q.quotation_no || '',
     deletedIds
   );
   merged.salesOrders = mergeCollection(
     local.salesOrders,
     remote.salesOrders,
-    (so) => so.order_no || so.id || '',
+    (so) => so.id || so.order_no || '',
     deletedIds
   );
   merged.creditNotes = mergeCollection(
     local.creditNotes,
     remote.creditNotes,
-    (cn) => cn.credit_note_no || cn.id || '',
+    (cn) => cn.id || cn.credit_note_no || '',
     deletedIds
   );
   merged.debitNotes = mergeCollection(
     local.debitNotes,
     remote.debitNotes,
-    (dn) => dn.debit_note_no || dn.id || '',
+    (dn) => dn.id || dn.debit_note_no || '',
     deletedIds
   );
 
@@ -296,7 +318,7 @@ export function mergeStores(local: any, remote: any): any {
   merged.journalEntries = mergeCollection(
     local.journalEntries,
     remote.journalEntries,
-    (je) => je.entry_no || je.id || '',
+    (je) => je.id || je.entry_no || '',
     deletedIds
   );
 
@@ -304,66 +326,297 @@ export function mergeStores(local: any, remote: any): any {
   merged.customers = mergeCollection(
     local.customers,
     remote.customers,
-    (c) => c.code || c.id || c.name || ''
+    (c) => c.id || c.code || c.name || '',
+    deletedIds
   );
   merged.vendors = mergeCollection(
     local.vendors,
     remote.vendors,
-    (v) => v.code || v.id || v.name || ''
+    (v) => v.id || v.code || v.name || '',
+    deletedIds
   );
   merged.products = mergeCollection(
     local.products,
     remote.products,
-    (p) => p.code || p.id || p.name || ''
+    (p) => p.id || p.code || p.name || '',
+    deletedIds
   );
   merged.categories = mergeCollection(
     local.categories,
     remote.categories,
-    (c) => c.name || c.id || ''
+    (c) => c.id || c.name || '',
+    deletedIds
   );
   merged.warehouses = mergeCollection(
     local.warehouses,
     remote.warehouses,
-    (w) => w.code || w.id || w.name || ''
+    (w) => w.id || w.code || w.name || '',
+    deletedIds,
+    'WAREHOUSES'
   );
   merged.chartOfAccounts = mergeCollection(
     local.chartOfAccounts,
     remote.chartOfAccounts,
-    (coa) => coa.code || coa.id || ''
+    (coa) => coa.id || coa.code || '',
+    deletedIds
   );
   merged.accountTypes = mergeCollection(
     local.accountTypes,
     remote.accountTypes,
-    (at) => at.code || at.id || at.name || ''
+    (at) => at.id || at.code || at.name || '',
+    deletedIds
   );
   merged.productArticles = mergeCollection(
     local.productArticles,
     remote.productArticles,
-    (pa) => pa.id || pa.article_name || ''
+    (pa) => pa.id || pa.article_name || '',
+    deletedIds
+  );
+
+  // ---- Additional collections ----
+  merged.commissions = mergeCollection(
+    local.commissions,
+    remote.commissions,
+    (c: any) => c.id || c.invoice_no || '',
+    deletedIds
+  );
+  merged.purchaseRequests = mergeCollection(
+    local.purchaseRequests,
+    remote.purchaseRequests,
+    (pr: any) => pr.id || pr.request_no || '',
+    deletedIds
+  );
+  merged.purchaseOrders = mergeCollection(
+    local.purchaseOrders,
+    remote.purchaseOrders,
+    (po: any) => po.id || po.order_no || '',
+    deletedIds
+  );
+  merged.stockTransfers = mergeCollection(
+    local.stockTransfers,
+    remote.stockTransfers,
+    (st: any) => st.id || st.transfer_no || '',
+    deletedIds
+  );
+  merged.stockAdjustments = mergeCollection(
+    local.stockAdjustments,
+    remote.stockAdjustments,
+    (sa: any) => sa.id || sa.adjustment_no || '',
+    deletedIds
+  );
+  merged.batches = mergeCollection(
+    local.batches,
+    remote.batches,
+    (b: any) => b.id || b.batch_no || '',
+    deletedIds
+  );
+  merged.serials = mergeCollection(
+    local.serials,
+    remote.serials,
+    (s: any) => s.id || s.serial_no || '',
+    deletedIds
+  );
+  merged.bankAccounts = mergeCollection(
+    local.bankAccounts,
+    remote.bankAccounts,
+    (ba: any) => ba.id || ba.account_number || '',
+    deletedIds
+  );
+  merged.bankStatements = mergeCollection(
+    local.bankStatements,
+    remote.bankStatements,
+    (bs: any) => bs.id || '',
+    deletedIds
+  );
+  merged.financialYears = mergeCollection(
+    local.financialYears,
+    remote.financialYears,
+    (fy: any) => fy.id || fy.name || '',
+    deletedIds
+  );
+  merged.expenseRecords = mergeCollection(
+    local.expenseRecords,
+    remote.expenseRecords,
+    (e: any) => e.id || '',
+    deletedIds
+  );
+  merged.incomeRecords = mergeCollection(
+    local.incomeRecords,
+    remote.incomeRecords,
+    (i: any) => i.id || '',
+    deletedIds
+  );
+  merged.departments = mergeCollection(
+    local.departments,
+    remote.departments,
+    (d: any) => d.id || d.code || d.name || '',
+    deletedIds
+  );
+  merged.auditLogs = mergeCollection(
+    local.auditLogs,
+    remote.auditLogs,
+    (a: any) => a.id || '',
+    deletedIds
+  );
+  merged.loginLogs = mergeCollection(
+    local.loginLogs,
+    remote.loginLogs,
+    (l: any) => l.id || '',
+    deletedIds
+  );
+  merged.users = mergeCollection(
+    local.users,
+    remote.users,
+    (u: any) => u.id || u.employee_code || u.email || '',
+    deletedIds
+  );
+  merged.organizations = mergeCollection(
+    local.organizations,
+    remote.organizations,
+    (o: any) => o.id || o.org_code || o.name || '',
+    deletedIds
+  );
+  merged.branches = mergeCollection(
+    local.branches,
+    remote.branches,
+    (b: any) => b.id || b.code || b.name || '',
+    deletedIds
   );
 
   merged.universalArticles = Array.from(
     new Set([...(local.universalArticles || []), ...(remote.universalArticles || [])])
   );
 
-  if (local.users?.length > 0 && (!remote.users || remote.users.length === 0)) {
-    merged.users = local.users;
-  }
-  if (local.organizations?.length > 0 && (!remote.organizations || remote.organizations.length === 0)) {
-    merged.organizations = local.organizations;
-  }
-  if (local.branches?.length > 0 && (!remote.branches || remote.branches.length === 0)) {
-    merged.branches = local.branches;
-  }
+  return reconcileMissingDocuments(merged);
+}
 
-  return merged;
+/**
+ * Self-healing reconciler: guarantees that any purchase or sale present in the Approval Queue
+ * is never missing from the Purchase or Sales registers across all devices and web deployments.
+ */
+export function reconcileMissingDocuments(state: any): any {
+  if (!state || !state.approvalQueue) return state;
+
+  const deletedSet = new Set<string>((state.deletedRecordIds || []).filter((id: string) => isValidUUID(id)));
+
+  // 1. Reconcile missing Purchase Invoices
+  const existingPINos = new Set(
+    (state.purchaseInvoices || []).map((p: any) => p.grn_no || p.invoice_no || p.id)
+  );
+  const newPIs = [...(state.purchaseInvoices || [])];
+
+  for (const q of state.approvalQueue) {
+    const isPurchase =
+      q.entity_type === 'purchase_invoice' ||
+      q.module === 'Purchase' ||
+      (q.record_no && (q.record_no.startsWith('PI-') || q.record_no.startsWith('PUR-')));
+
+    if (isPurchase) {
+      const docNo = q.record_no;
+      const recId = q.record_id || q.entity_id || q.id;
+      if (
+        docNo &&
+        !existingPINos.has(docNo) &&
+        !existingPINos.has(recId) &&
+        !deletedSet.has(recId)
+      ) {
+        newPIs.push({
+          id: recId,
+          grn_no: docNo,
+          invoice_no: docNo,
+          vendor_id: null,
+          vendor_name: q.party_name || 'Vendor',
+          party_name: q.party_name || 'Vendor',
+          warehouse_id: q.warehouse_id || 'w1',
+          status: q.status === 'APPROVED' ? 'POSTED' : q.status === 'REJECTED' ? 'REJECTED' : 'PENDING_APPROVAL',
+          received_date: q.created_at ? q.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+          document_date: q.created_at ? q.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+          due_date: q.created_at ? q.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+          subtotal: q.amount || 0,
+          total_amount: q.amount || 0,
+          discount_total: 0,
+          tax_total: 0,
+          notes: q.items_summary || '',
+          created_at: q.created_at || new Date().toISOString(),
+          items: [],
+        });
+        existingPINos.add(docNo);
+        existingPINos.add(recId);
+      }
+    }
+  }
+  state.purchaseInvoices = newPIs;
+
+  // 2. Reconcile missing Sales Invoices
+  const existingInvNos = new Set(
+    (state.invoices || []).map((i: any) => i.invoice_no || i.id)
+  );
+  const newInvoices = [...(state.invoices || [])];
+
+  for (const q of state.approvalQueue) {
+    const isSale =
+      q.entity_type === 'sales_invoice' ||
+      q.module === 'Sales' ||
+      (q.record_no && (q.record_no.startsWith('SL-') || q.record_no.startsWith('INV-')));
+
+    if (isSale) {
+      const docNo = q.record_no;
+      const recId = q.record_id || q.entity_id || q.id;
+      if (
+        docNo &&
+        !existingInvNos.has(docNo) &&
+        !existingInvNos.has(recId) &&
+        !deletedSet.has(recId)
+      ) {
+        newInvoices.push({
+          id: recId,
+          invoice_no: docNo,
+          customer_id: null,
+          customer_name: q.party_name || 'Customer',
+          party_name: q.party_name || 'Customer',
+          warehouse_id: q.warehouse_id || 'w1',
+          status: q.status === 'APPROVED' ? 'POSTED' : q.status === 'REJECTED' ? 'REJECTED' : 'PENDING_APPROVAL',
+          invoice_date: q.created_at ? q.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+          due_date: q.created_at ? q.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+          subtotal: q.amount || 0,
+          total_amount: q.amount || 0,
+          discount_total: 0,
+          tax_total: 0,
+          notes: q.items_summary || '',
+          created_at: q.created_at || new Date().toISOString(),
+          items: [],
+        });
+        existingInvNos.add(docNo);
+        existingInvNos.add(recId);
+      }
+    }
+  }
+  state.invoices = newInvoices;
+
+  return state;
 }
 
 /**
  * Pushes the current active Zustand store state into Supabase tables & cloud snapshot.
  * Performs a smart pre-merge with any concurrent remote changes to guarantee no data loss.
  */
+// Sync lock to prevent concurrent push/pull operations from racing
+let _syncLock = false;
+async function acquireSyncLock(): Promise<boolean> {
+  if (_syncLock) return false;
+  _syncLock = true;
+  return true;
+}
+function releaseSyncLock() {
+  _syncLock = false;
+}
+
 export async function pushStateToSupabase(): Promise<CloudSyncResult> {
+  // Acquire lock – skip if another sync is in progress
+  if (!(await acquireSyncLock())) {
+    return { success: true, message: 'Sync already in progress, skipped.' };
+  }
+
   try {
     let state = useDataStore.getState();
     const errors: string[] = [];
@@ -378,13 +631,15 @@ export async function pushStateToSupabase(): Promise<CloudSyncResult> {
         .maybeSingle();
 
       if (remoteSnap?.state_json) {
+        console.log('[SYNC-DEBUG] PUSH pre-merge: local invoices=', state.invoices?.length, 'remote invoices=', remoteSnap.state_json?.invoices?.length);
         const merged = mergeStores(state, remoteSnap.state_json);
+        console.log('[SYNC-DEBUG] PUSH post-merge: merged invoices=', merged.invoices?.length);
         syncEngine.isReceivingRemote = true;
         useDataStore.setState(merged);
         state = useDataStore.getState();
         setTimeout(() => {
           syncEngine.isReceivingRemote = false;
-        }, 300);
+        }, 1500);
       }
     } catch {
       // Continue with push of current store state
@@ -413,6 +668,26 @@ export async function pushStateToSupabase(): Promise<CloudSyncResult> {
       const err = e as { code?: string; message?: string };
       if (err.code === '42501' || err.message?.includes('row-level security')) {
         isRls = true;
+      }
+    }
+
+    // Clean up deleted records in individual Supabase tables
+    if (state.deletedRecordIds && state.deletedRecordIds.length > 0) {
+      const validDelUuids = state.deletedRecordIds.filter((id: string) => isValidUUID(id));
+      if (validDelUuids.length > 0) {
+        try {
+          await Promise.allSettled([
+            supabase.from('warehouses').delete().in('id', validDelUuids),
+            supabase.from('customers').delete().in('id', validDelUuids),
+            supabase.from('vendors').delete().in('id', validDelUuids),
+            supabase.from('products').delete().in('id', validDelUuids),
+            supabase.from('categories').delete().in('id', validDelUuids),
+            supabase.from('departments').delete().in('id', validDelUuids),
+            supabase.from('branches').delete().in('id', validDelUuids),
+          ]);
+        } catch {
+          // ignore error if table does not support delete or RLS
+        }
       }
     }
 
@@ -721,6 +996,8 @@ export async function pushStateToSupabase(): Promise<CloudSyncResult> {
         ? 'Supabase Row-Level Security (RLS) is blocking writes. Please run the SQL fix in Supabase Dashboard.'
         : `Failed to push to Supabase: ${msg}`,
     };
+  } finally {
+    releaseSyncLock();
   }
 }
 
@@ -729,6 +1006,11 @@ export async function pushStateToSupabase(): Promise<CloudSyncResult> {
  * and populates the Zustand store without triggering an immediate push echo loop.
  */
 export async function pullStateFromSupabase(): Promise<CloudSyncResult> {
+  // Acquire lock – skip if another sync is in progress
+  if (!(await acquireSyncLock())) {
+    return { success: true, message: 'Sync already in progress, skipped.' };
+  }
+
   try {
     const store = useDataStore.getState();
 
@@ -745,13 +1027,15 @@ export async function pullStateFromSupabase(): Promise<CloudSyncResult> {
         if (cloudState.products || cloudState.customers || cloudState.invoices || cloudState.organizations) {
           // Smart union merge with current active store state
           syncEngine.isReceivingRemote = true;
+          console.log('[SYNC-DEBUG] PULL merge: local invoices=', store.invoices?.length, 'cloud invoices=', cloudState.invoices?.length);
           const merged = mergeStores(store, cloudState);
+          console.log('[SYNC-DEBUG] PULL post-merge: merged invoices=', merged.invoices?.length);
           useDataStore.setState(merged);
 
           setTimeout(() => {
             syncEngine.isReceivingRemote = false;
             setSyncStatus('synced');
-          }, 800);
+          }, 1500);
 
           return {
             success: true,
@@ -854,6 +1138,8 @@ export async function pullStateFromSupabase(): Promise<CloudSyncResult> {
       success: false,
       message: `Failed to pull from Supabase: ${msg}`,
     };
+  } finally {
+    releaseSyncLock();
   }
 }
 
@@ -950,6 +1236,9 @@ export function initAutoCloudSync() {
         { event: '*', schema: 'public', table: 'cloud_sync_state' },
         (payload) => {
           if (payload.new && (payload.new as any).state_json) {
+            // Skip if a sync operation is already in progress
+            if (_syncLock) return;
+
             const incomingState = (payload.new as any).state_json;
             const incomingUpdated = new Date((payload.new as any).updated_at || 0).getTime();
 
@@ -960,13 +1249,15 @@ export function initAutoCloudSync() {
 
               // Smartly merge remote state into local Zustand store
               const currentStore = useDataStore.getState();
+              console.log('[SYNC-DEBUG] REALTIME merge: local invoices=', currentStore.invoices?.length, 'incoming invoices=', incomingState.invoices?.length);
               const merged = mergeStores(currentStore, incomingState);
+              console.log('[SYNC-DEBUG] REALTIME post-merge: merged invoices=', merged.invoices?.length);
               useDataStore.setState(merged);
 
               setTimeout(() => {
                 syncEngine.isReceivingRemote = false;
                 setSyncStatus('synced');
-              }, 800);
+              }, 1500);
             }
           }
         }
@@ -1001,7 +1292,7 @@ export function initAutoCloudSync() {
       } catch {
         setSyncStatus('offline');
       }
-    }, 1200);
+    }, 2500);
   });
 
   // 4. Window Focus & Online Event Sync (Ensures sync when user switches tabs/devices)
