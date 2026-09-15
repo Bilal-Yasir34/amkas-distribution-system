@@ -46,6 +46,7 @@ import type {
 } from './types';
 
 // Initial Seed Data
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const initialCustomers: Customer[] = [];
 const initialVendors: Vendor[] = [];
 const initialProducts: Product[] = [];
@@ -774,7 +775,7 @@ export const useDataStore = create<DataStoreState>()(
                 (!invNo || a.record_no !== invNo)
             ),
             commissions: (s.commissions || []).filter(
-              (c) => c.invoice_id !== targetId && (!invNo || c.invoice_no !== invNo)
+              (c) => c.invoice_no !== invNo && c.invoice_no !== targetId
             ),
             journalEntries: (s.journalEntries || []).filter(
               (je) =>

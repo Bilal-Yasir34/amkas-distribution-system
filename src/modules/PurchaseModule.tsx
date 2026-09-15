@@ -110,7 +110,7 @@ export function PurchaseModule() {
       requested_by: requester.formatted,
       requested_by_name: requester.name,
       requested_by_role: requester.role,
-      amount: pi.total_amount,
+      amount: pi.total_amount ?? 0,
       status: 'PENDING',
       party_name: resolvedVendorName,
       warehouse_id: pi.warehouse_id || 'w1',
@@ -1808,7 +1808,7 @@ export function PurchaseModule() {
                           <td className="px-4 py-3 text-slate-400">{formatDate(pi.received_date || pi.document_date)}</td>
                           <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">{vendorName}</td>
                           <td className="px-4 py-3 text-slate-400">{wh ? `${wh.code} - ${wh.name}` : (pi.warehouse_id || 'w1')}</td>
-                          <td className="px-4 py-3 font-mono font-bold text-slate-800 dark:text-slate-100">{formatCurrency(pi.total_amount)}</td>
+                          <td className="px-4 py-3 font-mono font-bold text-slate-800 dark:text-slate-100">{formatCurrency(pi.total_amount ?? 0)}</td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${
                               isPosted
