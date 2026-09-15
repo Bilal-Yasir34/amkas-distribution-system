@@ -624,6 +624,78 @@ export function reconcileMissingDocuments(state: any): any {
   }
   state.invoices = newInvoices;
 
+  // ─── Status reconciliation pass ──────────────────────────────────────
+  // After merging, fix any document whose approval-queue status has
+  // advanced (APPROVED / REJECTED) but whose stored status is still stale
+  // (e.g. PENDING_APPROVAL coming from an older cloud snapshot).
+  // This is the root cause of "approved in Approval Center but still
+  // showing Pending in Purchase/Sales register".
+
+  // Build fast lookup: record_id → queue item (prefer APPROVED over REJECTED)
+  const queueByRecordId = new Map<string, any>();
+  const queueByRecordNo = new Map<string, any>();
+  for (const q of state.approvalQueue || []) {
+    if (q.record_id) {
+      const existing = queueByRecordId.get(q.record_id);
+      if (!existing || q.status === 'APPROVED') queueByRecordId.set(q.record_id, q);
+    }
+    if (q.record_no) {
+      const existing = queueByRecordNo.get(q.record_no);
+      if (!existing || q.status === 'APPROVED') queueByRecordNo.set(q.record_no, q);
+    }
+  }
+
+  const resolveStatus = (queueItem: any): string | null => {
+    if (!queueItem) return null;
+    if (queueItem.status === 'APPROVED') return 'POSTED';
+    if (queueItem.status === 'REJECTED') return 'REJECTED';
+    return null; // PENDING — leave the document status unchanged
+  };
+
+  // Reconcile purchase invoices
+  if (state.purchaseInvoices?.length) {
+    state.purchaseInvoices = state.purchaseInvoices.map((pi: any) => {
+      const q =
+        queueByRecordId.get(pi.id) ||
+        queueByRecordNo.get(pi.grn_no) ||
+        queueByRecordNo.get(pi.invoice_no);
+      const reconciled = resolveStatus(q);
+      if (!reconciled) return pi;
+      if (pi.status === reconciled) return pi;
+      // Only override stale statuses — never downgrade an already-POSTED record
+      if (pi.status === 'POSTED' && reconciled !== 'POSTED') return pi;
+      return { ...pi, status: reconciled };
+    });
+  }
+
+  // Reconcile sales invoices
+  if (state.invoices?.length) {
+    state.invoices = state.invoices.map((inv: any) => {
+      const q =
+        queueByRecordId.get(inv.id) ||
+        queueByRecordNo.get(inv.invoice_no);
+      const reconciled = resolveStatus(q);
+      if (!reconciled) return inv;
+      if (inv.status === reconciled) return inv;
+      if (inv.status === 'POSTED' && reconciled !== 'POSTED') return inv;
+      return { ...inv, status: reconciled };
+    });
+  }
+
+  // Reconcile vendor bills
+  if (state.vendorBills?.length) {
+    state.vendorBills = state.vendorBills.map((vb: any) => {
+      const q =
+        queueByRecordId.get(vb.id) ||
+        queueByRecordNo.get(vb.bill_no);
+      const reconciled = resolveStatus(q);
+      if (!reconciled) return vb;
+      if (vb.status === reconciled) return vb;
+      if (vb.status === 'POSTED' && reconciled !== 'POSTED') return vb;
+      return { ...vb, status: reconciled };
+    });
+  }
+
   return state;
 }
 
