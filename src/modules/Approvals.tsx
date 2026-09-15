@@ -49,6 +49,7 @@ export function Approvals() {
     bankAccounts = [],
     deleteInvoice,
     deletePurchaseInvoice,
+    deleteApprovalQueueItem,
   } = useDataStore();
 
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
@@ -115,7 +116,7 @@ export function Approvals() {
             : b
         );
         newPurchaseInvoices = s.purchaseInvoices.map((p) =>
-          p.id === item.record_id || p.grn_no === item.record_no
+          p.id === item.record_id || p.grn_no === item.record_no || p.invoice_no === item.record_no
             ? { ...p, status: 'PENDING_APPROVAL', updated_at: now }
             : p
         );
@@ -155,7 +156,11 @@ export function Approvals() {
     const recNo = item.record_no || '';
     const recId = item.record_id || item.entity_id || item.id;
 
-    if (et === 'sales_invoice' || item.module === 'Sales' || recNo.toLowerCase().startsWith('sl-')) {
+    // Always tombstone the queue item itself first
+    deleteApprovalQueueItem(item.id);
+
+    // Then delete the underlying document so it's fully removed
+    if (et === 'sales_invoice' || (item.module === 'Sales' && et !== 'sales_return' && et !== 'customer_receipt') || recNo.toLowerCase().startsWith('sl-') || recNo.toLowerCase().startsWith('inv-')) {
       deleteInvoice(recId);
     } else if (
       et === 'purchase_invoice' ||
@@ -164,12 +169,8 @@ export function Approvals() {
       recNo.toLowerCase().startsWith('pi-')
     ) {
       deletePurchaseInvoice(recId);
-    } else {
-      useDataStore.setState((s) => ({
-        approvalQueue: s.approvalQueue.filter((a) => a.id !== item.id && a.record_no !== recNo),
-        deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), item.id, recNo].filter(Boolean) as string[])),
-      }));
     }
+    // For other types the queue item tombstone (above) is sufficient
 
     toast.success(`Request ${recNo || ''} deleted system-wide!`);
     if (selectedRequest && selectedRequest.id === item.id) {

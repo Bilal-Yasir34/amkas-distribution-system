@@ -95,15 +95,29 @@ export function PurchaseModule() {
   ]);
 
   const handleResubmitPI = (pi: PurchaseInvoice) => {
-    updatePurchaseInvoice(pi.id, { status: 'PENDING_APPROVAL' });
-    useDataStore.setState((s) => ({
-      approvalQueue: s.approvalQueue.map((a) =>
-        a.record_id === pi.id || a.record_no === pi.grn_no || a.record_no === pi.invoice_no
-          ? { ...a, status: 'PENDING', review_note: undefined, reviewed_by: undefined, reviewed_at: undefined }
-          : a
-      ),
-    }));
-    toast.success(`Purchase Invoice ${pi.grn_no || pi.invoice_no || ''} re-submitted to Approval Center!`);
+    const now = new Date().toISOString();
+    updatePurchaseInvoice(pi.id, { status: 'PENDING_APPROVAL', updated_at: now } as any);
+    const requester = formatUserRequester(profile, 'Procurement');
+    const party = vendors.find((v) => v.id === pi.vendor_id) || customers.find((c) => c.id === pi.vendor_id);
+    const resolvedVendorName = party?.name || (pi as any).vendor_name || (pi as any).party_name || 'Vendor';
+    const piNo = pi.grn_no || pi.invoice_no || '';
+
+    addApprovalQueueItem({
+      module: 'Purchase',
+      entity_type: 'purchase_invoice',
+      record_id: pi.id,
+      record_no: piNo,
+      requested_by: requester.formatted,
+      requested_by_name: requester.name,
+      requested_by_role: requester.role,
+      amount: pi.total_amount,
+      status: 'PENDING',
+      party_name: resolvedVendorName,
+      warehouse_id: pi.warehouse_id || 'w1',
+      items_summary: (pi.items || []).map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${pi.items?.length || 0} items`,
+      created_at: now,
+    });
+    toast.success(`Purchase Invoice ${piNo} re-submitted to Approval Center!`);
   };
 
   const openCreateBill = () => {
@@ -1712,13 +1726,13 @@ export function PurchaseModule() {
                     onClick={() => setPurchaseStatusFilter('POSTED')}
                     className={`px-3 py-1 rounded-md font-semibold transition ${purchaseStatusFilter === 'POSTED' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
                   >
-                    Accepted / Posted ({(purchaseInvoices || []).filter(p => p.status === 'POSTED').length})
+                    Accepted / Posted ({(purchaseInvoices || []).filter(p => p.status === 'POSTED' || p.status === 'APPROVED' || p.status === 'Accepted').length})
                   </button>
                   <button
                     onClick={() => setPurchaseStatusFilter('PENDING_APPROVAL')}
                     className={`px-3 py-1 rounded-md font-semibold transition ${purchaseStatusFilter === 'PENDING_APPROVAL' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
                   >
-                    Pending Approval ({(purchaseInvoices || []).filter(p => p.status === 'PENDING_APPROVAL').length})
+                    Pending Approval ({(purchaseInvoices || []).filter(p => p.status === 'PENDING_APPROVAL' || p.status === 'PENDING').length})
                   </button>
                   <button
                     onClick={() => setPurchaseStatusFilter('REJECTED')}
@@ -1765,8 +1779,8 @@ export function PurchaseModule() {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {(() => {
                     const filteredPIs = (purchaseInvoices || []).filter((pi) => {
-                      if (purchaseStatusFilter === 'POSTED') return pi.status === 'POSTED';
-                      if (purchaseStatusFilter === 'PENDING_APPROVAL') return pi.status === 'PENDING_APPROVAL';
+                      if (purchaseStatusFilter === 'POSTED') return pi.status === 'POSTED' || pi.status === 'APPROVED' || pi.status === 'Accepted';
+                      if (purchaseStatusFilter === 'PENDING_APPROVAL') return pi.status === 'PENDING_APPROVAL' || pi.status === 'PENDING';
                       if (purchaseStatusFilter === 'REJECTED') return pi.status === 'REJECTED';
                       return true;
                     });
@@ -1783,8 +1797,8 @@ export function PurchaseModule() {
                       const party = vendors.find((v) => v.id === pi.vendor_id) || customers.find((c) => c.id === pi.vendor_id);
                       const wh = warehouses.find((w) => w.id === pi.warehouse_id);
                       const partyDisplayName = party?.name || (pi as any).vendor_name || (pi as any).party_name || 'Vendor / Party';
-                      const isPosted = pi.status === 'POSTED';
-                      const isPending = pi.status === 'PENDING_APPROVAL';
+                      const isPosted = pi.status === 'POSTED' || pi.status === 'APPROVED' || pi.status === 'Accepted';
+                      const isPending = pi.status === 'PENDING_APPROVAL' || pi.status === 'PENDING';
                       const isRejected = pi.status === 'REJECTED';
                       const vendorName = pi.vendor_name || pi.party_name || vendors.find(v => v.id === pi.vendor_id)?.name || customers.find(c => c.id === pi.vendor_id)?.name || 'Vendor';
 

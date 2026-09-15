@@ -194,9 +194,17 @@ function mergeCollection<T>(
       ).getTime();
 
       if (localTime >= remoteTime) {
-        map.set(key, { ...remoteItem, ...item });
+        const mergedItem = { ...remoteItem, ...item };
+        if ((!(item as any).items || (item as any).items.length === 0) && (remoteItem as any).items && (remoteItem as any).items.length > 0) {
+          (mergedItem as any).items = (remoteItem as any).items;
+        }
+        map.set(key, mergedItem);
       } else {
-        map.set(key, { ...item, ...remoteItem });
+        const mergedItem = { ...item, ...remoteItem };
+        if ((!(remoteItem as any).items || (remoteItem as any).items.length === 0) && (item as any).items && (item as any).items.length > 0) {
+          (mergedItem as any).items = (item as any).items;
+        }
+        map.set(key, mergedItem);
       }
     }
   }
@@ -509,15 +517,23 @@ export function reconcileMissingDocuments(state: any): any {
   const deletedSet = new Set<string>((state.deletedRecordIds || []).filter((id: string) => isValidUUID(id)));
 
   // 1. Reconcile missing Purchase Invoices
-  const existingPINos = new Set(
-    (state.purchaseInvoices || []).map((p: any) => p.grn_no || p.invoice_no || p.id)
-  );
+  const existingPINos = new Set<string>();
+  for (const p of state.purchaseInvoices || []) {
+    if (p.id) existingPINos.add(p.id);
+    if (p.invoice_no) existingPINos.add(p.invoice_no);
+    if (p.grn_no) existingPINos.add(p.grn_no);
+  }
   const newPIs = [...(state.purchaseInvoices || [])];
 
   for (const q of state.approvalQueue) {
     const isPurchase =
       q.entity_type === 'purchase_invoice' ||
-      q.module === 'Purchase' ||
+      (q.module === 'Purchase' &&
+        q.entity_type !== 'vendor_bill' &&
+        q.entity_type !== 'purchase_return' &&
+        q.entity_type !== 'vendor_payment' &&
+        !q.record_no?.startsWith('PR-') &&
+        !q.record_no?.startsWith('VP-')) ||
       (q.record_no && (q.record_no.startsWith('PI-') || q.record_no.startsWith('PUR-')));
 
     if (isPurchase) {
@@ -557,15 +573,21 @@ export function reconcileMissingDocuments(state: any): any {
   state.purchaseInvoices = newPIs;
 
   // 2. Reconcile missing Sales Invoices
-  const existingInvNos = new Set(
-    (state.invoices || []).map((i: any) => i.invoice_no || i.id)
-  );
+  const existingInvNos = new Set<string>();
+  for (const i of state.invoices || []) {
+    if (i.id) existingInvNos.add(i.id);
+    if (i.invoice_no) existingInvNos.add(i.invoice_no);
+  }
   const newInvoices = [...(state.invoices || [])];
 
   for (const q of state.approvalQueue) {
     const isSale =
       q.entity_type === 'sales_invoice' ||
-      q.module === 'Sales' ||
+      (q.module === 'Sales' &&
+        q.entity_type !== 'sales_return' &&
+        q.entity_type !== 'customer_receipt' &&
+        !q.record_no?.startsWith('SR-') &&
+        !q.record_no?.startsWith('CR-')) ||
       (q.record_no && (q.record_no.startsWith('SL-') || q.record_no.startsWith('INV-')));
 
     if (isSale) {

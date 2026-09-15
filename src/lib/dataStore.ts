@@ -278,6 +278,7 @@ interface DataStoreState {
   // Approvals Action
   addApprovalQueueItem: (item: Omit<ApprovalQueueItem, 'id'>) => string;
   reviewApproval: (id: string, status: 'APPROVED' | 'REJECTED', note?: string, reviewer?: string) => void;
+  deleteApprovalQueueItem: (id: string) => void;
 
   // Org & Branch & Dept Actions
   addOrg: (o: Omit<Organization, 'id'>) => void;
@@ -748,6 +749,21 @@ export const useDataStore = create<DataStoreState>()(
           const targetId = target?.id || id;
           const invNo = target?.invoice_no;
 
+          const removedQueueItemIds = (s.approvalQueue || [])
+            .filter(
+              (a) =>
+                a.id === targetId ||
+                a.record_id === targetId ||
+                a.entity_id === targetId ||
+                (invNo && a.record_no === invNo)
+            )
+            .map((a) => a.id)
+            .filter(Boolean);
+
+          const toTombstone = [targetId, id, ...removedQueueItemIds].filter(
+            (val) => Boolean(val && typeof val === 'string' && UUID_REGEX.test(val))
+          );
+
           return {
             invoices: s.invoices.filter((i) => i.id !== targetId && (!invNo || i.invoice_no !== invNo)),
             approvalQueue: s.approvalQueue.filter(
@@ -766,9 +782,8 @@ export const useDataStore = create<DataStoreState>()(
                 (!invNo || je.reference_no !== invNo) &&
                 (!invNo || je.entry_no !== `JV-${invNo}`)
             ),
-            // ONLY tombstone the UUID id — never tombstone document numbers like 'SL-02'
-            // because those get reused by new records
-            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), targetId])),
+            // ONLY tombstone UUIDs — never tombstone document numbers like 'SL-02'
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), ...toTombstone])),
           };
         }),
 
@@ -908,6 +923,21 @@ export const useDataStore = create<DataStoreState>()(
             (target as any)?.bill_no,
           ].filter(Boolean) as string[];
 
+          const removedQueueItemIds = (s.approvalQueue || [])
+            .filter(
+              (a) =>
+                targetIdentifiers.includes(a.id) ||
+                (a.record_id && targetIdentifiers.includes(a.record_id)) ||
+                (a.entity_id && targetIdentifiers.includes(a.entity_id)) ||
+                (a.record_no && targetIdentifiers.includes(a.record_no))
+            )
+            .map((a) => a.id)
+            .filter(Boolean);
+
+          const toTombstone = [targetId, id, ...removedQueueItemIds].filter(
+            (val) => Boolean(val && typeof val === 'string' && UUID_REGEX.test(val))
+          );
+
           return {
             purchaseInvoices: s.purchaseInvoices.filter(
               (p) =>
@@ -927,18 +957,38 @@ export const useDataStore = create<DataStoreState>()(
                 !targetIdentifiers.includes(je.reference_no || '') &&
                 !targetIdentifiers.some((ident) => je.entry_no === `JV-${ident}`)
             ),
-            // ONLY tombstone the UUID id — never tombstone document numbers
-            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), targetId])),
+            // ONLY tombstone UUIDs — never tombstone document numbers
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), ...toTombstone])),
           };
         }),
 
       addVendorBill: (vb) => set((s) => ({ vendorBills: [{ id: (vb as any).id || crypto.randomUUID(), ...vb }, ...s.vendorBills] })),
       updateVendorBill: (id, patch) => set((s) => ({ vendorBills: s.vendorBills.map((vb) => (vb.id === id ? { ...vb, ...patch } : vb)) })),
       deleteVendorBill: (id) =>
-        set((s) => ({
-          vendorBills: s.vendorBills.filter((vb) => vb.id !== id),
-          deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), id])),
-        })),
+        set((s) => {
+          const target = s.vendorBills.find((b) => b.id === id || b.bill_no === id);
+          const targetId = target?.id || id;
+          const billNo = target?.bill_no;
+          const removedQueueItemIds = (s.approvalQueue || [])
+            .filter(
+              (a) =>
+                a.id === targetId ||
+                a.record_id === targetId ||
+                (billNo && a.record_no === billNo)
+            )
+            .map((a) => a.id)
+            .filter(Boolean);
+          const toTombstone = [targetId, id, ...removedQueueItemIds].filter(
+            (val) => Boolean(val && typeof val === 'string' && UUID_REGEX.test(val))
+          );
+          return {
+            vendorBills: s.vendorBills.filter((vb) => vb.id !== targetId && (!billNo || vb.bill_no !== billNo)),
+            approvalQueue: s.approvalQueue.filter(
+              (a) => a.id !== targetId && a.record_id !== targetId && (!billNo || a.record_no !== billNo)
+            ),
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), ...toTombstone])),
+          };
+        }),
 
       addDebitNote: (dn) => set((s) => ({ debitNotes: [{ id: (dn as any).id || crypto.randomUUID(), ...dn }, ...s.debitNotes] })),
       updateDebitNote: (id, patch) => set((s) => ({ debitNotes: s.debitNotes.map((dn) => (dn.id === id ? { ...dn, ...patch } : dn)) })),
@@ -1111,6 +1161,7 @@ export const useDataStore = create<DataStoreState>()(
 
           if (status === 'REJECTED') {
             const targetStatus = 'REJECTED';
+            const now = new Date().toISOString();
             let newInvoices = s.invoices;
             let newVendorBills = s.vendorBills;
             let newPurchaseInvoices = s.purchaseInvoices;
@@ -1121,14 +1172,14 @@ export const useDataStore = create<DataStoreState>()(
 
             if (item.entity_type === 'sales_invoice') {
               newInvoices = s.invoices.map((inv) =>
-                inv.id === item.record_id || inv.invoice_no === item.record_no ? { ...inv, status: targetStatus } : inv
+                inv.id === item.record_id || inv.invoice_no === item.record_no ? { ...inv, status: targetStatus, updated_at: now } : inv
               );
             } else if (item.entity_type === 'vendor_bill' || item.entity_type === 'purchase_invoice') {
               newVendorBills = s.vendorBills.map((b) =>
-                b.id === item.record_id || b.bill_no === item.record_no ? { ...b, status: targetStatus } : b
+                b.id === item.record_id || b.bill_no === item.record_no ? { ...b, status: targetStatus, updated_at: now } : b
               );
               newPurchaseInvoices = s.purchaseInvoices.map((p) =>
-                p.id === item.record_id || p.grn_no === item.record_no ? { ...p, status: targetStatus } : p
+                p.id === item.record_id || p.grn_no === item.record_no || p.invoice_no === item.record_no ? { ...p, status: targetStatus, updated_at: now } : p
               );
             } else if (item.entity_type === 'sales_return') {
               newSalesReturns = s.salesReturns.map((sr) =>
@@ -1401,6 +1452,18 @@ export const useDataStore = create<DataStoreState>()(
           }
 
           return { approvalQueue: updatedQueue };
+        }),
+
+      deleteApprovalQueueItem: (id) =>
+        set((s) => {
+          const item = s.approvalQueue.find((a) => a.id === id);
+          const toTombstone: string[] = [];
+          if (item?.id && UUID_REGEX.test(item.id)) toTombstone.push(item.id);
+          if (id && UUID_REGEX.test(id)) toTombstone.push(id);
+          return {
+            approvalQueue: s.approvalQueue.filter((a) => a.id !== id),
+            deletedRecordIds: Array.from(new Set([...(s.deletedRecordIds || []), ...toTombstone])),
+          };
         }),
 
       // Org & Branch & Dept Actions
