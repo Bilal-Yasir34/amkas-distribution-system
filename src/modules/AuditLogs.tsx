@@ -1,11 +1,21 @@
 import { useState } from 'react';
 import { History, Shield, Printer, Download } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import {
+  useAuditLogs,
+  useLoginLogs,
+  useSalesInvoices,
+  useVendorBills,
+  useCustomerReceipts,
+} from '@/lib/queries';
 import { formatDate } from '@/lib/utils';
 
 export function AuditLogs() {
   const [activeTab, setActiveTab] = useState<'Activity log' | 'Login history'>('Activity log');
-  const { auditLogs, loginLogs, invoices, vendorBills, customerReceipts } = useDataStore();
+  const { data: auditLogs = [] } = useAuditLogs();
+  const { data: loginLogs = [] } = useLoginLogs();
+  const { data: invoices = [] } = useSalesInvoices();
+  const { data: vendorBills = [] } = useVendorBills();
+  const { data: customerReceipts = [] } = useCustomerReceipts();
 
   // Combine real store auditLogs with invoice/bill activities if store logs are initial
   const displayAuditLogs = [

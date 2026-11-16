@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Layers, X, Edit, Trash2, Power } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useBranches } from '@/lib/queries';
+import { useBranchMutations } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 import type { Branch } from '@/lib/types';
@@ -9,7 +10,8 @@ import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 export function Branches() {
   const toast = useToast();
   const { isAdmin } = useAuth();
-  const { branches, addBranch, updateBranch, deleteBranch } = useDataStore();
+  const { data: branches = [] } = useBranches();
+  const { addBranch, updateBranch, deleteBranch } = useBranchMutations();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

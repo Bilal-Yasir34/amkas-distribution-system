@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Users, Search, X, Edit, Trash2, Power, Download } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useCustomers } from '@/lib/queries';
+import { useCustomerMutations } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { downloadCSV } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
@@ -10,7 +11,8 @@ import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 export function Customers() {
   const toast = useToast();
   const { isAdmin } = useAuth();
-  const { customers, addCustomer, updateCustomer, deleteCustomer } = useDataStore();
+  const { data: customers = [] } = useCustomers();
+  const { addCustomer, updateCustomer, deleteCustomer } = useCustomerMutations();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { useToast } from '@/lib/toast';
-import { todayISO, safeUUID, formatDate, formatUserRequester } from '@/lib/utils';
+import { todayISO, safeUUID, formatDate, formatUserRequester, nextDocNumber } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
 import { useAuth } from '@/lib/auth';
 import { Plus, Edit, Trash2, X, ShoppingBag, Receipt, Sparkles, CheckCircle2, History, RotateCcw } from 'lucide-react';
@@ -27,7 +27,7 @@ export function SalesReturnModule() {
     productArticles,
     universalArticles = [],
     accountTypes
-  } = useDataStore();
+  } = useErpData();
 
   const allArticles = useMemo(
     () => getAllArticles(universalArticles, products, productArticles),

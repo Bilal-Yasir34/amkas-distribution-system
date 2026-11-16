@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Download, Printer, BarChart3, TrendingUp, Scale, ShoppingBag, ReceiptText } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { downloadCSV, todayISO , formatDate} from '@/lib/utils';
 import { useToast } from '@/lib/toast';
 
@@ -26,7 +26,7 @@ export function Reports() {
     incomeRecords,
     customers,
     vendors,
-  } = useDataStore();
+  } = useErpData();
 
   const [activeTab, setActiveTab] = useState<ReportTab>('trial_balance');
 

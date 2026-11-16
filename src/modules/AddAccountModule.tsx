@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Users, Search, X, Edit, Trash2, Power, Download, Percent } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useCustomers, useVendors, useAccountTypes } from '@/lib/queries';
+import { useCustomerMutations } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { downloadCSV } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
@@ -10,7 +11,10 @@ import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 export function AddAccountModule() {
   const toast = useToast();
   const { isAdmin } = useAuth();
-  const { customers = [], vendors = [], accountTypes = [], addCustomer, updateCustomer, deleteCustomer } = useDataStore();
+  const { data: customers = [] } = useCustomers();
+  const { data: vendors = [] } = useVendors();
+  const { data: accountTypes = [] } = useAccountTypes();
+  const { addCustomer, updateCustomer, deleteCustomer } = useCustomerMutations();
 
   // Combine customers and vendors into unified accounts list or use customers as primary party store
   const allAccounts = [...customers, ...vendors];

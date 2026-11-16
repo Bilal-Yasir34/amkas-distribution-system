@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Calendar, Plus, CheckCircle, Clock, X, Trash2 } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useFinancialYears } from '@/lib/queries';
+import { useFinancialYearMutations } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { formatDate } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
@@ -8,7 +9,8 @@ import type { FinancialYear } from '@/lib/types';
 
 export function FinancialYears() {
   const toast = useToast();
-  const { financialYears, addFinancialYear, updateFinancialYear, deleteFinancialYear } = useDataStore();
+  const { data: financialYears = [] } = useFinancialYears();
+  const { addFinancialYear, updateFinancialYear, deleteFinancialYear } = useFinancialYearMutations();
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState('2026-07-01');

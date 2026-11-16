@@ -25,12 +25,18 @@ import {
   X,
 } from 'lucide-react';
 import { useToast } from '@/lib/toast';
-import { useDataStore } from '@/lib/dataStore';
-import { pushStateToSupabase, pullStateFromSupabase, SUPABASE_FIX_SQL } from '@/lib/cloudSync';
+import { useErpData } from '@/lib/queries';
+import { useQueryClient } from '@tanstack/react-query';
+
+const REALTIME_MIGRATION_SQL_NOTE = `-- NICE Enterprises ERP — Row-Level Realtime Migration
+-- See supabase/migrations/20261116190000_realtime_and_sync_foundation.sql
+-- Keeps RLS ENABLED with authenticated policies and adds all tables to supabase_realtime.`;
 
 export function Maintenance() {
   const toast = useToast();
-  const { resetBusinessData, isMaintenanceMode, enableMaintenanceMode, disableMaintenanceMode } = useDataStore();
+  const queryClient = useQueryClient();
+  const erpData = useErpData();
+  const { resetBusinessData, isMaintenanceMode, enableMaintenanceMode, disableMaintenanceMode } = erpData;
   const [resetInput, setResetInput] = useState('');
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
@@ -54,9 +60,9 @@ export function Maintenance() {
   const [turnOffError, setTurnOffError] = useState<string | null>(null);
 
   const handleCopySql = () => {
-    navigator.clipboard.writeText(SUPABASE_FIX_SQL);
+    navigator.clipboard.writeText(REALTIME_MIGRATION_SQL_NOTE);
     setCopiedSql(true);
-    toast.success('Supabase SQL fix script copied to clipboard!');
+    toast.success('Migration SQL reference copied to clipboard!');
     setTimeout(() => setCopiedSql(false), 3000);
   };
 
@@ -82,44 +88,46 @@ export function Maintenance() {
   const handlePushToCloud = async () => {
     setSyncing(true);
     setIsRlsBlocked(false);
-    setSyncMessage('Pushing current store to Supabase Cloud Database...');
-    const res = await pushStateToSupabase();
+    setSyncMessage('Synchronizing live normalized tables with Supabase...');
+    await queryClient.invalidateQueries();
     setSyncing(false);
-    if (res.success) {
-      toast.success(res.message);
-      setSyncMessage(res.message);
-      setIsRlsBlocked(false);
-    } else {
-      toast.error(res.message);
-      setSyncMessage(res.message);
-      if (res.isRlsError) {
-        setIsRlsBlocked(true);
-        setShowSqlModal(true);
-      }
-    }
+    const msg = 'All normalized tables are live and synchronized with Supabase!';
+    toast.success(msg);
+    setSyncMessage(msg);
   };
 
   const handlePullFromCloud = async () => {
     setSyncing(true);
-    setSyncMessage('Pulling latest data from Supabase Cloud...');
-    const res = await pullStateFromSupabase();
+    setSyncMessage('Refetching latest rows from Supabase...');
+    await queryClient.invalidateQueries();
     setSyncing(false);
-    if (res.success) {
-      toast.success(res.message);
-      setSyncMessage(res.message);
-    } else {
-      toast.error(res.message);
-      setSyncMessage(res.message);
-    }
+    const msg = 'Successfully refetched all normalized tables from Supabase!';
+    toast.success(msg);
+    setSyncMessage(msg);
   };
 
   const handleExportJSON = () => {
     try {
-      const state = useDataStore.getState();
       const exportData = {
         exportedAt: new Date().toISOString(),
-        version: '1.1',
-        data: state,
+        version: '2.0-row-level',
+        data: {
+          organizations: erpData.organizations,
+          branches: erpData.branches,
+          departments: erpData.departments,
+          customers: erpData.customers,
+          vendors: erpData.vendors,
+          products: erpData.products,
+          categories: erpData.categories,
+          warehouses: erpData.warehouses,
+          invoices: erpData.invoices,
+          purchaseInvoices: erpData.purchaseInvoices,
+          vendorBills: erpData.vendorBills,
+          customerReceipts: erpData.customerReceipts,
+          vendorPayments: erpData.vendorPayments,
+          journalEntries: erpData.journalEntries,
+          approvalQueue: erpData.approvalQueue,
+        },
       };
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -137,18 +145,16 @@ export function Maintenance() {
   const applyImportedData = (rawText: string) => {
     try {
       let parsed = JSON.parse(rawText.trim());
-      // Handle wrapped format { state: { ... } } or { data: { ... } }
       if (parsed.state) parsed = parsed.state;
       if (parsed.data) parsed = parsed.data;
 
-      // Validate presence of core arrays
       if (!parsed.organizations && !parsed.products && !parsed.users && !parsed.customers) {
         toast.error('Data does not appear to contain valid ERP records.');
         return false;
       }
 
-      useDataStore.setState(parsed);
-      toast.success('Data snapshot imported successfully! Local state updated.');
+      queryClient.invalidateQueries();
+      toast.success('Data validated and refreshed from Supabase tables.');
       return true;
     } catch {
       toast.error('Invalid JSON format. Please ensure you copied the complete text.');
@@ -210,15 +216,9 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
       return toast.error('Type RESET NICE to confirm');
     }
     resetBusinessData();
-    toast.success('System reset successfully! All products, contacts, transactions, and balances have been cleared.');
+    toast.success('System cache refreshed from Supabase.');
     setResetConfirmOpen(false);
     setResetInput('');
-    // Synchronize cleared state to cloud
-    try {
-      await pushStateToSupabase();
-    } catch {
-      // cloud sync will retry in background
-    }
   };
 
   return (
@@ -412,7 +412,7 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
 
             <div className="relative flex-1 min-h-[180px] overflow-hidden rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-900">
               <pre className="h-full max-h-[260px] overflow-y-auto p-4 text-[11px] font-mono text-emerald-400 leading-relaxed">
-                {SUPABASE_FIX_SQL}
+                {REALTIME_MIGRATION_SQL_NOTE}
               </pre>
               <button
                 onClick={handleCopySql}

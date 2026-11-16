@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useMemo, useEffect } from 'react';
+import { useEffect } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { Toaster } from '@/components/Toaster';
 import { useAppStore } from '@/lib/store';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData, useRolePermissions } from '@/lib/queries';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { useRealtimeSync } from '@/lib/realtime';
+import { isSupabaseConfigured, BUILD_ID, SUPABASE_HOST } from '@/lib/supabase';
 import { ROLE_MODULES, normalizeRole, type ModuleKey } from '@/lib/rbac';
 import { Login } from '@/modules/Login';
 import { Dashboard } from '@/modules/Dashboard';
@@ -36,14 +38,20 @@ import { RolesPermissions } from '@/modules/RolesPermissions';
 import { AuditLogs } from '@/modules/AuditLogs';
 import { Settings } from '@/modules/Settings';
 import { Maintenance } from '@/modules/Maintenance';
-import { Building2, Loader2 } from 'lucide-react';
+import { StylishLoadingScreen } from '@/components/SkeletonLoader';
+import { MaintenanceScreen } from '@/components/MaintenanceScreen';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { AlertTriangle } from 'lucide-react';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 60_000,
+      staleTime: 0,
+      gcTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      refetchOnMount: true,
+      retry: 2,
     },
   },
 });
@@ -84,11 +92,16 @@ function Router() {
   const { profile } = useAuth();
   const activeModule = useAppStore((s) => s.activeModule) as ModuleKey;
   const setActiveModule = useAppStore((s) => s.setActiveModule);
-  const { rolePermissions } = useDataStore();
+  const { data: rolePermissions } = useRolePermissions();
 
   const role = normalizeRole(profile?.role);
-  const allowed = Array.from(new Set([...(ROLE_MODULES[role] || ROLE_MODULES.super_admin), ...(rolePermissions[role] || [])]));
-  const effective = allowed.includes(activeModule) ? activeModule : (allowed[0] || 'dashboard');
+  const allowed = Array.from(
+    new Set([
+      ...(ROLE_MODULES[role] || ROLE_MODULES.super_admin),
+      ...(rolePermissions?.[role] || []),
+    ])
+  );
+  const effective = allowed.includes(activeModule) ? activeModule : allowed[0] || 'dashboard';
   const Component = modules[effective] || Dashboard;
 
   useEffect(() => {
@@ -100,12 +113,35 @@ function Router() {
   return <Component />;
 }
 
-import { StylishLoadingScreen } from '@/components/SkeletonLoader';
-import { MaintenanceScreen } from '@/components/MaintenanceScreen';
+function ConfigurationMissingScreen() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-6 text-slate-100">
+      <div className="max-w-lg rounded-3xl border border-rose-500/40 bg-slate-900 p-8 shadow-2xl space-y-4">
+        <div className="flex items-center gap-3 text-rose-400">
+          <AlertTriangle className="h-8 w-8 shrink-0" />
+          <h1 className="text-xl font-extrabold font-heading">Configuration missing</h1>
+        </div>
+        <p className="text-sm text-slate-300 leading-relaxed">
+          Required Supabase environment variables (<code className="text-amber-400">VITE_SUPABASE_URL</code> and{' '}
+          <code className="text-amber-400">VITE_SUPABASE_ANON_KEY</code>) are not configured for this build.
+        </p>
+        <p className="text-xs text-slate-400">
+          Set both variables in your <code className="text-slate-200">.env</code> file or hosting provider environment settings, then rebuild the site.
+        </p>
+        <div className="pt-2 border-t border-slate-800 text-[11px] font-mono text-slate-500">
+          Build: {BUILD_ID} &bull; Host: {SUPABASE_HOST}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function AppContent() {
   const { session, loading, profile, isAdmin } = useAuth();
-  const { isMaintenanceMode } = useDataStore();
+  const { isMaintenanceMode } = useErpData();
+
+  // Mount the single Supabase Realtime channel once after authentication
+  useRealtimeSync(Boolean(session));
 
   if (loading) {
     return <StylishLoadingScreen message="Initializing NICE Enterprises Portal..." />;
@@ -128,13 +164,10 @@ function AppContent() {
   );
 }
 
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { initAutoCloudSync } from '@/lib/cloudSync';
-
 export default function App() {
-  useEffect(() => {
-    initAutoCloudSync();
-  }, []);
+  if (!isSupabaseConfigured) {
+    return <ConfigurationMissingScreen />;
+  }
 
   return (
     <ErrorBoundary>

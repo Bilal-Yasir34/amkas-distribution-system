@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Search, FileText, Package, Users, Truck, Sparkles, X, ArrowRight, CornerDownLeft } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
-import { useDataStore } from '@/lib/dataStore';
 import { useAuth } from '@/lib/auth';
 import { ROLE_MODULES, type ModuleKey } from '@/lib/rbac';
-import { useSalesInvoices, useProducts, useCustomers, useVendors } from '@/lib/queries';
+import { useSalesInvoices, useProducts, useCustomers, useVendors, useRolePermissions } from '@/lib/queries';
 
 interface Props {
   isOpen: boolean;
@@ -18,7 +17,7 @@ export function GlobalSearchModal({ isOpen, onClose }: Props) {
   const [category, setCategory] = useState<FilterCategory>('all');
   const setActiveModule = useAppStore((s) => s.setActiveModule);
   const { profile } = useAuth();
-  const { rolePermissions } = useDataStore();
+  const { data: rolePermissions } = useRolePermissions();
 
   const role = profile?.role ?? 'super_admin';
   const allowed = rolePermissions[role] || ROLE_MODULES[role] || ROLE_MODULES.super_admin;

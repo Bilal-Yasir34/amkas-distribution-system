@@ -21,7 +21,7 @@ import {
   Printer,
   Trash2,
 } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { useToast } from '@/lib/toast';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import type { ApprovalQueueItem } from '@/lib/types';
@@ -33,6 +33,7 @@ export function Approvals() {
   const toast = useToast();
   const {
     approvalQueue = [],
+    addApprovalQueueItem,
     reviewApproval,
     warehouses = [],
     invoices = [],
@@ -47,10 +48,15 @@ export function Approvals() {
     products = [],
     productArticles = [],
     bankAccounts = [],
+    updateInvoice,
+    updateVendorBill,
+    updatePurchaseInvoice,
+    updateSalesReturn,
+    updatePurchaseReturn,
     deleteInvoice,
     deletePurchaseInvoice,
     deleteApprovalQueueItem,
-  } = useDataStore();
+  } = useErpData();
 
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,68 +87,32 @@ export function Approvals() {
     const item = approvalQueue.find((a) => a.id === id);
     if (!item) return;
 
-    const now = new Date().toISOString();
-    useDataStore.setState((s) => {
-      const updatedQueue = s.approvalQueue.map((a) =>
-        a.id === id
-          ? {
-              ...a,
-              status: 'PENDING',
-              review_note: undefined,
-              reviewed_by: undefined,
-              reviewed_at: undefined,
-              created_at: now,
-              updated_at: now,
-            }
-          : a
-      );
-
-      let newInvoices = s.invoices;
-      let newVendorBills = s.vendorBills;
-      let newPurchaseInvoices = s.purchaseInvoices;
-      let newSalesReturns = s.salesReturns;
-      let newPurchaseReturns = s.purchaseReturns;
-
-      if (item.entity_type === 'sales_invoice') {
-        newInvoices = s.invoices.map((inv) =>
-          inv.id === item.record_id || inv.invoice_no === item.record_no
-            ? { ...inv, status: 'PENDING_APPROVAL', updated_at: now }
-            : inv
-        );
-      } else if (item.entity_type === 'vendor_bill' || item.entity_type === 'purchase_invoice') {
-        newVendorBills = s.vendorBills.map((b) =>
-          b.id === item.record_id || b.bill_no === item.record_no
-            ? { ...b, status: 'PENDING_APPROVAL', updated_at: now }
-            : b
-        );
-        newPurchaseInvoices = s.purchaseInvoices.map((p) =>
-          p.id === item.record_id || p.grn_no === item.record_no || p.invoice_no === item.record_no
-            ? { ...p, status: 'PENDING_APPROVAL', updated_at: now }
-            : p
-        );
-      } else if (item.entity_type === 'sales_return') {
-        newSalesReturns = s.salesReturns.map((sr) =>
-          sr.id === item.record_id || sr.return_no === item.record_no
-            ? { ...sr, status: 'PENDING_APPROVAL' }
-            : sr
-        );
-      } else if (item.entity_type === 'purchase_return') {
-        newPurchaseReturns = s.purchaseReturns.map((pr) =>
-          pr.id === item.record_id || pr.return_no === item.record_no
-            ? { ...pr, status: 'PENDING_APPROVAL' }
-            : pr
-        );
-      }
-
-      return {
-        approvalQueue: updatedQueue,
-        invoices: newInvoices,
-        vendorBills: newVendorBills,
-        purchaseInvoices: newPurchaseInvoices,
-        salesReturns: newSalesReturns,
-        purchaseReturns: newPurchaseReturns,
-      };
+    addApprovalQueueItem({
+      ...item,
+      id: item.id,
+      status: 'PENDING',
+      review_note: null,
+      reviewed_by: null,
+      reviewed_at: null,
     });
+
+    if (item.entity_type === 'sales_invoice') {
+      const inv = invoices.find((i) => i.id === item.record_id || i.invoice_no === item.record_no);
+      if (inv) updateInvoice(inv.id, { status: 'PENDING_APPROVAL' });
+    } else if (item.entity_type === 'vendor_bill' || item.entity_type === 'purchase_invoice') {
+      const bill = vendorBills.find((b) => b.id === item.record_id || b.bill_no === item.record_no);
+      if (bill) updateVendorBill(bill.id, { status: 'PENDING_APPROVAL' });
+      const pi = purchaseInvoices.find(
+        (p) => p.id === item.record_id || p.grn_no === item.record_no || p.invoice_no === item.record_no
+      );
+      if (pi) updatePurchaseInvoice(pi.id, { status: 'PENDING_APPROVAL' });
+    } else if (item.entity_type === 'sales_return') {
+      const sr = salesReturns.find((r) => r.id === item.record_id || r.return_no === item.record_no);
+      if (sr) updateSalesReturn(sr.id, { status: 'PENDING_APPROVAL' });
+    } else if (item.entity_type === 'purchase_return') {
+      const pr = purchaseReturns.find((r) => r.id === item.record_id || r.return_no === item.record_no);
+      if (pr) updatePurchaseReturn(pr.id, { status: 'PENDING_APPROVAL' });
+    }
 
     const label = entityType ? entityType.replace('_', ' ').toUpperCase() : 'Document';
     toast.success(`${label} ${recordNo} moved back to Pending!`);

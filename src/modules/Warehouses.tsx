@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Warehouse as WhIcon, X, Edit, Trash2, Power } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useWarehouses, useBranches } from '@/lib/queries';
+import { useWarehouseMutations } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
@@ -9,7 +10,9 @@ import type { Warehouse } from '@/lib/types';
 export function Warehouses() {
   const toast = useToast();
   const { isAdmin } = useAuth();
-  const { warehouses, addWarehouse, updateWarehouse, deleteWarehouse, branches } = useDataStore();
+  const { data: warehouses = [] } = useWarehouses();
+  const { data: branches = [] } = useBranches();
+  const { addWarehouse, updateWarehouse, deleteWarehouse } = useWarehouseMutations();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

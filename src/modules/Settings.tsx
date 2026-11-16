@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Building2, FileText, DollarSign, Shield, Save, Plus, Upload, X, Check, Wrench, KeyRound, Power, AlertCircle } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { useToast } from '@/lib/toast';
 import { DateInput } from '@/components/DateInput';
 
@@ -32,7 +32,7 @@ const INITIAL_DOC_SEQS: DocSeq[] = [
 
 export function Settings() {
   const toast = useToast();
-  const { companyLogo, setCompanyLogo, orgSettings, updateOrgSettings, isMaintenanceMode, enableMaintenanceMode, disableMaintenanceMode } = useDataStore();
+  const { companyLogo, setCompanyLogo, orgSettings, updateOrgSettings, isMaintenanceMode, enableMaintenanceMode, disableMaintenanceMode } = useErpData();
 
   const [showSettingsPasswordModal, setShowSettingsPasswordModal] = useState(false);
   const [settingsPassword, setSettingsPassword] = useState('');

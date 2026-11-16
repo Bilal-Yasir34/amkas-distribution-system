@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Shield, Save, CheckCircle } from 'lucide-react';
 import { ROLES, ROLE_MODULES, MODULE_LABELS, type ModuleKey, type Role } from '@/lib/rbac';
-import { useDataStore } from '@/lib/dataStore';
+import { useRolePermissions } from '@/lib/queries';
+import { useSecurityMutations } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 
 const ALL_MODULE_KEYS: ModuleKey[] = [
@@ -34,7 +35,8 @@ const ALL_MODULE_KEYS: ModuleKey[] = [
 
 export function RolesPermissions() {
   const toast = useToast();
-  const { rolePermissions, updateRolePermissions } = useDataStore();
+  const { data: rolePermissions } = useRolePermissions();
+  const { updateRolePermissions } = useSecurityMutations();
   const [selectedRole, setSelectedRole] = useState<Role>('accountant');
 
   // Derive allowed modules from the store (overrides rbac defaults)

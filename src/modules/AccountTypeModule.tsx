@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Search, X, Edit, Trash2, Power, Download, Tags } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useAccountTypes } from '@/lib/queries';
+import { useAccountTypeMutations } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { downloadCSV } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
@@ -10,7 +11,8 @@ import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 export function AccountTypeModule() {
   const toast = useToast();
   const { isAdmin } = useAuth();
-  const { accountTypes = [], addAccountType, updateAccountType, deleteAccountType } = useDataStore();
+  const { data: accountTypes = [] } = useAccountTypes();
+  const { addAccountType, updateAccountType, deleteAccountType } = useAccountTypeMutations();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

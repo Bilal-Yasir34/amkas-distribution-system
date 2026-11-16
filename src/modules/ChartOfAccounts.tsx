@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, X, Edit, Trash2 } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useChartOfAccounts } from '@/lib/queries';
+import { useChartOfAccountMutations } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 import type { ChartOfAccount } from '@/lib/types';
@@ -9,7 +10,8 @@ import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 export function ChartOfAccounts() {
   const toast = useToast();
   const { isAdmin } = useAuth();
-  const { chartOfAccounts, addCOAccount, updateCOAccount, deleteCOAccount } = useDataStore();
+  const { data: chartOfAccounts = [] } = useChartOfAccounts();
+  const { addCOAccount, updateCOAccount, deleteCOAccount } = useChartOfAccountMutations();
 
   const [activeSubTab, setActiveSubTab] = useState<'All accounts' | 'Balance sheet' | 'Profit & loss'>('All accounts');
   const [modalOpen, setModalOpen] = useState(false);

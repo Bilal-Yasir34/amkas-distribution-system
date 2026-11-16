@@ -18,11 +18,9 @@ export const SUPABASE_HOST: string = (() => {
 })();
 
 // Startup diagnostic log (shows ONLY host and build ID, NEVER the anon key)
-// eslint-disable-next-line no-console
 console.info(`[NICE-ERP] Build: ${BUILD_ID} | Supabase Host: ${SUPABASE_HOST}`);
 
 if (!isSupabaseConfigured) {
-  // eslint-disable-next-line no-console
   console.error('Configuration missing: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
 }
 

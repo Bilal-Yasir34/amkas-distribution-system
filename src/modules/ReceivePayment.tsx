@@ -1,5 +1,14 @@
 import { useState, useMemo } from 'react';
-import { useDataStore } from '@/lib/dataStore';
+import {
+  useCustomers,
+  useVendors,
+  useUsers,
+  useAccountTypes,
+  useBankAccounts,
+  useSalesInvoices,
+  useCustomerReceipts,
+} from '@/lib/queries';
+import { useCustomerReceiptMutations, useApprovalMutations } from '@/lib/services';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
 import { todayISO, safeUUID, formatUserRequester } from '@/lib/utils';
@@ -8,17 +17,15 @@ import { DateInput } from '@/components/DateInput';
 export function ReceivePayment() {
   const toast = useToast();
   const { profile } = useAuth();
-  const {
-    customers = [],
-    vendors = [],
-    users = [],
-    accountTypes = [],
-    bankAccounts = [],
-    invoices = [],
-    customerReceipts = [],
-    addCustomerReceipt,
-    addApprovalQueueItem,
-  } = useDataStore();
+  const { data: customers = [] } = useCustomers();
+  const { data: vendors = [] } = useVendors();
+  const { data: users = [] } = useUsers();
+  const { data: accountTypes = [] } = useAccountTypes();
+  const { data: bankAccounts = [] } = useBankAccounts();
+  const { data: invoices = [] } = useSalesInvoices();
+  const { data: customerReceipts = [] } = useCustomerReceipts();
+  const { addCustomerReceipt } = useCustomerReceiptMutations();
+  const { addApprovalQueueItem } = useApprovalMutations();
 
   const [selectedAccountType, setSelectedAccountType] = useState(
     (accountTypes || []).filter((at) => at.is_active)[0]?.name || 'Customer'

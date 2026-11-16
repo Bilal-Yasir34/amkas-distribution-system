@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Truck, Search, X, Edit, Trash2, Power, Download } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useVendors } from '@/lib/queries';
+import { useVendorMutations } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { downloadCSV } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
@@ -10,7 +11,8 @@ import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 export function Vendors() {
   const toast = useToast();
   const { isAdmin } = useAuth();
-  const { vendors, addVendor, updateVendor, deleteVendor } = useDataStore();
+  const { data: vendors = [] } = useVendors();
+  const { addVendor, updateVendor, deleteVendor } = useVendorMutations();
 
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Building2, X, Edit, Trash2, Power } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useOrganizations, useBranches, useUsers } from '@/lib/queries';
+import { useOrganizationMutations } from '@/lib/services';
 import { useAppStore } from '@/lib/store';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
@@ -10,7 +11,10 @@ import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 export function Organizations() {
   const toast = useToast();
   const { isAdmin } = useAuth();
-  const { organizations, branches = [], users = [], addOrg, updateOrg, deleteOrg } = useDataStore();
+  const { data: organizations = [] } = useOrganizations();
+  const { data: branches = [] } = useBranches();
+  const { data: users = [] } = useUsers();
+  const { addOrg, updateOrg, deleteOrg } = useOrganizationMutations();
   const { setSelectedOrg } = useAppStore();
 
   const totalBranchesCount = (branches || []).filter((b) => b.is_active !== false).length;

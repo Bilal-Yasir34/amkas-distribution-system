@@ -9,7 +9,7 @@ import {
   X,
   AlertCircle,
 } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { downloadCSV, formatCurrency, formatDate, getCustomerName, getVendorName } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
 
@@ -63,7 +63,7 @@ export function ReportsModule() {
     chartOfAccounts,
     bankAccounts,
     batches,
-  } = useDataStore();
+  } = useErpData();
 
   // ——— Sales Report Data ———
   const salesRows = invoices

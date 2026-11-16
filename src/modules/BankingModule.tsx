@@ -13,7 +13,14 @@ import {
   ArrowUpRight,
   FileUp,
 } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import {
+  useBankAccounts,
+  useSalesInvoices,
+  useCustomerReceipts,
+  useVendorBills,
+  useVendorPayments,
+} from '@/lib/queries';
+import { useBankAccountMutations } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 import { CashFlowPrint } from '@/components/CashFlowPrint';
@@ -24,16 +31,12 @@ import { DateInput } from '@/components/DateInput';
 export function BankingModule() {
   const toast = useToast();
   const { isAdmin } = useAuth();
-  const {
-    bankAccounts,
-    addBankAccount,
-    updateBankAccount,
-    deleteBankAccount,
-    invoices = [],
-    customerReceipts = [],
-    vendorBills = [],
-    vendorPayments = [],
-  } = useDataStore();
+  const { data: bankAccounts = [] } = useBankAccounts();
+  const { data: invoices = [] } = useSalesInvoices();
+  const { data: customerReceipts = [] } = useCustomerReceipts();
+  const { data: vendorBills = [] } = useVendorBills();
+  const { data: vendorPayments = [] } = useVendorPayments();
+  const { addBankAccount, updateBankAccount, deleteBankAccount } = useBankAccountMutations();
 
   const [activeSubTab, setActiveSubTab] = useState<
     'Overview' | 'Bank Accounts' | 'Statement Imports' | 'Reconciliation' | 'Cash Flow'

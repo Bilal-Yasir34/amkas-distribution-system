@@ -28,15 +28,13 @@ import {
   ChevronDown,
   Menu,
   X,
-  Cloud,
-  CloudOff,
   RefreshCw,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { useTheme } from '@/lib/useTheme';
 import { useAuth } from '@/lib/auth';
-import { useCloudSyncStatus } from '@/lib/cloudSync';
+import { useRealtimeStatus } from '@/lib/realtime';
 import { BUILD_ID, SUPABASE_HOST } from '@/lib/supabase';
 import { ROLE_MODULES, MODULE_LABELS, ROLES, type ModuleKey } from '@/lib/rbac';
 import { useState, useEffect } from 'react';
@@ -89,7 +87,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const role = profile?.role ?? 'super_admin';
-  const { rolePermissions, organizations, orgSettings, companyLogo, branches, isMaintenanceMode } = useDataStore();
+  const { rolePermissions, organizations, orgSettings, companyLogo, branches, isMaintenanceMode } = useErpData();
   const allowed = Array.from(new Set([...(ROLE_MODULES[role] || ROLE_MODULES.super_admin), ...(rolePermissions[role] || [])]));
   const currentLabel = MODULE_LABELS[activeModule as ModuleKey] ?? 'Dashboard';
   const roleLabel = ROLES.find((r) => r.id === role)?.label ?? 'Super Admin';
@@ -171,7 +169,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setTimeout(() => setModuleLoading(false), 250);
   };
 
-  const { status: syncStatus, triggerManualSync } = useCloudSyncStatus();
+  const { isLive, refreshAll } = useRealtimeStatus();
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 dark:bg-[#0f172a]">
@@ -438,39 +436,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* Live Cloud Sync Indicator */}
             <button
               onClick={() => {
-                triggerManualSync();
+                refreshAll();
               }}
               title={
-                syncStatus === 'syncing'
-                  ? 'Syncing data to cloud...'
-                  : syncStatus === 'synced'
-                  ? 'All devices synchronized live (Click to force sync)'
-                  : syncStatus === 'error'
-                  ? 'Cloud permission warning (Click to retry)'
-                  : 'Offline mode active (Click to connect)'
+                isLive
+                  ? 'Realtime channel SUBSCRIBED — all changes sync live (<1s)'
+                  : 'Reconnecting to Supabase Realtime...'
               }
               className={`flex items-center gap-1.5 rounded-2xl px-2.5 sm:px-3 py-1.5 text-xs font-bold transition border backdrop-blur-md shadow-sm ${
-                syncStatus === 'syncing'
-                  ? 'bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400'
-                  : syncStatus === 'synced'
+                isLive
                   ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30 dark:text-emerald-400 hover:bg-emerald-500/20'
-                  : syncStatus === 'error'
-                  ? 'bg-rose-500/10 text-rose-600 border-rose-500/30 dark:text-rose-400'
-                  : 'bg-slate-500/10 text-slate-500 border-slate-500/30'
+                  : 'bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400'
               }`}
             >
-              {syncStatus === 'syncing' ? (
-                <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-500" />
-              ) : syncStatus === 'synced' ? (
+              {isLive ? (
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
               ) : (
-                <CloudOff className="h-3.5 w-3.5 text-slate-400" />
+                <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-500" />
               )}
               <span className="hidden md:inline text-[11px]">
-                {syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'synced' ? 'Live Cloud' : 'Offline'}
+                {isLive ? 'Live' : 'Reconnecting...'}
               </span>
             </button>
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Layers, X, Edit, Trash2, Power } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useDepartments, useBranches } from '@/lib/queries';
+import { useDepartmentMutations } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 import type { Department } from '@/lib/types';
@@ -9,7 +10,9 @@ import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 export function Departments() {
   const toast = useToast();
   const { isAdmin } = useAuth();
-  const { departments, branches, addDepartment, updateDepartment, deleteDepartment } = useDataStore();
+  const { data: departments = [] } = useDepartments();
+  const { data: branches = [] } = useBranches();
+  const { addDepartment, updateDepartment, deleteDepartment } = useDepartmentMutations();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

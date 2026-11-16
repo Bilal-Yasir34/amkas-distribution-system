@@ -1,5 +1,19 @@
 import { useState, useMemo } from 'react';
-import { useDataStore } from '@/lib/dataStore';
+import {
+  useVendors,
+  useCustomers,
+  useUsers,
+  useAccountTypes,
+  useBankAccounts,
+  useVendorBills,
+  useVendorPayments,
+} from '@/lib/queries';
+import {
+  useVendorPaymentMutations,
+  useApprovalMutations,
+  useVendorMutations,
+  useVendorBillMutations,
+} from '@/lib/services';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
 import { todayISO, safeUUID, formatUserRequester } from '@/lib/utils';
@@ -8,19 +22,17 @@ import { DateInput } from '@/components/DateInput';
 export function PayPayment() {
   const toast = useToast();
   const { profile } = useAuth();
-  const {
-    vendors = [],
-    customers = [],
-    users = [],
-    accountTypes = [],
-    bankAccounts = [],
-    vendorBills = [],
-    vendorPayments = [],
-    addVendorPayment,
-    addApprovalQueueItem,
-    updateVendor,
-    updateVendorBill,
-  } = useDataStore();
+  const { data: vendors = [] } = useVendors();
+  const { data: customers = [] } = useCustomers();
+  const { data: users = [] } = useUsers();
+  const { data: accountTypes = [] } = useAccountTypes();
+  const { data: bankAccounts = [] } = useBankAccounts();
+  const { data: vendorBills = [] } = useVendorBills();
+  const { data: vendorPayments = [] } = useVendorPayments();
+  const { addVendorPayment } = useVendorPaymentMutations();
+  const { addApprovalQueueItem } = useApprovalMutations();
+  const { updateVendor } = useVendorMutations();
+  const { updateVendorBill } = useVendorBillMutations();
 
   const [selectedAccountType, setSelectedAccountType] = useState(
     (accountTypes || []).filter((at) => at.is_active).find((at) => at.name?.toLowerCase().includes('vendor') || at.name?.toLowerCase().includes('supplier'))?.name ||

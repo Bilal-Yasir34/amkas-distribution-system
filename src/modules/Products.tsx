@@ -1,6 +1,12 @@
 import { useState, useMemo } from 'react';
 import { Plus, Package, Search, X, Edit, Trash2, Power, Download, Tag, Layers, Check, Sparkles, Palette } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import {
+  useProducts,
+  useCategories,
+  useProductArticles,
+  useUniversalArticles,
+} from '@/lib/queries';
+import { useProductMutations } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { downloadCSV, nextDocNumber } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
@@ -16,17 +22,17 @@ interface LocalProductItem {
 export function Products() {
   const toast = useToast();
   const { isAdmin } = useAuth();
+  const { data: products = [] } = useProducts();
+  const { data: categories = [] } = useCategories();
+  const { data: productArticles = [] } = useProductArticles();
+  const { data: universalArticles = [] } = useUniversalArticles();
   const {
-    products,
-    categories,
-    productArticles,
-    universalArticles,
     addProduct,
     updateProduct,
     deleteProduct,
     addProductArticle,
     addUniversalArticle,
-  } = useDataStore();
+  } = useProductMutations();
 
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);

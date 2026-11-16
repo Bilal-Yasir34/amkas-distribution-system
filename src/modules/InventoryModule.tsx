@@ -13,7 +13,7 @@ import {
   Trash2,
   Edit,
 } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 import { downloadCSV, todayISO, formatDate } from '@/lib/utils';
@@ -93,7 +93,7 @@ export function InventoryModule() {
     addSerial,
     deleteSerial,
     updateProduct,
-  } = useDataStore();
+  } = useErpData();
 
   const allArticles = useMemo(
     () => getAllArticles(universalArticles, products, productArticles),

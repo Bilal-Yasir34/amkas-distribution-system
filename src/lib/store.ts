@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// Clear any legacy whole-state localStorage business data blob on startup
+if (typeof window !== 'undefined') {
+  try {
+    window.localStorage.removeItem('amkas-erp-data-store');
+  } catch {
+    // ignore storage errors
+  }
+}
+
 interface AppState {
   theme: 'dark' | 'light';
   activeModule: string;
@@ -26,6 +35,13 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'amkas-erp-ui',
+      version: 2,
+      partialize: (state) => ({
+        theme: state.theme,
+        activeModule: state.activeModule,
+        selectedOrg: state.selectedOrg,
+        selectedBranch: state.selectedBranch,
+      }),
       onRehydrateStorage: () => (state) => {
         if (state && state.selectedOrg === 'AMKAS INTERNATIONAL') {
           state.selectedOrg = 'NICE ENTERPRISES';

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Search, Eye, X, Edit, Trash2, ShieldCheck, Mail, Phone, Briefcase, Building, DollarSign } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useUsers, useBranches } from '@/lib/queries';
+import { useUserMutations } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { ROLES } from '@/lib/rbac';
 import { useAuth } from '@/lib/auth';
@@ -11,7 +12,9 @@ import type { UserEmployee } from '@/lib/types';
 export function UsersEmployees() {
   const toast = useToast();
   const { isAdmin } = useAuth();
-  const { users, addUser, updateUser, deleteUser, branches } = useDataStore();
+  const { data: users = [] } = useUsers();
+  const { data: branches = [] } = useBranches();
+  const { addUser, updateUser, deleteUser } = useUserMutations();
 
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);

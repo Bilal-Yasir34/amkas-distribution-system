@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Printer, X, FileText } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { formatDate } from '@/lib/utils';
 import { Modal } from './Modal';
 
@@ -23,7 +23,7 @@ export function PrintDocument({
   date = formatDate(new Date()),
   children,
 }: PrintDocumentProps) {
-  const { orgSettings } = useDataStore();
+  const { orgSettings } = useErpData();
 
   useEffect(() => {
     if (isOpen) {

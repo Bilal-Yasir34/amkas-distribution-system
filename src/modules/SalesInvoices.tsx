@@ -8,8 +8,10 @@ import {
   useDeleteInvoice,
   useInvoiceItems,
   usePostInvoice,
+  useProductArticles,
   useProducts,
   useSalesInvoices,
+  useUniversalArticles,
   useWarehouses,
 } from '@/lib/queries';
 import { supabase, TABLES } from '@/lib/supabase';
@@ -17,7 +19,6 @@ import { computeLineTotal, downloadCSV, formatCurrency, formatDate, getCustomerN
 import { useQueryClient } from '@tanstack/react-query';
 import { InvoicePrint } from '@/components/InvoicePrint';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
-import { useDataStore } from '@/lib/dataStore';
 import { getAllArticles, getProductsForArticle, getArticleForProduct } from '@/lib/articleUtils';
 import type { SalesInvoice, SalesInvoiceItem } from '@/lib/types';
 import { DateInput } from '@/components/DateInput';
@@ -42,7 +43,8 @@ function emptyLine(): DraftLine {
 export function SalesInvoices() {
   const toast = useToast();
   const qc = useQueryClient();
-  const { productArticles = [], universalArticles = [] } = useDataStore();
+  const { data: productArticles = [] } = useProductArticles();
+  const { data: universalArticles = [] } = useUniversalArticles();
   const { data: invoices = [] } = useSalesInvoices();
   const { data: customers = [] } = useCustomers();
   const { data: warehouses = [] } = useWarehouses();

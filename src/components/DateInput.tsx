@@ -40,10 +40,11 @@ export function DateInput({
   const handleOpenPicker = () => {
     if (disabled) return;
     try {
-      if (pickerRef.current && 'showPicker' in pickerRef.current) {
-        (pickerRef.current as any).showPicker();
-      } else {
-        pickerRef.current?.focus();
+      const el = pickerRef.current;
+      if (el && typeof el.showPicker === 'function') {
+        el.showPicker();
+      } else if (el) {
+        el.focus();
       }
     } catch {
       pickerRef.current?.focus();

@@ -217,6 +217,7 @@ export interface SalesInvoice {
   warehouse_id: string | null;
   branch_id?: string | null;
   invoice_date: string;
+  document_date?: string;
   due_date: string | null;
   salesperson: string | null;
   currency: string;
@@ -237,6 +238,8 @@ export interface SalesInvoice {
   items?: SalesInvoiceItem[];
   created_by: string | null;
   created_at: string;
+  updated_at?: string;
+  deleted_at?: string | null;
 }
 
 export interface AccountLedgerItem {
@@ -255,6 +258,11 @@ export interface SalesInvoiceItem {
   id: string;
   sales_invoice_id: string;
   product_id: string | null;
+  article_id?: string | null;
+  colour?: string | null;
+  unit?: string;
+  base_unit?: string;
+  base_rate?: number;
   description: string | null;
   qty: number;
   length: number;
@@ -383,6 +391,8 @@ export interface CreditNote {
 export interface SalesReturnItem {
   id: string;
   product_id: string | null;
+  article_id?: string | null;
+  colour?: string | null;
   description?: string | null;
   qty: number;
   rate: number;
@@ -417,6 +427,8 @@ export interface SalesReturn {
 export interface PurchaseReturnItem {
   id: string;
   product_id: string | null;
+  article_id?: string | null;
+  colour?: string | null;
   description?: string | null;
   qty: number;
   rate: number;
@@ -559,6 +571,8 @@ export interface PurchaseInvoice {
   notes: string | null;
   items?: PurchaseInvoiceItem[];
   created_at: string;
+  updated_at?: string;
+  deleted_at?: string | null;
 }
 
 export interface VendorBillItem {
@@ -601,6 +615,8 @@ export interface VendorBill {
   items?: VendorBillItem[];
   created_by?: string | null;
   created_at: string;
+  updated_at?: string;
+  deleted_at?: string | null;
 }
 
 export interface DebitNote {
@@ -735,7 +751,14 @@ export interface JournalEntry {
   total_debit: number;
   total_credit: number;
   status: string;
-  lines?: any[];
+  lines?: Array<{
+    id?: string;
+    account_id?: string | null;
+    description?: string | null;
+    narration?: string | null;
+    debit?: number;
+    credit?: number;
+  }>;
   entry_type?: string;
   created_at: string;
 }

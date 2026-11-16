@@ -1,9 +1,9 @@
-import { useDataStore } from '@/lib/dataStore';
+import { useBankAccounts } from '@/lib/queries';
 import { PrintDocument } from './PrintDocument';
 import { formatCurrency } from '@/lib/utils';
 
 export function CashFlowPrint({ onClose }: { onClose: () => void }) {
-  const { bankAccounts } = useDataStore();
+  const { data: bankAccounts = [] } = useBankAccounts();
 
   const totalLiquidity = bankAccounts.reduce((acc, b) => acc + (b.current_balance || 0), 0);
 

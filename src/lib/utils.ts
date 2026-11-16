@@ -163,6 +163,13 @@ export function todayISO(): string {
   return new Date().toISOString().split('T')[0];
 }
 
+export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isValidUUID(id?: string | null): boolean {
+  if (!id || typeof id !== 'string') return false;
+  return UUID_REGEX.test(id.trim());
+}
+
 export function safeUUID(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     try {
@@ -171,7 +178,67 @@ export function safeUUID(): string {
       // Fall through if crypto.randomUUID fails in insecure context
     }
   }
-  return 'id-' + Math.random().toString(36).substring(2, 11) + '-' + Date.now().toString(36);
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+/**
+ * Deterministic legacy ID -> UUID mapper matching SQL `legacy_id_to_uuid(text)`
+ * for known seed/legacy IDs, and deterministic 128-bit hash for any other non-UUID string.
+ */
+const KNOWN_LEGACY_UUIDS: Record<string, string> = {
+  org1: 'f4f3c861-86c7-c522-5715-2d5d4e2a022b',
+  b1: '29534955-fd26-a169-ca7d-4dc6d88161a9',
+  w1: '7c8995a9-f658-9254-7b8e-3c73915a16a6',
+  d1: 'e01c881c-7e4b-d347-c6b7-598c448e3727',
+  u1: '977b8878-f3d5-8c04-e416-3056262a9d6a',
+  ba1: '4d20275e-2023-2c7b-3996-a03f03923e8f',
+  ba2: '37a6771a-78e6-7183-64b7-36e989e898a3',
+  fy1: '8a0f6b24-1b21-81a0-d114-563a02b7b1f0',
+  fy2: 'a83c595b-2c4d-0d19-2031-1c98a30062e9',
+  'at-1': '1c7d857b-9275-7b38-75c7-8d688469682a',
+  'at-2': '22b3e302-f763-8884-06d9-5b6172284898',
+  'at-3': '3f8d6822-2b35-4895-9e85-53177201a111',
+  'at-4': '4e9a7833-3c46-4906-af96-64288312b222',
+  'at-5': '5d916562-1486-9831-9317-89726815338f',
+  coa1: 'c0a00001-0000-4000-8000-000000000001',
+  coa2: 'c0a00002-0000-4000-8000-000000000002',
+  coa3: 'c0a00003-0000-4000-8000-000000000003',
+  coa4: 'c0a00004-0000-4000-8000-000000000004',
+  coa5: 'c0a00005-0000-4000-8000-000000000005',
+  coa6: 'c0a00006-0000-4000-8000-000000000006',
+  coa7: 'c0a00007-0000-4000-8000-000000000007',
+  coa8: 'c0a00008-0000-4000-8000-000000000008',
+  coa9: 'c0a00009-0000-4000-8000-000000000009',
+  coa10: 'c0a00010-0000-4000-8000-000000000010',
+};
+
+export function ensureUUID(id?: string | null): string {
+  if (!id || typeof id !== 'string' || !id.trim()) return safeUUID();
+  const clean = id.trim();
+  if (UUID_REGEX.test(clean)) return clean.toLowerCase();
+  if (KNOWN_LEGACY_UUIDS[clean]) return KNOWN_LEGACY_UUIDS[clean];
+  let h1 = 0xdeadbeef ^ clean.length;
+  let h2 = 0x41c6ce57 ^ clean.length;
+  let h3 = 0x9e3779b9 ^ clean.length;
+  let h4 = 0x85ebca6b ^ clean.length;
+  for (let i = 0; i < clean.length; i++) {
+    const ch = clean.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+    h3 = Math.imul(h3 ^ ch, 2246822507);
+    h4 = Math.imul(h4 ^ ch, 3266489909);
+  }
+  const hex = (
+    (h1 >>> 0).toString(16).padStart(8, '0') +
+    (h2 >>> 0).toString(16).padStart(8, '0') +
+    (h3 >>> 0).toString(16).padStart(8, '0') +
+    (h4 >>> 0).toString(16).padStart(8, '0')
+  ).slice(0, 32);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
 export function downloadCSV(filename: string, rows: Record<string, unknown>[]) {

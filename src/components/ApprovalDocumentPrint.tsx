@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { Printer, X, FileText, CheckCircle2, ShoppingCart, ArrowDownLeft, ArrowUpRight, Receipt, CreditCard } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { formatCurrency, formatDate, amountToWords } from '@/lib/utils';
 import type { ApprovalQueueItem } from '@/lib/types';
 import { Modal } from './Modal';
@@ -27,7 +27,7 @@ export function ApprovalDocumentPrint({ item, onClose }: Props) {
     warehouses = [],
     bankAccounts = [],
     orgSettings,
-  } = useDataStore();
+  } = useErpData();
 
   useEffect(() => {
     document.body.classList.add('overflow-hidden');

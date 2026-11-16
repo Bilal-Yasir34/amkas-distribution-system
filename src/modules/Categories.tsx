@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Tags, X, Edit, Trash2, Power } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useCategories } from '@/lib/queries';
+import { useCategoryMutations } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 import type { Category } from '@/lib/types';
@@ -9,7 +10,8 @@ import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 export function Categories() {
   const toast = useToast();
   const { isAdmin } = useAuth();
-  const { categories, addCategory, updateCategory, deleteCategory } = useDataStore();
+  const { data: categories = [] } = useCategories();
+  const { addCategory, updateCategory, deleteCategory } = useCategoryMutations();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

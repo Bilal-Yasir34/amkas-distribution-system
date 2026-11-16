@@ -18,7 +18,7 @@ import {
   Layers,
   Send,
 } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 import { todayISO, safeUUID, nextDocNumber, STANDARD_UNITS, convertUnitRate, formatDate, formatUserRequester } from '@/lib/utils';
@@ -68,7 +68,7 @@ export function SalesModule() {
     updateCommission,
     deleteCommission,
     addApprovalQueueItem,
-  } = useDataStore();
+  } = useErpData();
 
   const [commFromDate, setCommFromDate] = useState('2026-07-01');
   const [commToDate, setCommToDate] = useState('2026-07-22');

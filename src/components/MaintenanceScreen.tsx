@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Wrench, ShieldAlert, KeyRound, LogOut, Moon, Sun, CheckCircle2, AlertCircle, Sparkles, Lock } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { useTheme } from '@/lib/useTheme';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
 
 export function MaintenanceScreen() {
   const { theme, toggleTheme } = useTheme();
-  const { companyLogo, orgSettings, disableMaintenanceMode } = useDataStore();
+  const { companyLogo, orgSettings, disableMaintenanceMode } = useErpData();
   const { profile, signIn, signOut } = useAuth();
   const toast = useToast();
 

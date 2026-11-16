@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Plus, ShoppingCart, DollarSign, FileText, CheckCircle, Clock, X, Trash2, Edit, Printer, Send } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 import { todayISO, safeUUID, nextDocNumber, formatDate, formatCurrency, formatUserRequester } from '@/lib/utils';
@@ -48,7 +48,7 @@ export function PurchaseModule() {
     deleteVendorPayment,
     addApprovalQueueItem,
     accountTypes = [],
-  } = useDataStore();
+  } = useErpData();
 
   const allArticles = useMemo(
     () => getAllArticles(universalArticles, products, productArticles),

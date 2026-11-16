@@ -15,7 +15,7 @@ import {
   Package,
   CheckCircle,
 } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
 import { DateInput } from '@/components/DateInput';
@@ -43,7 +43,7 @@ export function Dashboard() {
     branches,
     users,
     auditLogs,
-  } = useDataStore();
+  } = useErpData();
 
   const [fromDate, setFromDate] = useState('2026-07-01');
   const [toDate, setToDate] = useState(() => new Date().toISOString().slice(0, 10));

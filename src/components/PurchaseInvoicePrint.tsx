@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Printer, X, FileText } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { formatCurrency, formatDate, amountToWords } from '@/lib/utils';
 import type { PurchaseInvoice, PurchaseInvoiceItem } from '@/lib/types';
 import { Modal } from './Modal';
@@ -21,7 +21,7 @@ export function PurchaseInvoicePrint({ invoice: initialInvoice, onClose }: Props
     purchaseInvoices = [],
     vendorBills = [],
     orgSettings,
-  } = useDataStore();
+  } = useErpData();
 
   const [mode, setMode] = useState<'invoice' | 'gatepass'>('invoice');
 

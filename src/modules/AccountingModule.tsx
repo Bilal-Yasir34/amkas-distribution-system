@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Plus, Trash2, X, Search, Filter, Download, Check, ArrowUpRight, BookOpen, ArrowLeftRight } from 'lucide-react';
-import { useDataStore } from '@/lib/dataStore';
+import { useErpData } from '@/lib/queries';
 import { useToast } from '@/lib/toast';
 import { todayISO, downloadCSV, formatDate } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
@@ -43,7 +43,7 @@ export function AccountingModule() {
     deleteJournalEntry,
     addExpenseRecord,
     addIncomeRecord,
-  } = useDataStore();
+  } = useErpData();
 
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('Overview');
 
