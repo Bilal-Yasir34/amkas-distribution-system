@@ -86,6 +86,8 @@ export const ROLE_MODULES: Record<Role, ModuleKey[]> = {
     'reports',
     'account_type',
     'add_account',
+    'customers',
+    'vendors',
     'products',
     'categories',
     'warehouses',

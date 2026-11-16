@@ -37,6 +37,7 @@ import { useDataStore } from '@/lib/dataStore';
 import { useTheme } from '@/lib/useTheme';
 import { useAuth } from '@/lib/auth';
 import { useCloudSyncStatus } from '@/lib/cloudSync';
+import { BUILD_ID, SUPABASE_HOST } from '@/lib/supabase';
 import { ROLE_MODULES, MODULE_LABELS, ROLES, type ModuleKey } from '@/lib/rbac';
 import { useState, useEffect } from 'react';
 import { GlobalSearchModal } from './GlobalSearchModal';
@@ -141,7 +142,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
     {
       title: 'MASTER DATA',
-      keys: ['account_type', 'add_account', 'products', 'categories', 'warehouses'].filter((k) =>
+      keys: ['account_type', 'add_account', 'customers', 'vendors', 'products', 'categories', 'warehouses'].filter((k) =>
         allowed.includes(k as ModuleKey)
       ) as ModuleKey[],
     },
@@ -529,6 +530,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             children
           )}
         </main>
+
+        {/* Diagnostic Footer (Build ID + Supabase Host) */}
+        <footer className="no-print flex items-center justify-between border-t border-slate-200/80 bg-white/70 px-4 py-1.5 text-[10px] font-medium text-slate-500 dark:border-amber-500/15 dark:bg-slate-900/70 dark:text-slate-400">
+          <span>NICE Enterprises ERP Suite</span>
+          <span className="font-mono">
+            Build: <strong className="text-slate-700 dark:text-amber-400">{BUILD_ID}</strong> &bull; Host:{' '}
+            <strong className="text-slate-700 dark:text-slate-300">{SUPABASE_HOST}</strong>
+          </span>
+        </footer>
       </div>
 
       {/* Global Search Modal */}
