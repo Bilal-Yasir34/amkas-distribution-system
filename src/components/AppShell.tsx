@@ -189,9 +189,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Slide-Over Sidebar Drawer */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-amber-500/20 text-slate-300 shadow-2xl backdrop-blur-2xl transition-transform duration-300 md:hidden ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-amber-500/20 text-slate-300 shadow-2xl backdrop-blur-2xl transition-transform duration-300 md:hidden ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="flex h-16 items-center justify-between border-b border-slate-200/80 dark:border-amber-500/20 px-5">
           <div className="flex items-center gap-2.5">
@@ -238,11 +237,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <button
                         key={m}
                         onClick={() => handleNavModuleClick(m)}
-                        className={`flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition-all duration-200 ${
-                          active
-                            ? 'bg-gradient-to-r from-amber-500/25 to-amber-500/10 text-amber-500 dark:text-amber-400 border-l-4 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.25)]'
-                            : 'text-slate-600 dark:text-slate-400 hover:bg-amber-500/10 hover:text-amber-500 dark:hover:text-amber-300'
-                        }`}
+                        className={`flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition-all duration-200 ${active
+                          ? 'bg-gradient-to-r from-amber-500/25 to-amber-500/10 text-amber-500 dark:text-amber-400 border-l-4 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.25)]'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-amber-500/10 hover:text-amber-500 dark:hover:text-amber-300'
+                          }`}
                       >
                         <Icon className="h-4 w-4 shrink-0" />
                         <span className="truncate">{MODULE_LABELS[m]}</span>
@@ -308,11 +306,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <button
                         key={m}
                         onClick={() => handleNavModuleClick(m)}
-                        className={`flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition-all duration-200 ${
-                          active
-                            ? 'bg-gradient-to-r from-amber-500/25 to-amber-500/10 text-amber-500 dark:text-amber-400 border-l-4 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.25)]'
-                            : 'text-slate-600 dark:text-slate-400 hover:bg-amber-500/10 hover:text-amber-500 dark:hover:text-amber-300'
-                        }`}
+                        className={`flex w-full items-center gap-3 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition-all duration-200 ${active
+                          ? 'bg-gradient-to-r from-amber-500/25 to-amber-500/10 text-amber-500 dark:text-amber-400 border-l-4 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.25)]'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-amber-500/10 hover:text-amber-500 dark:hover:text-amber-300'
+                          }`}
                       >
                         <Icon className="h-4 w-4 shrink-0" />
                         <span className="truncate">{MODULE_LABELS[m]}</span>
@@ -449,11 +446,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   ? 'Realtime channel SUBSCRIBED — all changes sync live (<1s)'
                   : 'Reconnecting to Supabase Realtime...'
               }
-              className={`flex items-center gap-1.5 rounded-2xl px-2.5 sm:px-3 py-1.5 text-xs font-bold transition border backdrop-blur-md shadow-sm ${
-                isLive
-                  ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30 dark:text-emerald-400 hover:bg-emerald-500/20'
-                  : 'bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400'
-              }`}
+              className={`flex items-center gap-1.5 rounded-2xl px-2.5 sm:px-3 py-1.5 text-xs font-bold transition border backdrop-blur-md shadow-sm ${isLive
+                ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30 dark:text-emerald-400 hover:bg-emerald-500/20'
+                : 'bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400'
+                }`}
             >
               {isLive ? (
                 <span className="relative flex h-2 w-2">
