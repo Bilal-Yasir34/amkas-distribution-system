@@ -59,11 +59,23 @@ function formatSeqNumber(prefix: string, num: number, padding: number): string {
  */
 async function getDatabaseMaxSuffix(cfg: DocumentSequenceConfig): Promise<number> {
   const selectCols = cfg.altColumn ? `${cfg.column},${cfg.altColumn}` : cfg.column;
-  const { data, error } = await supabase.from(cfg.table).select(selectCols);
-  if (error || !Array.isArray(data)) return 0;
+  const { data: activeData, error: activeErr } = await supabase
+    .from(cfg.table)
+    .select(selectCols)
+    .is('deleted_at', null);
+
+  let rows: Record<string, unknown>[] = [];
+  if (!activeErr && Array.isArray(activeData)) {
+    rows = activeData as unknown as Record<string, unknown>[];
+  } else {
+    const { data, error } = await supabase.from(cfg.table).select(selectCols);
+    if (!error && Array.isArray(data)) {
+      rows = data as unknown as Record<string, unknown>[];
+    }
+  }
 
   let max = 0;
-  for (const row of data as unknown as Record<string, unknown>[]) {
+  for (const row of rows) {
     const v1 = extractSuffixFromDocNo(row[cfg.column] as string | undefined, cfg.prefix);
     if (v1 > max) max = v1;
     if (cfg.altColumn) {

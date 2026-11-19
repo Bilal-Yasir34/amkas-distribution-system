@@ -177,9 +177,16 @@ BEGIN
       SELECT id, status INTO v_doc_id, v_doc_status
       FROM public.sales_invoices
       WHERE (id = v_rec.entity_id OR id::text = v_rec.record_id OR invoice_no = COALESCE(v_rec.record_no, v_rec.voucher_no))
-        AND deleted_at IS NULL
-      ORDER BY (id = v_rec.entity_id) DESC, created_at DESC
+      ORDER BY (deleted_at IS NULL) DESC, (id = v_rec.entity_id) DESC, created_at DESC
       LIMIT 1;
+
+      IF v_doc_id IS NOT NULL THEN
+        -- Un-delete if soft-deleted while still in approval_queue
+        UPDATE public.sales_invoices
+        SET deleted_at = NULL,
+            updated_at = now()
+        WHERE id = v_doc_id AND deleted_at IS NOT NULL;
+      END IF;
 
       IF v_doc_id IS NOT NULL AND (v_rec.entity_id IS DISTINCT FROM v_doc_id OR v_rec.record_id IS DISTINCT FROM v_doc_id::text OR v_rec.entity_type <> 'sales_invoice') THEN
         UPDATE public.approval_queue
@@ -208,9 +215,15 @@ BEGIN
       SELECT id, status INTO v_doc_id, v_doc_status
       FROM public.purchase_invoices
       WHERE (id = v_rec.entity_id OR id::text = v_rec.record_id OR invoice_no = COALESCE(v_rec.record_no, v_rec.voucher_no) OR grn_no = COALESCE(v_rec.record_no, v_rec.voucher_no))
-        AND deleted_at IS NULL
-      ORDER BY (id = v_rec.entity_id) DESC, created_at DESC
+      ORDER BY (deleted_at IS NULL) DESC, (id = v_rec.entity_id) DESC, created_at DESC
       LIMIT 1;
+
+      IF v_doc_id IS NOT NULL THEN
+        UPDATE public.purchase_invoices
+        SET deleted_at = NULL,
+            updated_at = now()
+        WHERE id = v_doc_id AND deleted_at IS NOT NULL;
+      END IF;
 
       IF v_doc_id IS NOT NULL AND (v_rec.entity_id IS DISTINCT FROM v_doc_id OR v_rec.record_id IS DISTINCT FROM v_doc_id::text) THEN
         UPDATE public.approval_queue
@@ -402,13 +415,13 @@ BEGIN
   INSERT INTO public.document_sequences (document_type, prefix, next_number, padding, description)
   VALUES (
     'SL', 'SL-',
-    GREATEST(1, COALESCE((SELECT MAX(public.extract_doc_number_suffix(invoice_no, 'SL-')) FROM public.sales_invoices WHERE invoice_no ~* '^SL-[0-9]+$'), 0) + 1),
+    GREATEST(1, COALESCE((SELECT MAX(public.extract_doc_number_suffix(invoice_no, 'SL-')) FROM public.sales_invoices WHERE invoice_no ~* '^SL-[0-9]+$' AND deleted_at IS NULL), 0) + 1),
     2, 'Sales Invoice'
   )
   ON CONFLICT (document_type) DO UPDATE SET
     next_number = GREATEST(
       public.document_sequences.next_number,
-      COALESCE((SELECT MAX(public.extract_doc_number_suffix(invoice_no, 'SL-')) FROM public.sales_invoices WHERE invoice_no ~* '^SL-[0-9]+$'), 0) + 1
+      COALESCE((SELECT MAX(public.extract_doc_number_suffix(invoice_no, 'SL-')) FROM public.sales_invoices WHERE invoice_no ~* '^SL-[0-9]+$' AND deleted_at IS NULL), 0) + 1
     ),
     updated_at = now();
 
@@ -416,13 +429,13 @@ BEGIN
   INSERT INTO public.document_sequences (document_type, prefix, next_number, padding, description)
   VALUES (
     'PI', 'PI-',
-    GREATEST(1, COALESCE((SELECT MAX(GREATEST(public.extract_doc_number_suffix(invoice_no, 'PI-'), public.extract_doc_number_suffix(grn_no, 'PI-'))) FROM public.purchase_invoices WHERE invoice_no ~* '^PI-[0-9]+$' OR grn_no ~* '^PI-[0-9]+$'), 0) + 1),
+    GREATEST(1, COALESCE((SELECT MAX(GREATEST(public.extract_doc_number_suffix(invoice_no, 'PI-'), public.extract_doc_number_suffix(grn_no, 'PI-'))) FROM public.purchase_invoices WHERE (invoice_no ~* '^PI-[0-9]+$' OR grn_no ~* '^PI-[0-9]+$') AND deleted_at IS NULL), 0) + 1),
     2, 'Purchase Invoice / GRN'
   )
   ON CONFLICT (document_type) DO UPDATE SET
     next_number = GREATEST(
       public.document_sequences.next_number,
-      COALESCE((SELECT MAX(GREATEST(public.extract_doc_number_suffix(invoice_no, 'PI-'), public.extract_doc_number_suffix(grn_no, 'PI-'))) FROM public.purchase_invoices WHERE invoice_no ~* '^PI-[0-9]+$' OR grn_no ~* '^PI-[0-9]+$'), 0) + 1
+      COALESCE((SELECT MAX(GREATEST(public.extract_doc_number_suffix(invoice_no, 'PI-'), public.extract_doc_number_suffix(grn_no, 'PI-'))) FROM public.purchase_invoices WHERE (invoice_no ~* '^PI-[0-9]+$' OR grn_no ~* '^PI-[0-9]+$') AND deleted_at IS NULL), 0) + 1
     ),
     updated_at = now();
 

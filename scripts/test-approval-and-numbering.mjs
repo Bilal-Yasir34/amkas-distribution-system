@@ -528,13 +528,13 @@ async function runTests() {
   // Final verification: zero orphan/unposted/drift integrity issues in live DB
   const [{ data: aqRows }, { data: siRows }, { data: piRows }, { data: dsRows }] = await Promise.all([
     supabase.from('approval_queue').select('*'),
-    supabase.from('sales_invoices').select('id,invoice_no,status'),
-    supabase.from('purchase_invoices').select('id,invoice_no,grn_no,status'),
+    supabase.from('sales_invoices').select('id,invoice_no,status,deleted_at'),
+    supabase.from('purchase_invoices').select('id,invoice_no,grn_no,status,deleted_at'),
     supabase.from('document_sequences').select('*'),
   ]);
 
-  const si = siRows || [];
-  const pi = piRows || [];
+  const si = (siRows || []).filter((r) => !r.deleted_at);
+  const pi = (piRows || []).filter((r) => !r.deleted_at);
 
   let approvedNotPosted = 0;
   let orphanQueue = 0;

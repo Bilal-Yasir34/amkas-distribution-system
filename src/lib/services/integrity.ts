@@ -66,24 +66,24 @@ export async function runDatabaseIntegrityCheck(): Promise<IntegrityCheckReport>
     { data: dsRows },
   ] = await Promise.all([
     supabase.from(TABLES.approvalQueue).select('*'),
-    supabase.from(TABLES.salesInvoices).select('id,invoice_no,status'),
-    supabase.from(TABLES.purchaseInvoices).select('id,invoice_no,grn_no,status'),
-    supabase.from(TABLES.vendorBills).select('id,bill_no,status'),
-    supabase.from(TABLES.salesReturns).select('id,return_no,status'),
-    supabase.from(TABLES.purchaseReturns).select('id,return_no,status'),
-    supabase.from(TABLES.customerReceipts).select('id,receipt_no,status'),
-    supabase.from(TABLES.vendorPayments).select('id,payment_no,status'),
+    supabase.from(TABLES.salesInvoices).select('id,invoice_no,status,deleted_at'),
+    supabase.from(TABLES.purchaseInvoices).select('id,invoice_no,grn_no,status,deleted_at'),
+    supabase.from(TABLES.vendorBills).select('id,bill_no,status,deleted_at'),
+    supabase.from(TABLES.salesReturns).select('id,return_no,status,deleted_at'),
+    supabase.from(TABLES.purchaseReturns).select('id,return_no,status,deleted_at'),
+    supabase.from(TABLES.customerReceipts).select('id,receipt_no,status,deleted_at'),
+    supabase.from(TABLES.vendorPayments).select('id,payment_no,status,deleted_at'),
     supabase.from(TABLES.documentSequences).select('*'),
   ]);
 
   const aq = (aqRows || []) as Array<Record<string, any>>;
-  const si = (siRows || []) as Array<Record<string, any>>;
-  const pi = (piRows || []) as Array<Record<string, any>>;
-  const vb = (vbRows || []) as Array<Record<string, any>>;
-  const sr = (srRows || []) as Array<Record<string, any>>;
-  const pr = (prRows || []) as Array<Record<string, any>>;
-  const cr = (crRows || []) as Array<Record<string, any>>;
-  const vp = (vpRows || []) as Array<Record<string, any>>;
+  const si = ((siRows || []) as Array<Record<string, any>>).filter((r) => !r.deleted_at);
+  const pi = ((piRows || []) as Array<Record<string, any>>).filter((r) => !r.deleted_at);
+  const vb = ((vbRows || []) as Array<Record<string, any>>).filter((r) => !r.deleted_at);
+  const sr = ((srRows || []) as Array<Record<string, any>>).filter((r) => !r.deleted_at);
+  const pr = ((prRows || []) as Array<Record<string, any>>).filter((r) => !r.deleted_at);
+  const cr = ((crRows || []) as Array<Record<string, any>>).filter((r) => !r.deleted_at);
+  const vp = ((vpRows || []) as Array<Record<string, any>>).filter((r) => !r.deleted_at);
   const ds = (dsRows || []) as Array<Record<string, any>>;
 
   const approvedNotPosted: IntegrityIssueItem[] = [];
@@ -258,65 +258,152 @@ export async function runDatabaseIntegrityCheck(): Promise<IntegrityCheckReport>
 }
 
 export async function executeDatabaseRepair(): Promise<void> {
-  // 1. Try server RPCs first
-  const { error: rpcErr } = await supabase.rpc('run_data_repair');
+  // 1. Run server RPCs first if installed
+  await supabase.rpc('run_data_repair');
   await supabase.rpc('sync_document_sequences_above_max');
-  if (!rpcErr) return;
 
-  // 2. Fallback direct repair
+  // 2. Always verify and run client-side direct repair for any remaining issues
+  //    (including un-deleting soft-deleted documents referenced by the approval queue)
   const report = await runDatabaseIntegrityCheck();
+  if (report.healthy) return;
 
   for (const item of report.approved_not_posted) {
     if (item.entity_type === 'sales_invoice' && item.entity_id) {
       await supabase
         .from(TABLES.salesInvoices)
-        .update({ status: 'POSTED' })
+        .update({ status: 'POSTED', deleted_at: null })
         .eq('id', item.entity_id);
     } else if (item.entity_type === 'purchase_invoice' && item.entity_id) {
       await supabase
         .from(TABLES.purchaseInvoices)
-        .update({ status: 'POSTED' })
+        .update({ status: 'POSTED', deleted_at: null })
+        .eq('id', item.entity_id);
+    } else if (item.entity_type === 'vendor_bill' && item.entity_id) {
+      await supabase
+        .from(TABLES.vendorBills)
+        .update({ status: 'POSTED', deleted_at: null })
         .eq('id', item.entity_id);
     }
   }
 
   for (const item of report.orphan_queue_rows) {
-    if (!item.queue_id || !item.record_no) continue;
+    if (!item.queue_id) continue;
+    const recNo = item.record_no;
     if (item.entity_type === 'sales_invoice') {
-      const { data: doc } = await supabase
-        .from(TABLES.salesInvoices)
-        .select('id,status')
-        .eq('invoice_no', item.record_no)
-        .maybeSingle();
+      const { data: docById } = item.entity_id
+        ? await supabase
+            .from(TABLES.salesInvoices)
+            .select('id,status,deleted_at')
+            .eq('id', item.entity_id)
+            .maybeSingle()
+        : { data: null };
+      const { data: docByNo } =
+        !docById && recNo
+          ? await supabase
+              .from(TABLES.salesInvoices)
+              .select('id,status,deleted_at')
+              .eq('invoice_no', recNo)
+              .maybeSingle()
+          : { data: null };
+      const doc = docById || docByNo;
+
       if (doc?.id) {
+        await supabase
+          .from(TABLES.salesInvoices)
+          .update({
+            deleted_at: null,
+            status: item.status === 'APPROVED' ? 'POSTED' : doc.status,
+          })
+          .eq('id', doc.id);
         await supabase
           .from(TABLES.approvalQueue)
           .update({ entity_id: doc.id, record_id: doc.id })
           .eq('id', item.queue_id);
-        if (item.status === 'APPROVED' && doc.status !== 'POSTED') {
-          await supabase
-            .from(TABLES.salesInvoices)
-            .update({ status: 'POSTED' })
-            .eq('id', doc.id);
-        }
+      } else {
+        await supabase.from(TABLES.approvalQueue).delete().eq('id', item.queue_id);
       }
     } else if (item.entity_type === 'purchase_invoice') {
-      const { data: doc } = await supabase
-        .from(TABLES.purchaseInvoices)
-        .select('id,status')
-        .or(`invoice_no.eq.${item.record_no},grn_no.eq.${item.record_no}`)
-        .maybeSingle();
+      const { data: docById } = item.entity_id
+        ? await supabase
+            .from(TABLES.purchaseInvoices)
+            .select('id,status,deleted_at')
+            .eq('id', item.entity_id)
+            .maybeSingle()
+        : { data: null };
+      const { data: docByNo } =
+        !docById && recNo
+          ? await supabase
+              .from(TABLES.purchaseInvoices)
+              .select('id,status,deleted_at')
+              .or(`invoice_no.eq.${recNo},grn_no.eq.${recNo}`)
+              .maybeSingle()
+          : { data: null };
+      const doc = docById || docByNo;
+
       if (doc?.id) {
+        await supabase
+          .from(TABLES.purchaseInvoices)
+          .update({
+            deleted_at: null,
+            status: item.status === 'APPROVED' ? 'POSTED' : doc.status,
+          })
+          .eq('id', doc.id);
         await supabase
           .from(TABLES.approvalQueue)
           .update({ entity_id: doc.id, record_id: doc.id })
           .eq('id', item.queue_id);
-        if (item.status === 'APPROVED' && doc.status !== 'POSTED') {
-          await supabase
-            .from(TABLES.purchaseInvoices)
-            .update({ status: 'POSTED' })
-            .eq('id', doc.id);
-        }
+      } else {
+        await supabase.from(TABLES.approvalQueue).delete().eq('id', item.queue_id);
+      }
+    } else {
+      await supabase.from(TABLES.approvalQueue).delete().eq('id', item.queue_id);
+    }
+  }
+
+  for (const item of report.pending_without_queue) {
+    if (!item.entity_id) continue;
+    if (item.entity_type === 'sales_invoice') {
+      const { data: inv } = await supabase
+        .from(TABLES.salesInvoices)
+        .select('*')
+        .eq('id', item.entity_id)
+        .maybeSingle();
+      if (inv) {
+        await supabase.from(TABLES.approvalQueue).insert({
+          module: 'Sales',
+          entity_type: 'sales_invoice',
+          entity_id: inv.id,
+          record_id: inv.id,
+          record_no: inv.invoice_no,
+          voucher_no: inv.invoice_no,
+          party_name: inv.customer_name || inv.party_name || 'Customer',
+          warehouse_id: inv.warehouse_id,
+          amount: Number(inv.total_amount || 0),
+          requested_by: inv.created_by || 'Sales',
+          status: 'PENDING',
+        });
+      }
+    } else if (item.entity_type === 'purchase_invoice') {
+      const { data: pi } = await supabase
+        .from(TABLES.purchaseInvoices)
+        .select('*')
+        .eq('id', item.entity_id)
+        .maybeSingle();
+      if (pi) {
+        const docNo = pi.grn_no || pi.invoice_no;
+        await supabase.from(TABLES.approvalQueue).insert({
+          module: 'Purchase',
+          entity_type: 'purchase_invoice',
+          entity_id: pi.id,
+          record_id: pi.id,
+          record_no: docNo,
+          voucher_no: docNo,
+          party_name: pi.vendor_name || pi.party_name || 'Vendor',
+          warehouse_id: pi.warehouse_id,
+          amount: Number(pi.total_amount || 0),
+          requested_by: 'Procurement',
+          status: 'PENDING',
+        });
       }
     }
   }
