@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   useCustomers,
   useVendors,
@@ -8,7 +8,7 @@ import {
   useSalesInvoices,
   useCustomerReceipts,
 } from '@/lib/queries';
-import { useCustomerReceiptMutations, useApprovalMutations } from '@/lib/services';
+import { useCustomerReceiptMutations, useApprovalMutations, previewNextDocumentNumber, allocateNextDocumentNumber } from '@/lib/services';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
 import { todayISO, safeUUID, formatUserRequester } from '@/lib/utils';
@@ -53,17 +53,13 @@ export function ReceivePayment() {
     );
   }, [allParties, selectedAccountType]);
 
-  // Auto-generate reference number starting from CR-01
-  const autoRefNo = useMemo(() => {
-    const existingNums = (customerReceipts || []).map((r) => {
-      const match = (r.reference_no || r.receipt_no || '').match(/CR-(\d+)/i);
-      return match ? parseInt(match[1], 10) : 0;
-    });
-    const max = existingNums.length > 0 ? Math.max(0, ...existingNums) : 0;
-    return `CR-${String(max + 1).padStart(2, '0')}`;
-  }, [customerReceipts]);
+  const [autoRefNo, setAutoRefNo] = useState('CR-01');
 
-  const handlePostReceipt = (e: React.FormEvent) => {
+  useEffect(() => {
+    void previewNextDocumentNumber('CR').then((no) => setAutoRefNo(no));
+  }, [customerReceipts.length]);
+
+  const handlePostReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!receivedFrom) return toast.error(`Please select a ${selectedAccountType || 'user'}`);
     if (!amount || Number(amount) <= 0) return toast.error('Please enter a valid receipt amount');
@@ -75,16 +71,16 @@ export function ReceivePayment() {
     const depositAcc = bankAccounts.find(
       (b) => b.account_name === depositTo || b.id === depositTo
     );
-    const depositAccId = depositAcc?.id || bankAccounts[0]?.id || 'ba1';
+    const depositAccId = depositAcc?.id || bankAccounts[0]?.id || '';
     const receiptId = safeUUID();
-    const finalRefNo = refNo.trim() || autoRefNo;
+    const finalRefNo = refNo.trim() || (await allocateNextDocumentNumber('CR'));
 
     const requester = formatUserRequester(profile, 'Accountant');
 
     addCustomerReceipt({
       id: receiptId,
       receipt_no: finalRefNo,
-      customer_id: customerId || selectedParty?.id || customers[0]?.id || 'c1',
+      customer_id: customerId || selectedParty?.id || customers[0]?.id || '',
       sales_invoice_id: null,
       receipt_date: receiptDate,
       payment_method: depositTo.includes('Cash') ? 'Cash' : 'Bank Transfer',
@@ -116,6 +112,7 @@ export function ReceivePayment() {
     });
 
     toast.success(`Receipt ${finalRefNo} submitted to Approval Center for review!`);
+    void previewNextDocumentNumber('CR').then((no) => setAutoRefNo(no));
 
     // Reset form
     setReceivedFrom('');

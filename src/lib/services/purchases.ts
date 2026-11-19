@@ -16,12 +16,21 @@ import {
   deleteRowById,
   insertOrUpsertRow,
   invalidateTableAndRelated,
-  optimisticPatch,
-  optimisticRemove,
-  optimisticUpsert,
   softOrHardDeleteRow,
   updateRowById,
 } from './dbHelpers';
+import { allocateNextDocumentNumber } from './numbering';
+
+export interface CreatePurchaseInvoiceInput extends Omit<PurchaseInvoice, 'id' | 'grn_no' | 'invoice_no'> {
+  id?: string;
+  grn_no?: string;
+  invoice_no?: string;
+  created_by?: string;
+  requested_by?: string;
+  requested_by_name?: string;
+  requested_by_role?: string;
+  items_summary?: string;
+}
 
 export function usePurchaseRequestMutations() {
   const queryClient = useQueryClient();
@@ -29,17 +38,31 @@ export function usePurchaseRequestMutations() {
   const addMutation = useMutation({
     mutationFn: async (pr: Omit<PurchaseRequest, 'id'> & { id?: string }) => {
       const id = ensureUUID(pr.id || safeUUID());
+      let requestNo = (pr.request_no || '').trim();
+      if (!requestNo) {
+        requestNo = await allocateNextDocumentNumber('PR');
+      } else {
+        const { data: existing } = await supabase
+          .from(TABLES.purchaseRequests)
+          .select('id')
+          .eq('request_no', requestNo)
+          .limit(1);
+        if (existing && existing.length > 0) {
+          requestNo = await allocateNextDocumentNumber('PR');
+        }
+      }
+
       const row: PurchaseRequest = {
         ...pr,
         id,
+        request_no: requestNo,
         document_date: pr.document_date || pr.request_date,
         created_at: pr.created_at || new Date().toISOString(),
       };
-      optimisticUpsert(queryClient, TABLES.purchaseRequests, row);
       await insertOrUpsertRow(
         TABLES.purchaseRequests,
         row as unknown as Record<string, unknown>,
-        'request_no'
+        'id'
       );
       return row;
     },
@@ -50,7 +73,6 @@ export function usePurchaseRequestMutations() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<PurchaseRequest> }) => {
       const targetId = ensureUUID(id);
-      optimisticPatch<PurchaseRequest>(queryClient, TABLES.purchaseRequests, targetId, patch);
       await updateRowById(TABLES.purchaseRequests, targetId, patch as Record<string, unknown>);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.purchaseRequests),
@@ -60,7 +82,6 @@ export function usePurchaseRequestMutations() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const targetId = ensureUUID(id);
-      optimisticRemove<PurchaseRequest>(queryClient, TABLES.purchaseRequests, targetId);
       await deleteRowById(TABLES.purchaseRequests, targetId);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.purchaseRequests),
@@ -86,19 +107,33 @@ export function usePurchaseOrderMutations() {
   const addMutation = useMutation({
     mutationFn: async (po: Omit<PurchaseOrder, 'id'> & { id?: string }) => {
       const id = ensureUUID(po.id || safeUUID());
+      let poNo = (po.po_no || '').trim();
+      if (!poNo) {
+        poNo = await allocateNextDocumentNumber('PO');
+      } else {
+        const { data: existing } = await supabase
+          .from(TABLES.purchaseOrders)
+          .select('id')
+          .eq('po_no', poNo)
+          .limit(1);
+        if (existing && existing.length > 0) {
+          poNo = await allocateNextDocumentNumber('PO');
+        }
+      }
+
       const row: PurchaseOrder = {
         ...po,
         id,
+        po_no: poNo,
         vendor_id: po.vendor_id ? ensureUUID(po.vendor_id) : null,
         document_date: po.document_date || po.po_date,
         expected_date: po.expected_date || po.expected_delivery || null,
         created_at: po.created_at || new Date().toISOString(),
       };
-      optimisticUpsert(queryClient, TABLES.purchaseOrders, row);
       await insertOrUpsertRow(
         TABLES.purchaseOrders,
         row as unknown as Record<string, unknown>,
-        'po_no'
+        'id'
       );
       return row;
     },
@@ -109,7 +144,6 @@ export function usePurchaseOrderMutations() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<PurchaseOrder> }) => {
       const targetId = ensureUUID(id);
-      optimisticPatch<PurchaseOrder>(queryClient, TABLES.purchaseOrders, targetId, patch);
       await updateRowById(TABLES.purchaseOrders, targetId, patch as Record<string, unknown>);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.purchaseOrders),
@@ -119,7 +153,6 @@ export function usePurchaseOrderMutations() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const targetId = ensureUUID(id);
-      optimisticRemove<PurchaseOrder>(queryClient, TABLES.purchaseOrders, targetId);
       await deleteRowById(TABLES.purchaseOrders, targetId);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.purchaseOrders),
@@ -143,24 +176,71 @@ export function usePurchaseInvoiceMutations() {
   const queryClient = useQueryClient();
 
   const addMutation = useMutation({
-    mutationFn: async (pi: Omit<PurchaseInvoice, 'id'> & { id?: string }) => {
+    mutationFn: async (pi: CreatePurchaseInvoiceInput) => {
       const id = ensureUUID(pi.id || safeUUID());
-      const docNo = pi.invoice_no || pi.grn_no;
+      const vendorId = pi.vendor_id ? ensureUUID(pi.vendor_id) : null;
+      const warehouseId = pi.warehouse_id ? ensureUUID(pi.warehouse_id) : null;
+
+      // 1. Try atomic Postgres RPC `create_purchase_invoice` first
+      const rpcPayload = {
+        ...pi,
+        id,
+        vendor_id: vendorId,
+        warehouse_id: warehouseId,
+        items: (pi.items || []).map((it) => ({
+          ...it,
+          id: ensureUUID(it.id || safeUUID()),
+          purchase_invoice_id: id,
+          product_id: it.product_id ? ensureUUID(it.product_id) : null,
+        })),
+      };
+
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('create_purchase_invoice', {
+        payload: rpcPayload,
+      });
+
+      if (!rpcErr && rpcData) {
+        return rpcData as unknown as PurchaseInvoice;
+      }
+
+      if (rpcErr && rpcErr.code !== 'PGRST202') {
+        throw new Error(rpcErr.message || 'Failed to create purchase invoice.');
+      }
+
+      // 2. Database-verified sequenced fallback if `create_purchase_invoice` RPC is not yet installed
+      let docNo = (pi.invoice_no || pi.grn_no || '').trim();
+      if (docNo) {
+        const { data: existingNo } = await supabase
+          .from(TABLES.purchaseInvoices)
+          .select('id')
+          .or(`invoice_no.eq.${docNo},grn_no.eq.${docNo}`)
+          .limit(1);
+        if (existingNo && existingNo.length > 0) {
+          docNo = '';
+        }
+      }
+      if (!docNo) {
+        docNo = await allocateNextDocumentNumber('PI');
+      } else {
+        await allocateNextDocumentNumber('PI');
+      }
+
       const row: PurchaseInvoice = {
         ...pi,
         id,
-        grn_no: pi.grn_no || docNo,
+        grn_no: docNo,
         invoice_no: docNo,
-        vendor_id: pi.vendor_id ? ensureUUID(pi.vendor_id) : null,
-        warehouse_id: pi.warehouse_id ? ensureUUID(pi.warehouse_id) : null,
+        vendor_id: vendorId,
+        warehouse_id: warehouseId,
         document_date: pi.document_date || pi.received_date,
         created_at: pi.created_at || new Date().toISOString(),
       };
-      optimisticUpsert(queryClient, TABLES.purchaseInvoices, row);
+
+      // Insert by primary key `id` (NEVER overwrite an existing row on `invoice_no`)
       await insertOrUpsertRow(
         TABLES.purchaseInvoices,
         row as unknown as Record<string, unknown>,
-        'invoice_no'
+        'id'
       );
 
       if (row.items && row.items.length > 0) {
@@ -185,16 +265,67 @@ export function usePurchaseInvoiceMutations() {
           );
         }
       }
+
+      if (row.status === 'PENDING_APPROVAL') {
+        const itemsSummary =
+          pi.items_summary ||
+          (row.items || [])
+            .map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`)
+            .join(', ') ||
+          `${row.items?.length || 0} items`;
+
+        const { data: existingQ } = await supabase
+          .from(TABLES.approvalQueue)
+          .select('id')
+          .eq('entity_type', 'purchase_invoice')
+          .eq('entity_id', id)
+          .maybeSingle();
+
+        await insertOrUpsertRow(
+          TABLES.approvalQueue,
+          {
+            id: existingQ?.id || safeUUID(),
+            module: 'Purchase',
+            entity_type: 'purchase_invoice',
+            entity_id: id,
+            record_id: id,
+            record_no: docNo,
+            voucher_no: docNo,
+            requested_by: pi.requested_by || 'admin',
+            requested_by_name: pi.requested_by_name || 'Admin',
+            requested_by_role: pi.requested_by_role || 'Super Admin',
+            amount: row.total_amount || 0,
+            status: 'PENDING',
+            party_name: row.vendor_name || row.party_name || 'Vendor',
+            warehouse_id: warehouseId,
+            items_summary: itemsSummary,
+            created_at: row.created_at,
+          },
+          'id'
+        );
+      }
+
       return row;
     },
-    onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.purchaseInvoices),
-    onSettled: () => invalidateTableAndRelated(queryClient, TABLES.purchaseInvoices),
+    onSuccess: () =>
+      invalidateTableAndRelated(queryClient, [
+        TABLES.purchaseInvoices,
+        TABLES.purchaseInvoiceItems,
+        TABLES.approvalQueue,
+        TABLES.documentSequences,
+      ]),
+    onSettled: () =>
+      invalidateTableAndRelated(queryClient, [
+        TABLES.purchaseInvoices,
+        TABLES.purchaseInvoiceItems,
+        TABLES.approvalQueue,
+        TABLES.documentSequences,
+      ]),
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<PurchaseInvoice> }) => {
       const targetId = ensureUUID(id);
-      optimisticPatch<PurchaseInvoice>(queryClient, TABLES.purchaseInvoices, targetId, patch);
       await updateRowById(TABLES.purchaseInvoices, targetId, patch as Record<string, unknown>);
       if (patch.items) {
         await supabase
@@ -233,7 +364,6 @@ export function usePurchaseInvoiceMutations() {
       const targetId = ensureUUID(target?.id || id);
       const docNo = target?.invoice_no || target?.grn_no;
 
-      optimisticRemove<PurchaseInvoice>(queryClient, TABLES.purchaseInvoices, targetId);
       await softOrHardDeleteRow(TABLES.purchaseInvoices, targetId, 'invoice_no', docNo);
       await supabase.from(TABLES.approvalQueue).delete().eq('entity_id', targetId);
       if (docNo) {
@@ -246,9 +376,10 @@ export function usePurchaseInvoiceMutations() {
   });
 
   return {
-    addPurchaseInvoice: (pi: Omit<PurchaseInvoice, 'id'> & { id?: string }) => {
+    addPurchaseInvoice: (pi: CreatePurchaseInvoiceInput) => {
       addMutation.mutate(pi);
     },
+    createPurchaseInvoiceAsync: (pi: CreatePurchaseInvoiceInput) => addMutation.mutateAsync(pi),
     updatePurchaseInvoice: (id: string, patch: Partial<PurchaseInvoice>) => {
       updateMutation.mutate({ id, patch });
     },
@@ -264,19 +395,33 @@ export function useVendorBillMutations() {
   const addMutation = useMutation({
     mutationFn: async (vb: Omit<VendorBill, 'id'> & { id?: string }) => {
       const id = ensureUUID(vb.id || safeUUID());
+      let billNo = (vb.bill_no || '').trim();
+      if (!billNo) {
+        billNo = await allocateNextDocumentNumber('VB');
+      } else {
+        const { data: existing } = await supabase
+          .from(TABLES.vendorBills)
+          .select('id')
+          .eq('bill_no', billNo)
+          .limit(1);
+        if (existing && existing.length > 0) {
+          billNo = await allocateNextDocumentNumber('VB');
+        }
+      }
+
       const row: VendorBill = {
         ...vb,
         id,
+        bill_no: billNo,
         vendor_id: vb.vendor_id ? ensureUUID(vb.vendor_id) : null,
         warehouse_id: vb.warehouse_id ? ensureUUID(vb.warehouse_id) : null,
         document_date: vb.document_date || vb.bill_date,
         created_at: vb.created_at || new Date().toISOString(),
       };
-      optimisticUpsert(queryClient, TABLES.vendorBills, row);
       await insertOrUpsertRow(
         TABLES.vendorBills,
         row as unknown as Record<string, unknown>,
-        'bill_no'
+        'id'
       );
 
       if (row.items && row.items.length > 0) {
@@ -308,7 +453,6 @@ export function useVendorBillMutations() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<VendorBill> }) => {
       const targetId = ensureUUID(id);
-      optimisticPatch<VendorBill>(queryClient, TABLES.vendorBills, targetId, patch);
       await updateRowById(TABLES.vendorBills, targetId, patch as Record<string, unknown>);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.vendorBills),
@@ -322,7 +466,6 @@ export function useVendorBillMutations() {
       const targetId = ensureUUID(target?.id || id);
       const billNo = target?.bill_no;
 
-      optimisticRemove<VendorBill>(queryClient, TABLES.vendorBills, targetId);
       await softOrHardDeleteRow(TABLES.vendorBills, targetId, 'bill_no', billNo);
       await supabase.from(TABLES.approvalQueue).delete().eq('entity_id', targetId);
       if (billNo) {
@@ -352,19 +495,33 @@ export function useDebitNoteMutations() {
   const addMutation = useMutation({
     mutationFn: async (dn: Omit<DebitNote, 'id'> & { id?: string }) => {
       const id = ensureUUID(dn.id || safeUUID());
+      let dnNo = (dn.debit_note_no || '').trim();
+      if (!dnNo) {
+        dnNo = await allocateNextDocumentNumber('DN');
+      } else {
+        const { data: existing } = await supabase
+          .from(TABLES.debitNotes)
+          .select('id')
+          .eq('debit_note_no', dnNo)
+          .limit(1);
+        if (existing && existing.length > 0) {
+          dnNo = await allocateNextDocumentNumber('DN');
+        }
+      }
+
       const row: DebitNote = {
         ...dn,
         id,
+        debit_note_no: dnNo,
         vendor_id: dn.vendor_id ? ensureUUID(dn.vendor_id) : null,
         document_date: dn.document_date || dn.note_date,
         purpose_reason: dn.purpose_reason || dn.reason,
         created_at: dn.created_at || new Date().toISOString(),
       };
-      optimisticUpsert(queryClient, TABLES.debitNotes, row);
       await insertOrUpsertRow(
         TABLES.debitNotes,
         row as unknown as Record<string, unknown>,
-        'debit_note_no'
+        'id'
       );
       return row;
     },
@@ -375,7 +532,6 @@ export function useDebitNoteMutations() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<DebitNote> }) => {
       const targetId = ensureUUID(id);
-      optimisticPatch<DebitNote>(queryClient, TABLES.debitNotes, targetId, patch);
       await updateRowById(TABLES.debitNotes, targetId, patch as Record<string, unknown>);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.debitNotes),
@@ -385,7 +541,6 @@ export function useDebitNoteMutations() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const targetId = ensureUUID(id);
-      optimisticRemove<DebitNote>(queryClient, TABLES.debitNotes, targetId);
       await softOrHardDeleteRow(TABLES.debitNotes, targetId);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.debitNotes),
@@ -411,14 +566,28 @@ export function usePurchaseReturnMutations() {
   const addMutation = useMutation({
     mutationFn: async (pr: Omit<PurchaseReturn, 'id'> & { id?: string }) => {
       const id = ensureUUID(pr.id || safeUUID());
+      let returnNo = (pr.return_no || '').trim();
+      if (!returnNo) {
+        returnNo = await allocateNextDocumentNumber('PRT');
+      } else {
+        const { data: existing } = await supabase
+          .from(TABLES.purchaseReturns)
+          .select('id')
+          .eq('return_no', returnNo)
+          .limit(1);
+        if (existing && existing.length > 0) {
+          returnNo = await allocateNextDocumentNumber('PRT');
+        }
+      }
+
       const row: PurchaseReturn = {
         ...pr,
         id,
+        return_no: returnNo,
         vendor_id: pr.vendor_id ? ensureUUID(pr.vendor_id) : null,
         warehouse_id: pr.warehouse_id ? ensureUUID(pr.warehouse_id) : null,
         created_at: pr.created_at || new Date().toISOString(),
       };
-      optimisticUpsert(queryClient, TABLES.purchaseReturns, row);
       await insertOrUpsertRow(
         TABLES.purchaseReturns,
         {
@@ -437,7 +606,6 @@ export function usePurchaseReturnMutations() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<PurchaseReturn> }) => {
       const targetId = ensureUUID(id);
-      optimisticPatch<PurchaseReturn>(queryClient, TABLES.purchaseReturns, targetId, patch);
       await updateRowById(TABLES.purchaseReturns, targetId, patch as Record<string, unknown>);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.purchaseReturns),
@@ -447,7 +615,6 @@ export function usePurchaseReturnMutations() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const targetId = ensureUUID(id);
-      optimisticRemove<PurchaseReturn>(queryClient, TABLES.purchaseReturns, targetId);
       await softOrHardDeleteRow(TABLES.purchaseReturns, targetId);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.purchaseReturns),
@@ -473,6 +640,20 @@ export function useVendorPaymentMutations() {
   const addMutation = useMutation({
     mutationFn: async (vp: Omit<VendorPayment, 'id'> & { id?: string }) => {
       const id = ensureUUID(vp.id || safeUUID());
+      let paymentNo = (vp.payment_no || '').trim();
+      if (!paymentNo) {
+        paymentNo = await allocateNextDocumentNumber('CP');
+      } else {
+        const { data: existing } = await supabase
+          .from(TABLES.vendorPayments)
+          .select('id')
+          .eq('payment_no', paymentNo)
+          .limit(1);
+        if (existing && existing.length > 0) {
+          paymentNo = await allocateNextDocumentNumber('CP');
+        }
+      }
+
       const banks = queryClient.getQueryData<BankAccount[]>([TABLES.bankAccounts]) || [];
       const matchedBank = banks.find(
         (b) => b.id === vp.paid_from_account_id || b.account_name === vp.pay_from
@@ -482,15 +663,15 @@ export function useVendorPaymentMutations() {
       const row: VendorPayment = {
         ...vp,
         id,
+        payment_no: paymentNo,
         vendor_id: vp.vendor_id ? ensureUUID(vp.vendor_id) : null,
         pay_from: payFromName,
         created_at: vp.created_at || new Date().toISOString(),
       };
-      optimisticUpsert(queryClient, TABLES.vendorPayments, row);
       await insertOrUpsertRow(
         TABLES.vendorPayments,
         row as unknown as Record<string, unknown>,
-        'payment_no'
+        'id'
       );
 
       if (row.status === 'POSTED') {
@@ -531,7 +712,6 @@ export function useVendorPaymentMutations() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<VendorPayment> }) => {
       const targetId = ensureUUID(id);
-      optimisticPatch<VendorPayment>(queryClient, TABLES.vendorPayments, targetId, patch);
       await updateRowById(TABLES.vendorPayments, targetId, patch as Record<string, unknown>);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.vendorPayments),
@@ -541,7 +721,6 @@ export function useVendorPaymentMutations() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const targetId = ensureUUID(id);
-      optimisticRemove<VendorPayment>(queryClient, TABLES.vendorPayments, targetId);
       await softOrHardDeleteRow(TABLES.vendorPayments, targetId);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.vendorPayments),

@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useErpData } from '@/lib/queries';
+import { previewNextDocumentNumber, allocateNextDocumentNumber } from '@/lib/services';
 import { useToast } from '@/lib/toast';
-import { todayISO, safeUUID, formatDate, formatUserRequester, nextDocNumber } from '@/lib/utils';
+import { todayISO, safeUUID, formatDate, formatUserRequester } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
 import { useAuth } from '@/lib/auth';
 import { Plus, Edit, Trash2, X, ShoppingBag, Receipt, Sparkles, CheckCircle2, History, RotateCcw } from 'lucide-react';
@@ -163,9 +164,9 @@ export function SalesReturnModule() {
     setCustomerId(defaultParty);
     setDocDate(todayISO());
     setDueDate(todayISO());
-    setWarehouseId(warehouses[0]?.id || 'w1');
-    const autoNo = nextDocNumber('SR', (salesReturns || []).map(r => r.return_no), 2);
-    setReturnNo(autoNo);
+    setWarehouseId(warehouses[0]?.id || '');
+    setReturnNo('...');
+    void previewNextDocumentNumber('SR').then((no) => setReturnNo(no));
     setAccountCategory('Sales Returns & Allowances');
     setAccountHead('Sales Returns & Allowances');
     setNotes('');
@@ -189,7 +190,7 @@ export function SalesReturnModule() {
     setCustomerId(sr.customer_id || '');
     setDocDate(sr.document_date || todayISO());
     setDueDate(sr.due_date || todayISO());
-    setWarehouseId(sr.warehouse_id || warehouses[0]?.id || 'w1');
+    setWarehouseId(sr.warehouse_id || warehouses[0]?.id || '');
     setReturnNo(sr.return_no || '');
     setAccountCategory(sr.account_category || 'Sales Returns & Allowances');
     setAccountHead(sr.account_head || 'Sales Returns & Allowances');
@@ -335,7 +336,7 @@ export function SalesReturnModule() {
     return { subtotal, discountTotal, taxTotal, grandTotal };
   };
 
-  const handleSaveRecord = (status: 'POSTED' | 'UNPOSTED') => {
+  const handleSaveRecord = async (status: 'POSTED' | 'UNPOSTED') => {
     if (!customerId) return toast.error('Please select a party');
     if (lineItems.some((i) => !i.product_id)) return toast.error('Please select valid products for all line items');
 
@@ -359,13 +360,17 @@ export function SalesReturnModule() {
       };
     });
 
+    const allocatedReturnNo = editingId
+      ? returnNo || 'SR'
+      : await allocateNextDocumentNumber('SR');
+
     const payload = {
-      return_no: returnNo || `SR-${String((salesReturns || []).length + 1).padStart(5, '0')}`,
+      return_no: allocatedReturnNo,
       party_type: partyType,
       customer_id: customerId,
       customer_name: selectedPartyObj?.name || 'Customer',
       party_name: selectedPartyObj?.name || 'Customer',
-      warehouse_id: warehouseId || warehouses[0]?.id || 'w1',
+      warehouse_id: warehouseId || warehouses[0]?.id || null,
       document_date: docDate,
       due_date: dueDate,
       account_category: accountCategory,

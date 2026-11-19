@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useErpData } from '@/lib/queries';
+import { previewNextDocumentNumber, allocateNextDocumentNumber } from '@/lib/services';
 import { useToast } from '@/lib/toast';
-import { todayISO, safeUUID, formatDate, formatUserRequester, nextDocNumber } from '@/lib/utils';
+import { todayISO, safeUUID, formatDate, formatUserRequester } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
 import { useAuth } from '@/lib/auth';
 import { Plus, Edit, Trash2, X, ShoppingBag, Receipt, Sparkles, CheckCircle2, History, RotateCcw } from 'lucide-react';
@@ -163,9 +164,9 @@ export function PurchaseReturnModule() {
     setVendorId(defaultParty);
     setDocDate(todayISO());
     setDueDate(todayISO());
-    setWarehouseId(warehouses[0]?.id || 'w1');
-    const autoNo = nextDocNumber('PRT', (purchaseReturns || []).map(r => r.return_no), 2);
-    setReturnNo(autoNo);
+    setWarehouseId(warehouses[0]?.id || '');
+    setReturnNo('...');
+    void previewNextDocumentNumber('PRT').then((no) => setReturnNo(no));
     setNotes('');
     setLineItems([
       {
@@ -188,7 +189,7 @@ export function PurchaseReturnModule() {
     setVendorId(pr.vendor_id || '');
     setDocDate(pr.document_date || todayISO());
     setDueDate(pr.due_date || todayISO());
-    setWarehouseId(pr.warehouse_id || warehouses[0]?.id || 'w1');
+    setWarehouseId(pr.warehouse_id || warehouses[0]?.id || '');
     setReturnNo(pr.return_no || '');
     setNotes(pr.notes || '');
     if (pr.items && pr.items.length > 0) {
@@ -329,7 +330,7 @@ export function PurchaseReturnModule() {
     return { subtotal, discountTotal, taxTotal, grandTotal };
   };
 
-  const handleSaveRecord = (status: 'POSTED' | 'UNPOSTED') => {
+  const handleSaveRecord = async (status: 'POSTED' | 'UNPOSTED') => {
     if (!vendorId) return toast.error('Please select a vendor');
     if (lineItems.some((i) => !i.product_id)) return toast.error('Please select valid products for all line items');
 
@@ -352,13 +353,17 @@ export function PurchaseReturnModule() {
       };
     });
 
+    const allocatedReturnNo = editingId
+      ? returnNo || 'PRT'
+      : await allocateNextDocumentNumber('PRT');
+
     const payload = {
-      return_no: returnNo || `PR-${String((purchaseReturns || []).length + 1).padStart(5, '0')}`,
+      return_no: allocatedReturnNo,
       party_type: partyType,
       vendor_id: vendorId,
       vendor_name: selectedPartyObj?.name || 'Vendor',
       party_name: selectedPartyObj?.name || 'Vendor',
-      warehouse_id: warehouseId || warehouses[0]?.id || 'w1',
+      warehouse_id: warehouseId || warehouses[0]?.id || null,
       document_date: docDate,
       due_date: dueDate,
       status,

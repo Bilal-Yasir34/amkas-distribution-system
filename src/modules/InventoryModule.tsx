@@ -14,6 +14,7 @@ import {
   Edit,
 } from 'lucide-react';
 import { useErpData } from '@/lib/queries';
+import { allocateNextDocumentNumber } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
 import { downloadCSV, todayISO, formatDate } from '@/lib/utils';
@@ -505,7 +506,7 @@ export function InventoryModule() {
     toast.success('Stock data exported to CSV');
   };
 
-  const handleSaveTransfer = () => {
+  const handleSaveTransfer = async () => {
     if (!transferFromWh) return toast.error('Select a source warehouse');
     if (!transferToWh) return toast.error('Select a destination warehouse');
     if (transferFromWh === transferToWh) return toast.error('Source and destination warehouses cannot be the same');
@@ -513,7 +514,7 @@ export function InventoryModule() {
 
     const fromWhObj = warehouses.find((w) => w.id === transferFromWh);
     const toWhObj = warehouses.find((w) => w.id === transferToWh);
-    const transferNo = `MST-${String((stockTransfers || []).length + 1).padStart(5, '0')}`;
+    const transferNo = await allocateNextDocumentNumber('MST');
 
     addStockTransfer({
       transfer_no: transferNo,
@@ -529,12 +530,12 @@ export function InventoryModule() {
     setTransferViewMode('list');
   };
 
-  const handleSaveAdjustment = () => {
+  const handleSaveAdjustment = async () => {
     if (!adjustmentWarehouse) return toast.error('Select a warehouse');
     if (adjustmentLineItems.length === 0) return toast.error('Add at least one adjustment line item');
 
     const whObj = warehouses.find((w) => w.id === adjustmentWarehouse);
-    const adjustNo = `MSA-${String((stockAdjustments || []).length + 1).padStart(5, '0')}`;
+    const adjustNo = await allocateNextDocumentNumber('MSA');
 
     addStockAdjustment({
       adjustment_no: adjustNo,
@@ -572,7 +573,7 @@ export function InventoryModule() {
       product_id: serialProdId,
       serial_number: serialNo,
       status: 'AVAILABLE',
-      warehouse_id: warehouses[0]?.id || 'w1',
+      warehouse_id: warehouses[0]?.id || null,
       created_at: new Date().toISOString(),
     });
     toast.success(`Serial Number ${serialNo} created and added to Serials register!`);

@@ -160,6 +160,7 @@ export const RELATED_TABLE_KEYS: Record<string, readonly string[]> = {
     TABLES.approvalQueue,
     TABLES.salesCommissions,
     TABLES.customers,
+    TABLES.documentSequences,
   ],
   [TABLES.salesInvoiceItems]: [TABLES.salesInvoices, TABLES.products, TABLES.stockLedger],
   [TABLES.purchaseInvoices]: [
@@ -170,6 +171,7 @@ export const RELATED_TABLE_KEYS: Record<string, readonly string[]> = {
     TABLES.journalEntries,
     TABLES.approvalQueue,
     TABLES.vendors,
+    TABLES.documentSequences,
   ],
   [TABLES.purchaseInvoiceItems]: [TABLES.purchaseInvoices, TABLES.products, TABLES.stockLedger],
   [TABLES.vendorBills]: [

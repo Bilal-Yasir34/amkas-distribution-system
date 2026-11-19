@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   useVendors,
   useCustomers,
@@ -13,6 +13,8 @@ import {
   useApprovalMutations,
   useVendorMutations,
   useVendorBillMutations,
+  previewNextDocumentNumber,
+  allocateNextDocumentNumber,
 } from '@/lib/services';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
@@ -62,17 +64,13 @@ export function PayPayment() {
     );
   }, [allParties, selectedAccountType]);
 
-  // Auto-generate reference number starting from CP-01
-  const autoRefNo = useMemo(() => {
-    const existingNums = (vendorPayments || []).map((p) => {
-      const match = (p.reference_no || p.payment_no || '').match(/CP-(\d+)/i);
-      return match ? parseInt(match[1], 10) : 0;
-    });
-    const max = existingNums.length > 0 ? Math.max(0, ...existingNums) : 0;
-    return `CP-${String(max + 1).padStart(2, '0')}`;
-  }, [vendorPayments]);
+  const [autoRefNo, setAutoRefNo] = useState('CP-01');
 
-  const handlePostPayment = (e: React.FormEvent) => {
+  useEffect(() => {
+    void previewNextDocumentNumber('CP').then((no) => setAutoRefNo(no));
+  }, [vendorPayments.length]);
+
+  const handlePostPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!paidTo) return toast.error(`Please select a ${selectedAccountType || 'payee'}`);
     if (!amount || Number(amount) <= 0) return toast.error('Please enter a valid payment amount');
@@ -80,21 +78,21 @@ export function PayPayment() {
     const amtNum = Number(amount);
     const selectedParty = allParties.find((p) => p.id === paidTo);
     const vendorId = selectedParty?._origin === 'vendor' ? selectedParty.id : '';
-    const finalRefNo = refNo.trim() || autoRefNo;
+    const finalRefNo = refNo.trim() || (await allocateNextDocumentNumber('CP'));
     const paymentNo = finalRefNo;
     const paymentId = safeUUID();
 
     const fromAcc = bankAccounts.find(
       (b) => b.account_name === payFrom || b.id === payFrom
     );
-    const fromAccId = fromAcc?.id || bankAccounts[0]?.id || 'ba1';
+    const fromAccId = fromAcc?.id || bankAccounts[0]?.id || '';
 
     const requester = formatUserRequester(profile, 'Accountant');
 
     addVendorPayment({
       id: paymentId,
       payment_no: paymentNo,
-      vendor_id: vendorId || selectedParty?.id || vendors[0]?.id || 'v1',
+      vendor_id: vendorId || selectedParty?.id || vendors[0]?.id || '',
       vendor_bill_id: null,
       payment_date: paymentDate,
       payment_method: payFrom,
@@ -124,6 +122,7 @@ export function PayPayment() {
     });
 
     toast.success(`Payment ${paymentNo} submitted to Approval Center for review!`);
+    void previewNextDocumentNumber('CP').then((no) => setAutoRefNo(no));
 
     // Reset Form
     setPaidTo('');

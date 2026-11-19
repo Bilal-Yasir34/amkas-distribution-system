@@ -17,38 +17,91 @@ import {
   deleteRowById,
   insertOrUpsertRow,
   invalidateTableAndRelated,
-  optimisticPatch,
-  optimisticRemove,
-  optimisticUpsert,
   softOrHardDeleteRow,
   updateRowById,
 } from './dbHelpers';
+import { allocateNextDocumentNumber } from './numbering';
+
+export interface CreateSalesInvoiceInput extends Omit<SalesInvoice, 'id' | 'invoice_no'> {
+  id?: string;
+  invoice_no?: string;
+  requested_by?: string;
+  requested_by_name?: string;
+  requested_by_role?: string;
+  items_summary?: string;
+}
 
 export function useSalesInvoiceMutations() {
   const queryClient = useQueryClient();
 
   const addMutation = useMutation({
-    mutationFn: async (inv: Omit<SalesInvoice, 'id'> & { id?: string }) => {
+    mutationFn: async (inv: CreateSalesInvoiceInput) => {
       const id = ensureUUID(inv.id || safeUUID());
       const customerId = inv.customer_id ? ensureUUID(inv.customer_id) : null;
       const warehouseId = inv.warehouse_id ? ensureUUID(inv.warehouse_id) : null;
+
+      // 1. Try atomic Postgres RPC `create_sales_invoice` first
+      const rpcPayload = {
+        ...inv,
+        id,
+        customer_id: customerId,
+        warehouse_id: warehouseId,
+        items: (inv.items || []).map((it) => ({
+          ...it,
+          id: ensureUUID(it.id || safeUUID()),
+          sales_invoice_id: id,
+          product_id: it.product_id ? ensureUUID(it.product_id) : null,
+        })),
+      };
+
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('create_sales_invoice', {
+        payload: rpcPayload,
+      });
+
+      if (!rpcErr && rpcData) {
+        return rpcData as unknown as SalesInvoice;
+      }
+
+      if (rpcErr && rpcErr.code !== 'PGRST202') {
+        throw new Error(rpcErr.message || 'Failed to create sales invoice.');
+      }
+
+      // 2. Database-verified sequenced fallback if `create_sales_invoice` RPC is not yet installed
+      let invoiceNo = (inv.invoice_no || '').trim();
+      if (invoiceNo) {
+        const { data: existingNo } = await supabase
+          .from(TABLES.salesInvoices)
+          .select('id')
+          .eq('invoice_no', invoiceNo)
+          .limit(1);
+        if (existingNo && existingNo.length > 0) {
+          invoiceNo = '';
+        }
+      }
+      if (!invoiceNo) {
+        invoiceNo = await allocateNextDocumentNumber('SL');
+      } else {
+        // Also advance document_sequences so next allocation is above this number
+        await allocateNextDocumentNumber('SL');
+      }
+
       const row: SalesInvoice = {
         ...inv,
         id,
+        invoice_no: invoiceNo,
         customer_id: customerId,
         warehouse_id: warehouseId,
         created_at: inv.created_at || new Date().toISOString(),
       };
 
-      optimisticUpsert(queryClient, TABLES.salesInvoices, row);
-
+      // Insert by primary key `id` (NEVER overwrite an existing invoice on `invoice_no`)
       await insertOrUpsertRow(
         TABLES.salesInvoices,
         {
           ...row,
           items: row.items || [],
         } as unknown as Record<string, unknown>,
-        'invoice_no'
+        'id'
       );
 
       // Sync child sales_invoice_items rows
@@ -94,7 +147,6 @@ export function useSalesInvoiceMutations() {
           status: row.status === 'POSTED' ? 'APPROVED' : 'ACCRUED',
           created_at: new Date().toISOString(),
         };
-        optimisticUpsert(queryClient, TABLES.salesCommissions, commRow);
         await insertOrUpsertRow(
           TABLES.salesCommissions,
           commRow as unknown as Record<string, unknown>,
@@ -102,12 +154,49 @@ export function useSalesInvoiceMutations() {
         );
       }
 
-      // If created directly as POSTED, invoke RPC or post journal entry
-      if (row.status === 'POSTED') {
-        const { error: rpcErr } = await supabase.rpc('post_sales_invoice', {
+      // If PENDING_APPROVAL, guarantee the approval_queue row exists with matching entity_id = id & record_no = invoiceNo
+      if (row.status === 'PENDING_APPROVAL') {
+        const itemsSummary =
+          inv.items_summary ||
+          (row.items || [])
+            .map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`)
+            .join(', ') ||
+          `${row.items?.length || 0} items`;
+
+        const { data: existingQ } = await supabase
+          .from(TABLES.approvalQueue)
+          .select('id')
+          .eq('entity_type', 'sales_invoice')
+          .eq('entity_id', id)
+          .maybeSingle();
+
+        await insertOrUpsertRow(
+          TABLES.approvalQueue,
+          {
+            id: existingQ?.id || safeUUID(),
+            module: 'Sales',
+            entity_type: 'sales_invoice',
+            entity_id: id,
+            record_id: id,
+            record_no: row.invoice_no,
+            voucher_no: row.invoice_no,
+            requested_by: inv.requested_by || row.created_by || 'admin',
+            requested_by_name: inv.requested_by_name || 'Admin',
+            requested_by_role: inv.requested_by_role || 'Super Admin',
+            amount: row.total_amount,
+            status: 'PENDING',
+            party_name: row.customer_name || row.party_name || 'Customer',
+            warehouse_id: warehouseId,
+            items_summary: itemsSummary,
+            created_at: row.created_at,
+          },
+          'id'
+        );
+      } else if (row.status === 'POSTED') {
+        const { error: postRpcErr } = await supabase.rpc('post_sales_invoice', {
           p_invoice_id: id,
         });
-        if (rpcErr) {
+        if (postRpcErr) {
           const jeRow: JournalEntry = {
             id: safeUUID(),
             entry_no: `JV-${row.invoice_no}`,
@@ -120,7 +209,6 @@ export function useSalesInvoiceMutations() {
             status: 'POSTED',
             created_at: new Date().toISOString(),
           };
-          optimisticUpsert(queryClient, TABLES.journalEntries, jeRow);
           await insertOrUpsertRow(
             TABLES.journalEntries,
             jeRow as unknown as Record<string, unknown>,
@@ -131,14 +219,25 @@ export function useSalesInvoiceMutations() {
 
       return row;
     },
-    onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.salesInvoices),
-    onSettled: () => invalidateTableAndRelated(queryClient, TABLES.salesInvoices),
+    onSuccess: () =>
+      invalidateTableAndRelated(queryClient, [
+        TABLES.salesInvoices,
+        TABLES.salesInvoiceItems,
+        TABLES.approvalQueue,
+        TABLES.documentSequences,
+      ]),
+    onSettled: () =>
+      invalidateTableAndRelated(queryClient, [
+        TABLES.salesInvoices,
+        TABLES.salesInvoiceItems,
+        TABLES.approvalQueue,
+        TABLES.documentSequences,
+      ]),
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<SalesInvoice> }) => {
       const targetId = ensureUUID(id);
-      optimisticPatch<SalesInvoice>(queryClient, TABLES.salesInvoices, targetId, patch);
       await updateRowById(TABLES.salesInvoices, targetId, patch as Record<string, unknown>);
 
       if (patch.items) {
@@ -180,8 +279,6 @@ export function useSalesInvoiceMutations() {
       const targetId = ensureUUID(target?.id || id);
       const invNo = target?.invoice_no;
 
-      optimisticRemove<SalesInvoice>(queryClient, TABLES.salesInvoices, targetId);
-
       await softOrHardDeleteRow(TABLES.salesInvoices, targetId, 'invoice_no', invNo);
       await supabase.from(TABLES.approvalQueue).delete().eq('entity_id', targetId);
       if (invNo) {
@@ -197,9 +294,6 @@ export function useSalesInvoiceMutations() {
   const postMutation = useMutation({
     mutationFn: async (invoiceId: string) => {
       const targetId = ensureUUID(invoiceId);
-      optimisticPatch<SalesInvoice>(queryClient, TABLES.salesInvoices, targetId, {
-        status: 'POSTED',
-      });
       const { error } = await supabase.rpc('post_sales_invoice', { p_invoice_id: targetId });
       if (error) {
         await updateRowById(TABLES.salesInvoices, targetId, { status: 'POSTED' });
@@ -210,9 +304,10 @@ export function useSalesInvoiceMutations() {
   });
 
   return {
-    addInvoice: (inv: Omit<SalesInvoice, 'id'> & { id?: string }) => {
+    addInvoice: (inv: CreateSalesInvoiceInput) => {
       addMutation.mutate(inv);
     },
+    createSalesInvoiceAsync: (inv: CreateSalesInvoiceInput) => addMutation.mutateAsync(inv),
     updateInvoice: (id: string, patch: Partial<SalesInvoice>) => {
       updateMutation.mutate({ id, patch });
     },
@@ -230,18 +325,32 @@ export function useQuotationMutations() {
   const addMutation = useMutation({
     mutationFn: async (q: Omit<Quotation, 'id'> & { id?: string }) => {
       const id = ensureUUID(q.id || safeUUID());
+      let quotationNo = (q.quotation_no || '').trim();
+      if (!quotationNo) {
+        quotationNo = await allocateNextDocumentNumber('MQ');
+      } else {
+        const { data: existing } = await supabase
+          .from(TABLES.quotations)
+          .select('id')
+          .eq('quotation_no', quotationNo)
+          .limit(1);
+        if (existing && existing.length > 0) {
+          quotationNo = await allocateNextDocumentNumber('MQ');
+        }
+      }
+
       const row: Quotation = {
         ...q,
         id,
+        quotation_no: quotationNo,
         customer_id: q.customer_id ? ensureUUID(q.customer_id) : null,
         document_date: q.document_date || q.quotation_date,
         created_at: q.created_at || new Date().toISOString(),
       };
-      optimisticUpsert(queryClient, TABLES.quotations, row);
       await insertOrUpsertRow(
         TABLES.quotations,
         row as unknown as Record<string, unknown>,
-        'quotation_no'
+        'id'
       );
       if (row.items && row.items.length > 0) {
         await supabase.from(TABLES.quotationItems).delete().eq('quotation_id', id);
@@ -272,7 +381,6 @@ export function useQuotationMutations() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Quotation> }) => {
       const targetId = ensureUUID(id);
-      optimisticPatch<Quotation>(queryClient, TABLES.quotations, targetId, patch);
       await updateRowById(TABLES.quotations, targetId, patch as Record<string, unknown>);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.quotations),
@@ -282,7 +390,6 @@ export function useQuotationMutations() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const targetId = ensureUUID(id);
-      optimisticRemove<Quotation>(queryClient, TABLES.quotations, targetId);
       await deleteRowById(TABLES.quotations, targetId);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.quotations),
@@ -308,18 +415,32 @@ export function useSalesOrderMutations() {
   const addMutation = useMutation({
     mutationFn: async (so: Omit<SalesOrder, 'id'> & { id?: string }) => {
       const id = ensureUUID(so.id || safeUUID());
+      let orderNo = (so.order_no || '').trim();
+      if (!orderNo) {
+        orderNo = await allocateNextDocumentNumber('MSO');
+      } else {
+        const { data: existing } = await supabase
+          .from(TABLES.salesOrders)
+          .select('id')
+          .eq('order_no', orderNo)
+          .limit(1);
+        if (existing && existing.length > 0) {
+          orderNo = await allocateNextDocumentNumber('MSO');
+        }
+      }
+
       const row: SalesOrder = {
         ...so,
         id,
+        order_no: orderNo,
         customer_id: so.customer_id ? ensureUUID(so.customer_id) : null,
         document_date: so.document_date || so.order_date,
         created_at: so.created_at || new Date().toISOString(),
       };
-      optimisticUpsert(queryClient, TABLES.salesOrders, row);
       await insertOrUpsertRow(
         TABLES.salesOrders,
         row as unknown as Record<string, unknown>,
-        'order_no'
+        'id'
       );
       if (row.items && row.items.length > 0) {
         await supabase.from(TABLES.salesOrderItems).delete().eq('sales_order_id', id);
@@ -350,7 +471,6 @@ export function useSalesOrderMutations() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<SalesOrder> }) => {
       const targetId = ensureUUID(id);
-      optimisticPatch<SalesOrder>(queryClient, TABLES.salesOrders, targetId, patch);
       await updateRowById(TABLES.salesOrders, targetId, patch as Record<string, unknown>);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.salesOrders),
@@ -360,7 +480,6 @@ export function useSalesOrderMutations() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const targetId = ensureUUID(id);
-      optimisticRemove<SalesOrder>(queryClient, TABLES.salesOrders, targetId);
       await deleteRowById(TABLES.salesOrders, targetId);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.salesOrders),
@@ -386,18 +505,32 @@ export function useCreditNoteMutations() {
   const addMutation = useMutation({
     mutationFn: async (cn: Omit<CreditNote, 'id'> & { id?: string }) => {
       const id = ensureUUID(cn.id || safeUUID());
+      let cnNo = (cn.credit_note_no || '').trim();
+      if (!cnNo) {
+        cnNo = await allocateNextDocumentNumber('MCN');
+      } else {
+        const { data: existing } = await supabase
+          .from(TABLES.creditNotes)
+          .select('id')
+          .eq('credit_note_no', cnNo)
+          .limit(1);
+        if (existing && existing.length > 0) {
+          cnNo = await allocateNextDocumentNumber('MCN');
+        }
+      }
+
       const row: CreditNote = {
         ...cn,
         id,
+        credit_note_no: cnNo,
         customer_id: cn.customer_id ? ensureUUID(cn.customer_id) : null,
         document_date: cn.document_date || cn.note_date,
         created_at: cn.created_at || new Date().toISOString(),
       };
-      optimisticUpsert(queryClient, TABLES.creditNotes, row);
       await insertOrUpsertRow(
         TABLES.creditNotes,
         row as unknown as Record<string, unknown>,
-        'credit_note_no'
+        'id'
       );
 
       if (row.status === 'POSTED') {
@@ -413,7 +546,6 @@ export function useCreditNoteMutations() {
           status: 'POSTED',
           created_at: new Date().toISOString(),
         };
-        optimisticUpsert(queryClient, TABLES.journalEntries, jeRow);
         await insertOrUpsertRow(
           TABLES.journalEntries,
           jeRow as unknown as Record<string, unknown>,
@@ -429,7 +561,6 @@ export function useCreditNoteMutations() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<CreditNote> }) => {
       const targetId = ensureUUID(id);
-      optimisticPatch<CreditNote>(queryClient, TABLES.creditNotes, targetId, patch);
       await updateRowById(TABLES.creditNotes, targetId, patch as Record<string, unknown>);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.creditNotes),
@@ -439,7 +570,6 @@ export function useCreditNoteMutations() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const targetId = ensureUUID(id);
-      optimisticRemove<CreditNote>(queryClient, TABLES.creditNotes, targetId);
       await softOrHardDeleteRow(TABLES.creditNotes, targetId);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.creditNotes),
@@ -465,14 +595,28 @@ export function useSalesReturnMutations() {
   const addMutation = useMutation({
     mutationFn: async (sr: Omit<SalesReturn, 'id'> & { id?: string }) => {
       const id = ensureUUID(sr.id || safeUUID());
+      let returnNo = (sr.return_no || '').trim();
+      if (!returnNo) {
+        returnNo = await allocateNextDocumentNumber('SR');
+      } else {
+        const { data: existing } = await supabase
+          .from(TABLES.salesReturns)
+          .select('id')
+          .eq('return_no', returnNo)
+          .limit(1);
+        if (existing && existing.length > 0) {
+          returnNo = await allocateNextDocumentNumber('SR');
+        }
+      }
+
       const row: SalesReturn = {
         ...sr,
         id,
+        return_no: returnNo,
         customer_id: sr.customer_id ? ensureUUID(sr.customer_id) : null,
         warehouse_id: sr.warehouse_id ? ensureUUID(sr.warehouse_id) : null,
         created_at: sr.created_at || new Date().toISOString(),
       };
-      optimisticUpsert(queryClient, TABLES.salesReturns, row);
       await insertOrUpsertRow(
         TABLES.salesReturns,
         {
@@ -491,7 +635,6 @@ export function useSalesReturnMutations() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<SalesReturn> }) => {
       const targetId = ensureUUID(id);
-      optimisticPatch<SalesReturn>(queryClient, TABLES.salesReturns, targetId, patch);
       await updateRowById(TABLES.salesReturns, targetId, patch as Record<string, unknown>);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.salesReturns),
@@ -501,7 +644,6 @@ export function useSalesReturnMutations() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const targetId = ensureUUID(id);
-      optimisticRemove<SalesReturn>(queryClient, TABLES.salesReturns, targetId);
       await softOrHardDeleteRow(TABLES.salesReturns, targetId);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.salesReturns),
@@ -527,6 +669,20 @@ export function useCustomerReceiptMutations() {
   const addMutation = useMutation({
     mutationFn: async (r: Omit<CustomerReceipt, 'id'> & { id?: string }) => {
       const id = ensureUUID(r.id || safeUUID());
+      let receiptNo = (r.receipt_no || '').trim();
+      if (!receiptNo) {
+        receiptNo = await allocateNextDocumentNumber('CR');
+      } else {
+        const { data: existing } = await supabase
+          .from(TABLES.customerReceipts)
+          .select('id')
+          .eq('receipt_no', receiptNo)
+          .limit(1);
+        if (existing && existing.length > 0) {
+          receiptNo = await allocateNextDocumentNumber('CR');
+        }
+      }
+
       const banks = queryClient.getQueryData<BankAccount[]>([TABLES.bankAccounts]) || [];
       const matchedBank = banks.find(
         (b) => b.id === r.deposit_account_id || b.account_name === r.deposit_to
@@ -536,15 +692,15 @@ export function useCustomerReceiptMutations() {
       const row: CustomerReceipt = {
         ...r,
         id,
+        receipt_no: receiptNo,
         customer_id: r.customer_id ? ensureUUID(r.customer_id) : null,
         deposit_to: depositToName,
         created_at: r.created_at || new Date().toISOString(),
       };
-      optimisticUpsert(queryClient, TABLES.customerReceipts, row);
       await insertOrUpsertRow(
         TABLES.customerReceipts,
         row as unknown as Record<string, unknown>,
-        'receipt_no'
+        'id'
       );
 
       if (row.status === 'POSTED') {
@@ -585,7 +741,6 @@ export function useCustomerReceiptMutations() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<CustomerReceipt> }) => {
       const targetId = ensureUUID(id);
-      optimisticPatch<CustomerReceipt>(queryClient, TABLES.customerReceipts, targetId, patch);
       await updateRowById(TABLES.customerReceipts, targetId, patch as Record<string, unknown>);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.customerReceipts),
@@ -595,7 +750,6 @@ export function useCustomerReceiptMutations() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const targetId = ensureUUID(id);
-      optimisticRemove<CustomerReceipt>(queryClient, TABLES.customerReceipts, targetId);
       await softOrHardDeleteRow(TABLES.customerReceipts, targetId);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.customerReceipts),
@@ -626,7 +780,6 @@ export function useCommissionMutations() {
         id,
         created_at: c.created_at || new Date().toISOString(),
       };
-      optimisticUpsert(queryClient, TABLES.salesCommissions, row);
       await insertOrUpsertRow(
         TABLES.salesCommissions,
         row as unknown as Record<string, unknown>,
@@ -641,7 +794,6 @@ export function useCommissionMutations() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<SalesCommission> }) => {
       const targetId = ensureUUID(id);
-      optimisticPatch<SalesCommission>(queryClient, TABLES.salesCommissions, targetId, patch);
       await updateRowById(TABLES.salesCommissions, targetId, patch as Record<string, unknown>);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.salesCommissions),
@@ -651,7 +803,6 @@ export function useCommissionMutations() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const targetId = ensureUUID(id);
-      optimisticRemove<SalesCommission>(queryClient, TABLES.salesCommissions, targetId);
       await deleteRowById(TABLES.salesCommissions, targetId);
     },
     onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.salesCommissions),

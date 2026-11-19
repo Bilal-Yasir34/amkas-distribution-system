@@ -15,7 +15,8 @@ import {
   useWarehouses,
 } from '@/lib/queries';
 import { supabase, TABLES } from '@/lib/supabase';
-import { computeLineTotal, downloadCSV, formatCurrency, formatDate, getCustomerName, getWarehouseName, nextDocNumber, todayISO } from '@/lib/utils';
+import { previewNextDocumentNumber, allocateNextDocumentNumber } from '@/lib/services';
+import { computeLineTotal, downloadCSV, formatCurrency, formatDate, getCustomerName, getWarehouseName, todayISO } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { InvoicePrint } from '@/components/InvoicePrint';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
@@ -102,7 +103,8 @@ export function SalesInvoices() {
 
   function openCreate() {
     setEditingId(null);
-    setInvoiceNo(nextDocNumber('SL', invoices.map((i) => i.invoice_no), 2));
+    setInvoiceNo('...');
+    void previewNextDocumentNumber('SL').then((no) => setInvoiceNo(no));
     setCustomerId(customers[0]?.id ?? '');
     setWarehouseId(warehouses[0]?.id ?? '');
     setInvoiceDate(todayISO());
@@ -156,8 +158,9 @@ export function SalesInvoices() {
 
   async function persist(post: boolean) {
     try {
+      const assignedNo = editingId ? invoiceNo : await allocateNextDocumentNumber('SL');
       const payload = {
-        invoice_no: invoiceNo,
+        invoice_no: assignedNo,
         customer_id: customerId,
         warehouse_id: warehouseId || null,
         invoice_date: invoiceDate,

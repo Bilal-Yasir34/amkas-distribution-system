@@ -20,6 +20,7 @@ import type {
   CustomerReceipt,
   DebitNote,
   Department,
+  DocumentSequence,
   ExpenseRecord,
   FinancialYear,
   IncomeRecord,
@@ -242,22 +243,56 @@ export function useControlMappings() {
   return { data, isLoading, error };
 }
 
+export function useDocumentSequences() {
+  const { data = [], isLoading, error } = useQuery({
+    queryKey: QUERY_KEYS.documentSequences,
+    queryFn: () =>
+      fetchTableRows<DocumentSequence>(TABLES.documentSequences, {
+        column: 'document_type',
+        ascending: true,
+      }),
+  });
+  return { data, isLoading, error };
+}
+
 // ============================================================================
 // SALES & RECEIVABLES QUERIES
 // ============================================================================
 
-export function useSalesInvoices() {
+export function useSalesInvoices(statusFilter?: 'ALL' | 'POSTED' | 'PENDING_APPROVAL' | 'REJECTED' | string) {
+  const normalizedFilter = statusFilter && statusFilter !== 'ALL' ? statusFilter : 'ALL';
   const { data = [], isLoading, error } = useQuery({
-    queryKey: QUERY_KEYS.salesInvoices,
+    queryKey:
+      normalizedFilter === 'ALL'
+        ? QUERY_KEYS.salesInvoices
+        : [...QUERY_KEYS.salesInvoices, { status: normalizedFilter }],
     queryFn: async () => {
-      const [invoices, lineItems, customers] = await Promise.all([
-        fetchTableRows<SalesInvoice>(TABLES.salesInvoices, {
-          column: 'created_at',
-          ascending: false,
-        }),
+      let invQuery = supabase
+        .from(TABLES.salesInvoices)
+        .select('*')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (normalizedFilter === 'POSTED') {
+        invQuery = invQuery.in('status', ['POSTED', 'APPROVED', 'Accepted']);
+      } else if (normalizedFilter === 'PENDING_APPROVAL') {
+        invQuery = invQuery.in('status', ['PENDING_APPROVAL', 'PENDING']);
+      } else if (normalizedFilter !== 'ALL') {
+        invQuery = invQuery.eq('status', normalizedFilter);
+      }
+
+      const [{ data: invRows, error: invErr }, lineItems, customers] = await Promise.all([
+        invQuery,
         fetchTableRows<SalesInvoiceItem>(TABLES.salesInvoiceItems),
         fetchTableRows<Customer>(TABLES.customers),
       ]);
+
+      const invoices = invErr
+        ? await fetchTableRows<SalesInvoice>(TABLES.salesInvoices, {
+            column: 'created_at',
+            ascending: false,
+          })
+        : ((invRows || []) as SalesInvoice[]);
 
       const itemsByInv = new Map<string, SalesInvoiceItem[]>();
       for (const item of lineItems) {
@@ -284,8 +319,17 @@ export function useSalesInvoices() {
           inv.customer_name ||
           inv.party_name ||
           (inv.customer_id ? custMap.get(inv.customer_id) : undefined);
+        const rawStatus = String(inv.status || 'UNPOSTED');
+        const normalizedStatus =
+          rawStatus === 'APPROVED' || rawStatus === 'Accepted'
+            ? 'POSTED'
+            : rawStatus === 'PENDING'
+            ? 'PENDING_APPROVAL'
+            : (rawStatus as SalesInvoice['status']);
+
         return {
           ...inv,
+          status: normalizedStatus,
           customer_name: resolvedName,
           party_name: inv.party_name || resolvedName,
           subtotal: Number(inv.subtotal || 0),
@@ -300,6 +344,39 @@ export function useSalesInvoices() {
     },
   });
   return { data, isLoading, error };
+}
+
+export function useSalesInvoiceStatusCounts() {
+  const { data } = useQuery({
+    queryKey: [...QUERY_KEYS.salesInvoices, 'counts'],
+    queryFn: async () => {
+      const [allRes, postedRes, pendingRes, rejectedRes] = await Promise.all([
+        supabase.from(TABLES.salesInvoices).select('id', { count: 'exact', head: true }).is('deleted_at', null),
+        supabase
+          .from(TABLES.salesInvoices)
+          .select('id', { count: 'exact', head: true })
+          .is('deleted_at', null)
+          .in('status', ['POSTED', 'APPROVED', 'Accepted']),
+        supabase
+          .from(TABLES.salesInvoices)
+          .select('id', { count: 'exact', head: true })
+          .is('deleted_at', null)
+          .in('status', ['PENDING_APPROVAL', 'PENDING']),
+        supabase
+          .from(TABLES.salesInvoices)
+          .select('id', { count: 'exact', head: true })
+          .is('deleted_at', null)
+          .eq('status', 'REJECTED'),
+      ]);
+      return {
+        ALL: allRes.count ?? 0,
+        POSTED: postedRes.count ?? 0,
+        PENDING_APPROVAL: pendingRes.count ?? 0,
+        REJECTED: rejectedRes.count ?? 0,
+      };
+    },
+  });
+  return data || { ALL: 0, POSTED: 0, PENDING_APPROVAL: 0, REJECTED: 0 };
 }
 
 export function useInvoiceItems(invoiceId: string | null) {
@@ -481,18 +558,40 @@ export function usePurchaseOrders() {
   return { data, isLoading, error };
 }
 
-export function usePurchaseInvoices() {
+export function usePurchaseInvoices(statusFilter?: 'ALL' | 'POSTED' | 'PENDING_APPROVAL' | 'REJECTED' | string) {
+  const normalizedFilter = statusFilter && statusFilter !== 'ALL' ? statusFilter : 'ALL';
   const { data = [], isLoading, error } = useQuery({
-    queryKey: QUERY_KEYS.purchaseInvoices,
+    queryKey:
+      normalizedFilter === 'ALL'
+        ? QUERY_KEYS.purchaseInvoices
+        : [...QUERY_KEYS.purchaseInvoices, { status: normalizedFilter }],
     queryFn: async () => {
-      const [invoices, lineItems, vendors] = await Promise.all([
-        fetchTableRows<PurchaseInvoice>(TABLES.purchaseInvoices, {
-          column: 'created_at',
-          ascending: false,
-        }),
+      let piQuery = supabase
+        .from(TABLES.purchaseInvoices)
+        .select('*')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (normalizedFilter === 'POSTED') {
+        piQuery = piQuery.in('status', ['POSTED', 'APPROVED', 'Accepted']);
+      } else if (normalizedFilter === 'PENDING_APPROVAL') {
+        piQuery = piQuery.in('status', ['PENDING_APPROVAL', 'PENDING']);
+      } else if (normalizedFilter !== 'ALL') {
+        piQuery = piQuery.eq('status', normalizedFilter);
+      }
+
+      const [{ data: piRows, error: piErr }, lineItems, vendors] = await Promise.all([
+        piQuery,
         fetchTableRows<PurchaseInvoiceItem>(TABLES.purchaseInvoiceItems),
         fetchTableRows<Vendor>(TABLES.vendors),
       ]);
+
+      const invoices = piErr
+        ? await fetchTableRows<PurchaseInvoice>(TABLES.purchaseInvoices, {
+            column: 'created_at',
+            ascending: false,
+          })
+        : ((piRows || []) as PurchaseInvoice[]);
 
       const itemsByPi = new Map<string, PurchaseInvoiceItem[]>();
       for (const item of lineItems) {
@@ -535,8 +634,17 @@ export function usePurchaseInvoices() {
           pi.party_name ||
           (pi.vendor_id ? vendMap.get(pi.vendor_id) : undefined);
 
+        const rawStatus = String(pi.status || 'UNPOSTED');
+        const normalizedStatus =
+          rawStatus === 'APPROVED' || rawStatus === 'Accepted'
+            ? 'POSTED'
+            : rawStatus === 'PENDING'
+            ? 'PENDING_APPROVAL'
+            : (rawStatus as PurchaseInvoice['status']);
+
         return {
           ...pi,
+          status: normalizedStatus,
           grn_no: pi.grn_no || pi.invoice_no || '',
           invoice_no: pi.invoice_no || pi.grn_no || '',
           vendor_name: resolvedVendorName,
@@ -554,6 +662,39 @@ export function usePurchaseInvoices() {
     },
   });
   return { data, isLoading, error };
+}
+
+export function usePurchaseInvoiceStatusCounts() {
+  const { data } = useQuery({
+    queryKey: [...QUERY_KEYS.purchaseInvoices, 'counts'],
+    queryFn: async () => {
+      const [allRes, postedRes, pendingRes, rejectedRes] = await Promise.all([
+        supabase.from(TABLES.purchaseInvoices).select('id', { count: 'exact', head: true }).is('deleted_at', null),
+        supabase
+          .from(TABLES.purchaseInvoices)
+          .select('id', { count: 'exact', head: true })
+          .is('deleted_at', null)
+          .in('status', ['POSTED', 'APPROVED', 'Accepted']),
+        supabase
+          .from(TABLES.purchaseInvoices)
+          .select('id', { count: 'exact', head: true })
+          .is('deleted_at', null)
+          .in('status', ['PENDING_APPROVAL', 'PENDING']),
+        supabase
+          .from(TABLES.purchaseInvoices)
+          .select('id', { count: 'exact', head: true })
+          .is('deleted_at', null)
+          .eq('status', 'REJECTED'),
+      ]);
+      return {
+        ALL: allRes.count ?? 0,
+        POSTED: postedRes.count ?? 0,
+        PENDING_APPROVAL: pendingRes.count ?? 0,
+        REJECTED: rejectedRes.count ?? 0,
+      };
+    },
+  });
+  return data || { ALL: 0, POSTED: 0, PENDING_APPROVAL: 0, REJECTED: 0 };
 }
 
 export function useVendorBills() {

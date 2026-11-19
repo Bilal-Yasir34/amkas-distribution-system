@@ -34,7 +34,7 @@ export function Approvals() {
   const {
     approvalQueue = [],
     addApprovalQueueItem,
-    reviewApproval,
+    reviewApprovalAsync,
     warehouses = [],
     invoices = [],
     purchaseInvoices = [],
@@ -64,22 +64,61 @@ export function Approvals() {
   const [reviewNote, setReviewNote] = useState('');
   const [printItem, setPrintItem] = useState<ApprovalQueueItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<ApprovalQueueItem | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const handleApprove = (id: string, recordNo: string, entityType?: string, customNote?: string) => {
-    reviewApproval(id, 'APPROVED', customNote || 'Approved by administrator');
-    const label = entityType ? entityType.replace('_', ' ').toUpperCase() : 'Document';
-    toast.success(`${label} ${recordNo} approved and posted to ledger!`);
-    if (selectedRequest && selectedRequest.id === id) {
-      setSelectedRequest((prev) => (prev ? { ...prev, status: 'APPROVED', review_note: customNote || 'Approved by administrator', reviewed_by: 'Administrator', reviewed_at: new Date().toISOString() } : null));
+  const handleApprove = async (id: string, recordNo: string, entityType?: string, customNote?: string) => {
+    if (processingId === id) return;
+    setProcessingId(id);
+    try {
+      await reviewApprovalAsync(id, 'APPROVED', customNote || 'Approved by administrator');
+      const label = entityType ? entityType.replace('_', ' ').toUpperCase() : 'Document';
+      toast.success(`${label} ${recordNo} approved and posted to ledger!`);
+      if (selectedRequest && selectedRequest.id === id) {
+        setSelectedRequest((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: 'APPROVED',
+                review_note: customNote || 'Approved by administrator',
+                reviewed_by: 'Administrator',
+                reviewed_at: new Date().toISOString(),
+              }
+            : null
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Approval failed — document could not be posted';
+      toast.error(msg);
+    } finally {
+      setProcessingId(null);
     }
   };
 
-  const handleReject = (id: string, recordNo: string, entityType?: string, customNote?: string) => {
-    reviewApproval(id, 'REJECTED', customNote || 'Rejected by administrator');
-    const label = entityType ? entityType.replace('_', ' ').toUpperCase() : 'Document';
-    toast.error(`${label} ${recordNo} rejected`);
-    if (selectedRequest && selectedRequest.id === id) {
-      setSelectedRequest((prev) => (prev ? { ...prev, status: 'REJECTED', review_note: customNote || 'Rejected by administrator', reviewed_by: 'Administrator', reviewed_at: new Date().toISOString() } : null));
+  const handleReject = async (id: string, recordNo: string, entityType?: string, customNote?: string) => {
+    if (processingId === id) return;
+    setProcessingId(id);
+    try {
+      await reviewApprovalAsync(id, 'REJECTED', customNote || 'Rejected by administrator');
+      const label = entityType ? entityType.replace('_', ' ').toUpperCase() : 'Document';
+      toast.error(`${label} ${recordNo} rejected`);
+      if (selectedRequest && selectedRequest.id === id) {
+        setSelectedRequest((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: 'REJECTED',
+                review_note: customNote || 'Rejected by administrator',
+                reviewed_by: 'Administrator',
+                reviewed_at: new Date().toISOString(),
+              }
+            : null
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Rejection failed';
+      toast.error(msg);
+    } finally {
+      setProcessingId(null);
     }
   };
 

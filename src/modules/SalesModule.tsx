@@ -18,10 +18,11 @@ import {
   Layers,
   Send,
 } from 'lucide-react';
-import { useErpData } from '@/lib/queries';
+import { useErpData, useSalesInvoices, useSalesInvoiceStatusCounts } from '@/lib/queries';
+import { previewNextDocumentNumber, allocateNextDocumentNumber } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
-import { todayISO, safeUUID, nextDocNumber, STANDARD_UNITS, convertUnitRate, formatDate, formatUserRequester } from '@/lib/utils';
+import { todayISO, safeUUID, STANDARD_UNITS, convertUnitRate, formatDate, formatUserRequester } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
 import { InvoicePrint } from '@/components/InvoicePrint';
 import { DeleteConfirmationModal } from '@/components/DeleteConfirmationModal';
@@ -49,7 +50,7 @@ export function SalesModule() {
     organizations = [],
     branches = [],
     bankAccounts = [],
-    addInvoice,
+    createSalesInvoiceAsync,
     updateInvoice,
     deleteInvoice,
     addQuotation,
@@ -114,6 +115,8 @@ export function SalesModule() {
   const [invCustomerId, setInvCustomerId] = useState('');
 
   const [salesStatusFilter, setSalesStatusFilter] = useState<'ALL' | 'POSTED' | 'PENDING_APPROVAL' | 'REJECTED'>('ALL');
+  const { data: filteredSalesInvoices = [] } = useSalesInvoices(salesStatusFilter);
+  const salesCounts = useSalesInvoiceStatusCounts();
 
   const availableParties = useMemo<any[]>(() => {
     const taggedCustomers = customers.map(c => ({ ...c, _origin: 'customer' }));
@@ -200,8 +203,10 @@ export function SalesModule() {
 
   const openCreateInvoiceForm = () => {
     setEditingInvoiceId(null);
-    const autoRef = nextDocNumber('SL', (invoices || []).map((i) => i.invoice_no), 2);
-    setInvReferenceNo(autoRef);
+    setInvReferenceNo('...');
+    void previewNextDocumentNumber('SL').then((previewNo) => {
+      setInvReferenceNo(previewNo);
+    });
     const defaultParty = availableParties[0]?.id || customers[0]?.id || vendors[0]?.id || '';
     setInvPartyType('ALL');
     setInvCustomerId(defaultParty);
@@ -210,7 +215,7 @@ export function SalesModule() {
     setInvSalesperson('Unassigned');
     setInvCurrency('PKR');
     setInvExchangeRate(1);
-    setInvWarehouseId(warehouses[0]?.id || 'w1');
+    setInvWarehouseId(warehouses[0]?.id || '');
     setInvGatePassNo('');
     setInvAccountCategory('All account categories');
     setInvAccountHead('Default Sales Revenue');
@@ -248,7 +253,7 @@ export function SalesModule() {
     setInvSalesperson(inv.salesperson || 'Unassigned');
     setInvCurrency(inv.currency || 'PKR');
     setInvExchangeRate(inv.exchange_rate || 1);
-    setInvWarehouseId(inv.warehouse_id || warehouses[0]?.id || 'w1');
+    setInvWarehouseId(inv.warehouse_id || warehouses[0]?.id || '');
     setInvGatePassNo(inv.gate_pass_no || '');
     setInvAccountCategory(inv.account_category || 'All account categories');
     setInvAccountHead(inv.account_head || 'Default Sales Revenue');
@@ -391,7 +396,7 @@ export function SalesModule() {
     return { subtotal, discountTotal, taxTotal, grandTotal };
   };
 
-  const handleSaveSalesInvoiceRecord = (actionStatus: 'POSTED' | 'UNPOSTED') => {
+  const handleSaveSalesInvoiceRecord = async (actionStatus: 'POSTED' | 'UNPOSTED') => {
     if (!invCustomerId) return toast.error('Please select a customer');
 
     const totals = calcInvoiceTotals();
@@ -424,117 +429,100 @@ export function SalesModule() {
       vendors.find((v) => v.id === invCustomerId) ||
       availableParties.find((p) => p.id === invCustomerId);
     const resolvedCustomerName = partyObj?.name || (invCustomerId ? invCustomerId : 'Customer');
+    const resolvedWarehouseId = invWarehouseId || warehouses[0]?.id || null;
 
-    if (editingInvoiceId) {
-      updateInvoice(editingInvoiceId, {
-        customer_id: invCustomerId,
-        customer_name: resolvedCustomerName,
-        party_name: resolvedCustomerName,
-        warehouse_id: invWarehouseId || warehouses[0]?.id || 'w1',
-        invoice_date: invDocDate,
-        due_date: invDueDate,
-        salesperson: invSalesperson,
-        currency: invCurrency,
-        exchange_rate: invExchangeRate,
-        payment_terms: 'Net 30',
-        account_head: invAccountHead,
-        account_category: invAccountCategory,
-        gate_pass_no: invGatePassNo,
-        status: finalStatus,
-        subtotal: totals.subtotal,
-        discount_total: totals.discountTotal,
-        tax_total: totals.taxTotal,
-        total_amount: totals.grandTotal,
-        notes: invNotes,
-        terms_conditions: invTermsConditions,
-        commission_rate: invCommissionRate,
-        items: formattedItems.map((it) => ({ ...it, sales_invoice_id: editingInvoiceId })),
-      });
-
-      if (finalStatus === 'PENDING_APPROVAL') {
-        const requester = formatUserRequester(profile, 'Sales');
-
-        addApprovalQueueItem({
-          module: 'Sales',
-          entity_type: 'sales_invoice',
-          record_id: editingInvoiceId,
-          record_no: invReferenceNo || 'Invoice',
-          requested_by: requester.formatted,
-          requested_by_name: requester.name,
-          requested_by_role: requester.role,
-          amount: totals.grandTotal,
-          status: 'PENDING',
+    try {
+      if (editingInvoiceId) {
+        updateInvoice(editingInvoiceId, {
+          customer_id: invCustomerId,
+          customer_name: resolvedCustomerName,
           party_name: resolvedCustomerName,
-          warehouse_id: invWarehouseId || 'w1',
-          items_summary: formattedItems.map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${formattedItems.length} items`,
+          warehouse_id: resolvedWarehouseId,
+          invoice_date: invDocDate,
+          due_date: invDueDate,
+          salesperson: invSalesperson,
+          currency: invCurrency,
+          exchange_rate: invExchangeRate,
+          payment_terms: 'Net 30',
+          account_head: invAccountHead,
+          account_category: invAccountCategory,
+          gate_pass_no: invGatePassNo,
+          status: finalStatus,
+          subtotal: totals.subtotal,
+          discount_total: totals.discountTotal,
+          tax_total: totals.taxTotal,
+          total_amount: totals.grandTotal,
+          notes: invNotes,
+          terms_conditions: invTermsConditions,
+          commission_rate: invCommissionRate,
+          items: formattedItems.map((it) => ({ ...it, sales_invoice_id: editingInvoiceId })),
         });
-        toast.success(`Invoice updated and submitted to Approval Center`);
-      } else {
-        toast.success(`Invoice updated (Draft)`);
-      }
-    } else {
-      let invoiceNo = invReferenceNo.trim();
-      if (!invoiceNo || invoices.some((i) => i.invoice_no === invoiceNo)) {
-        invoiceNo = nextDocNumber('SL', (invoices || []).map((i) => i.invoice_no), 2);
-      }
-      const invId = safeUUID();
-      addInvoice({
-        id: invId,
-        invoice_no: invoiceNo,
-        customer_id: invCustomerId,
-        customer_name: resolvedCustomerName,
-        party_name: resolvedCustomerName,
-        warehouse_id: invWarehouseId || warehouses[0]?.id || 'w1',
-        invoice_date: invDocDate,
-        due_date: invDueDate,
-        salesperson: invSalesperson,
-        currency: invCurrency,
-        exchange_rate: invExchangeRate,
-        payment_terms: 'Net 30',
-        account_head: invAccountHead,
-        account_category: invAccountCategory,
-        gate_pass_no: invGatePassNo,
-        status: finalStatus,
-        subtotal: totals.subtotal,
-        discount_total: totals.discountTotal,
-        tax_total: totals.taxTotal,
-        total_amount: totals.grandTotal,
-        paid_amount: 0,
-        notes: invNotes,
-        terms_conditions: invTermsConditions,
-        commission_rate: invCommissionRate,
-        items: formattedItems.map((it) => ({ ...it, sales_invoice_id: invId })),
-        created_by: 'admin',
-        created_at: new Date().toISOString(),
-      });
 
-      if (finalStatus === 'PENDING_APPROVAL') {
+        if (finalStatus === 'PENDING_APPROVAL') {
+          const requester = formatUserRequester(profile, 'Sales');
+
+          addApprovalQueueItem({
+            module: 'Sales',
+            entity_type: 'sales_invoice',
+            record_id: editingInvoiceId,
+            record_no: invReferenceNo || 'Invoice',
+            requested_by: requester.formatted,
+            requested_by_name: requester.name,
+            requested_by_role: requester.role,
+            amount: totals.grandTotal,
+            status: 'PENDING',
+            party_name: resolvedCustomerName,
+            warehouse_id: resolvedWarehouseId,
+            items_summary: formattedItems.map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${formattedItems.length} items`,
+          });
+          toast.success(`Invoice updated and submitted to Approval Center`);
+        } else {
+          toast.success(`Invoice updated (Draft)`);
+        }
+      } else {
         const requester = formatUserRequester(profile, 'Sales');
-
-        addApprovalQueueItem({
-          module: 'Sales',
-          entity_type: 'sales_invoice',
-          record_id: invId,
-          record_no: invoiceNo,
-          requested_by: requester.formatted,
-          requested_by_name: requester.name,
-          requested_by_role: requester.role,
-          amount: totals.grandTotal,
-          status: 'PENDING',
+        const created = await createSalesInvoiceAsync({
+          customer_id: invCustomerId,
+          customer_name: resolvedCustomerName,
           party_name: resolvedCustomerName,
-          warehouse_id: invWarehouseId || 'w1',
-          items_summary: formattedItems.map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${formattedItems.length} items`,
+          warehouse_id: resolvedWarehouseId,
+          invoice_date: invDocDate,
+          due_date: invDueDate,
+          salesperson: invSalesperson,
+          currency: invCurrency,
+          exchange_rate: invExchangeRate,
+          payment_terms: 'Net 30',
+          account_head: invAccountHead,
+          account_category: invAccountCategory,
+          gate_pass_no: invGatePassNo,
+          status: finalStatus,
+          subtotal: totals.subtotal,
+          discount_total: totals.discountTotal,
+          tax_total: totals.taxTotal,
+          total_amount: totals.grandTotal,
+          paid_amount: 0,
+          notes: invNotes,
+          terms_conditions: invTermsConditions,
+          commission_rate: invCommissionRate,
+          items: formattedItems,
+          created_by: requester.formatted,
+          created_at: new Date().toISOString(),
         });
-        toast.success(`Invoice ${invoiceNo} submitted to Approval Center!`);
-      } else {
-        toast.success(`Invoice ${invoiceNo} saved as Draft`);
+
+        if (finalStatus === 'PENDING_APPROVAL') {
+          toast.success(`Invoice ${created.invoice_no} submitted to Approval Center!`);
+        } else {
+          toast.success(`Invoice ${created.invoice_no} saved as Draft`);
+        }
       }
+
+      setEditingInvoiceId(null);
+      setInvReferenceNo('');
+      setSalesStatusFilter('ALL');
+      setInvoiceViewMode('list');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save sales invoice');
     }
-
-    setEditingInvoiceId(null);
-    setInvReferenceNo('');
-    setSalesStatusFilter('ALL');
-    setInvoiceViewMode('list');
   };
 
   const handleResubmitInvoice = (inv: SalesInvoice) => {
@@ -555,7 +543,7 @@ export function SalesModule() {
       amount: inv.total_amount,
       status: 'PENDING',
       party_name: resolvedCustomerName,
-      warehouse_id: inv.warehouse_id || 'w1',
+      warehouse_id: inv.warehouse_id || warehouses[0]?.id || null,
       items_summary: (inv.items || []).map((it) => `${it.description || 'Product'} (Qty: ${it.qty})`).join(', ') || `${inv.items?.length || 0} items`,
       created_at: now,
     });
@@ -588,7 +576,7 @@ export function SalesModule() {
     setCnSalesperson('Unassigned');
     setCnCurrency('PKR');
     setCnExchangeRate(1);
-    setCnWarehouseId(warehouses[0]?.id || 'w1');
+    setCnWarehouseId(warehouses[0]?.id || '');
     setCnNotes('');
     setCnTermsConditions('');
     setCnLineItems([
@@ -605,7 +593,7 @@ export function SalesModule() {
     setCnSalesperson(cn.salesperson || 'Unassigned');
     setCnCurrency(cn.currency || 'PKR');
     setCnExchangeRate(cn.exchange_rate || 1);
-    setCnWarehouseId(cn.warehouse_id || warehouses[0]?.id || 'w1');
+    setCnWarehouseId(cn.warehouse_id || warehouses[0]?.id || '');
     setCnNotes(cn.notes || '');
     setCnTermsConditions(cn.terms_conditions || '');
 
@@ -697,7 +685,7 @@ export function SalesModule() {
     return { subtotal, discountTotal, taxTotal, grandTotal };
   };
 
-  const handleSaveCreditNoteRecord = (status: 'POSTED' | 'UNPOSTED') => {
+  const handleSaveCreditNoteRecord = async (status: 'POSTED' | 'UNPOSTED') => {
     if (!cnCustomerId) return toast.error('Please select a customer');
 
     const totals = calcCreditNoteTotals();
@@ -720,7 +708,7 @@ export function SalesModule() {
     if (editingCreditNoteId) {
       updateCreditNote(editingCreditNoteId, {
         customer_id: cnCustomerId,
-        warehouse_id: cnWarehouseId || warehouses[0]?.id || 'w1',
+        warehouse_id: cnWarehouseId || warehouses[0]?.id || null,
         note_date: cnDocDate,
         document_date: cnDocDate,
         due_date: cnDueDate,
@@ -738,11 +726,11 @@ export function SalesModule() {
       });
       toast.success(`Credit Note updated (${status})`);
     } else {
-      const cnNo = `MCN-${String((creditNotes || []).length + 1).padStart(5, '0')}`;
+      const cnNo = await allocateNextDocumentNumber('MCN');
       addCreditNote({
         credit_note_no: cnNo,
         customer_id: cnCustomerId,
-        warehouse_id: cnWarehouseId || warehouses[0]?.id || 'w1',
+        warehouse_id: cnWarehouseId || warehouses[0]?.id || null,
         sales_invoice_id: null,
         note_date: cnDocDate,
         document_date: cnDocDate,
@@ -826,14 +814,14 @@ export function SalesModule() {
     setReceiptViewMode('form');
   };
 
-  const handlePostReceipt = () => {
+  const handlePostReceipt = async () => {
     if (!receiptCustomerId) return toast.error('Please select a customer');
     if (!receiptAmount || Number(receiptAmount) <= 0) return toast.error('Please enter a valid amount');
 
     const depositAcc = bankAccounts.find(
       (b) => b.account_name === receiptDepositTo || b.id === receiptDepositTo
     );
-    const depositAccId = depositAcc?.id || bankAccounts[0]?.id || 'ba1';
+    const depositAccId = depositAcc?.id || bankAccounts[0]?.id || '';
 
     const amt = Number(receiptAmount);
 
@@ -850,7 +838,7 @@ export function SalesModule() {
       toast.success('Customer Receipt updated');
     } else {
       const receiptId = safeUUID();
-      const receiptNo = `CR-${Date.now().toString().slice(-5)}`;
+      const receiptNo = await allocateNextDocumentNumber('CR');
       const party = receiptAllParties.find((p) => p.id === receiptCustomerId);
 
       addCustomerReceipt({
@@ -1185,7 +1173,7 @@ export function SalesModule() {
     return { subtotal, discountTotal, taxTotal, grandTotal };
   };
 
-  const handleSaveSalesDoc = () => {
+  const handleSaveSalesDoc = async () => {
     if (!salesDocCustomerId) return toast.error('Please select a customer');
 
     const totals = calcDocTotals();
@@ -1226,7 +1214,7 @@ export function SalesModule() {
         });
         toast.success(`Quotation updated successfully!`);
       } else {
-        const qNo = `MQ-${String(quotations.length + 1).padStart(5, '0')}`;
+        const qNo = await allocateNextDocumentNumber('MQ');
         addQuotation({
           quotation_no: qNo,
           customer_id: salesDocCustomerId,
@@ -1271,11 +1259,11 @@ export function SalesModule() {
         });
         toast.success(`Sales Order updated successfully!`);
       } else {
-        const soNo = `MSO-${String(salesOrders.length + 1).padStart(5, '0')}`;
+        const soNo = await allocateNextDocumentNumber('MSO');
         addSalesOrder({
           order_no: soNo,
           customer_id: salesDocCustomerId,
-          warehouse_id: warehouses[0]?.id || 'w1',
+          warehouse_id: warehouses[0]?.id || null,
           order_date: salesDocDate,
           document_date: salesDocDate,
           delivery_date: salesDocValidUntil,
@@ -1300,12 +1288,11 @@ export function SalesModule() {
     setSalesDocModalOpen(false);
   };
 
-  const handleSaveGenericRecord = () => {
-    const cust = customers.find((c) => c.id === genericCustId);
+  const handleSaveGenericRecord = async () => {
     const amountVal = Number(genericAmount) || 1000;
 
     if (activeSubTab === 'Credit Notes') {
-      const cnNo = `MCN-${String(creditNotes.length + 1).padStart(5, '0')}`;
+      const cnNo = await allocateNextDocumentNumber('MCN');
       addCreditNote({
         credit_note_no: cnNo,
         sales_invoice_id: null,
@@ -1318,13 +1305,13 @@ export function SalesModule() {
       });
       toast.success(`Credit Note ${cnNo} created and added to Credit Notes register!`);
     } else if (activeSubTab === 'Receipts') {
-      const rNo = `CR-${String(customerReceipts.length + 1).padStart(5, '0')}`;
+      const rNo = await allocateNextDocumentNumber('CR');
       addCustomerReceipt({
         receipt_no: rNo,
         customer_id: genericCustId,
         receipt_date: todayISO(),
         payment_method: 'Cash',
-        deposit_account_id: 'Cash in Hand',
+        deposit_account_id: bankAccounts[0]?.id || '',
         amount: amountVal,
         reference_no: null,
         notes: genericNotes,
@@ -1378,25 +1365,25 @@ export function SalesModule() {
                     onClick={() => setSalesStatusFilter('ALL')}
                     className={`px-3 py-1 rounded-md font-semibold transition ${salesStatusFilter === 'ALL' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
                   >
-                    All ({invoices.length})
+                    All ({salesCounts.ALL || invoices.length})
                   </button>
                   <button
                     onClick={() => setSalesStatusFilter('POSTED')}
                     className={`px-3 py-1 rounded-md font-semibold transition ${salesStatusFilter === 'POSTED' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
                   >
-                    Accepted / Posted ({invoices.filter(i => i.status === 'POSTED').length})
+                    Accepted / Posted ({salesCounts.POSTED ?? invoices.filter(i => i.status === 'POSTED').length})
                   </button>
                   <button
                     onClick={() => setSalesStatusFilter('PENDING_APPROVAL')}
                     className={`px-3 py-1 rounded-md font-semibold transition ${salesStatusFilter === 'PENDING_APPROVAL' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
                   >
-                    Pending Approval ({invoices.filter(i => i.status === 'PENDING_APPROVAL').length})
+                    Pending Approval ({salesCounts.PENDING_APPROVAL ?? invoices.filter(i => i.status === 'PENDING_APPROVAL').length})
                   </button>
                   <button
                     onClick={() => setSalesStatusFilter('REJECTED')}
                     className={`px-3 py-1 rounded-md font-semibold transition ${salesStatusFilter === 'REJECTED' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
                   >
-                    Rejected ({invoices.filter(i => i.status === 'REJECTED').length})
+                    Rejected ({salesCounts.REJECTED ?? invoices.filter(i => i.status === 'REJECTED').length})
                   </button>
                 </div>
                 <button
@@ -1422,12 +1409,7 @@ export function SalesModule() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {(() => {
-                    const filteredInvoices = invoices.filter((inv) => {
-                      if (salesStatusFilter === 'POSTED') return inv.status === 'POSTED';
-                      if (salesStatusFilter === 'PENDING_APPROVAL') return inv.status === 'PENDING_APPROVAL';
-                      if (salesStatusFilter === 'REJECTED') return inv.status === 'REJECTED';
-                      return true;
-                    });
+                    const filteredInvoices = filteredSalesInvoices;
                     if (filteredInvoices.length === 0) {
                       return (
                         <tr>
@@ -2011,8 +1993,8 @@ export function SalesModule() {
 
                             {!q.converted_to_order && (
                               <button
-                                onClick={() => {
-                                  const orderNo = `MSO-${String(salesOrders.length + 1).padStart(5, '0')}`;
+                                onClick={async () => {
+                                  const orderNo = await allocateNextDocumentNumber('MSO');
                                   addSalesOrder({
                                     order_no: orderNo,
                                     customer_id: q.customer_id,
@@ -2132,48 +2114,51 @@ export function SalesModule() {
 
                             {!so.converted_to_invoice && (
                               <button
-                                onClick={() => {
-                                  const invNo = nextDocNumber('SL', (invoices || []).map((i) => i.invoice_no), 2);
-                                  const invId = safeUUID();
-                                  addInvoice({
-                                    id: invId,
-                                    invoice_no: invNo,
-                                    customer_id: so.customer_id,
-                                    warehouse_id: so.warehouse_id || warehouses[0]?.id || null,
-                                    invoice_date: todayISO(),
-                                    due_date: todayISO(),
-                                    salesperson: so.salesperson,
-                                    currency: so.currency || 'PKR',
-                                    exchange_rate: so.exchange_rate || 1,
-                                    payment_terms: 'Net 30',
-                                    account_head: 'Sales Revenue',
-                                    gate_pass_no: null,
-                                    status: 'PENDING_APPROVAL',
-                                    subtotal: so.subtotal || so.total_amount,
-                                    discount_total: so.discount_total || 0,
-                                    tax_total: so.tax_total || 0,
-                                    total_amount: so.total_amount,
-                                    paid_amount: 0,
-                                    notes: so.notes,
-                                    created_by: 'admin',
-                                    created_at: new Date().toISOString(),
-                                  });
-                                  const cust = customers.find((c) => c.id === so.customer_id) || vendors.find((v) => v.id === so.customer_id);
-                                  addApprovalQueueItem({
-                                    module: 'Sales',
-                                    entity_type: 'sales_invoice',
-                                    record_id: invId,
-                                    record_no: invNo,
-                                    requested_by: so.salesperson || 'admin',
-                                    amount: so.total_amount,
-                                    status: 'PENDING',
-                                    party_name: cust?.name || 'Customer',
-                                    warehouse_id: so.warehouse_id || 'w1',
-                                    items_summary: 'Sales Order items',
-                                  });
-                                  updateSalesOrder(so.id, { converted_to_invoice: true, status: 'COMPLETED' });
-                                  toast.success(`Sales Order converted → Invoice ${invNo} (Submitted to Approval Center)`);
-                                  setActiveSubTab('Sales');
+                                onClick={async () => {
+                                  try {
+                                    const cust = customers.find((c) => c.id === so.customer_id) || vendors.find((v) => v.id === so.customer_id);
+                                    const created = await createSalesInvoiceAsync({
+                                      customer_id: so.customer_id,
+                                      customer_name: cust?.name || 'Customer',
+                                      party_name: cust?.name || 'Customer',
+                                      warehouse_id: so.warehouse_id || warehouses[0]?.id || null,
+                                      invoice_date: todayISO(),
+                                      due_date: todayISO(),
+                                      salesperson: so.salesperson,
+                                      currency: so.currency || 'PKR',
+                                      exchange_rate: so.exchange_rate || 1,
+                                      payment_terms: 'Net 30',
+                                      account_head: 'Sales Revenue',
+                                      gate_pass_no: null,
+                                      status: 'PENDING_APPROVAL',
+                                      subtotal: so.subtotal || so.total_amount,
+                                      discount_total: so.discount_total || 0,
+                                      tax_total: so.tax_total || 0,
+                                      total_amount: so.total_amount,
+                                      paid_amount: 0,
+                                      notes: so.notes,
+                                      items: (so.items || []).map((it: any) => ({
+                                        id: safeUUID(),
+                                        sales_invoice_id: '',
+                                        product_id: it.product_id,
+                                        description: it.description,
+                                        qty: Number(it.qty || 1),
+                                        length: 0,
+                                        width: 0,
+                                        rate: Number(it.rate || 0),
+                                        discount: Number(it.discount || 0),
+                                        tax_pct: Number(it.tax_pct || 0),
+                                        line_total: Number(it.line_total || (it.qty || 1) * (it.rate || 0)),
+                                      })),
+                                      created_by: so.salesperson || 'admin',
+                                      created_at: new Date().toISOString(),
+                                    });
+                                    updateSalesOrder(so.id, { converted_to_invoice: true, status: 'COMPLETED' });
+                                    toast.success(`Sales Order converted → Invoice ${created.invoice_no} (Submitted to Approval Center)`);
+                                    setActiveSubTab('Sales');
+                                  } catch (err) {
+                                    toast.error(err instanceof Error ? err.message : 'Failed to convert Sales Order');
+                                  }
                                 }}
                                 className="flex items-center gap-1 rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500 hover:bg-amber-500/20"
                               >

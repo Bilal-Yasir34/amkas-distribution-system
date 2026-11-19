@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Trash2, X, Search, Filter, Download, Check, ArrowUpRight, BookOpen, ArrowLeftRight } from 'lucide-react';
 import { useErpData } from '@/lib/queries';
+import { allocateNextDocumentNumber } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { todayISO, downloadCSV, formatDate } from '@/lib/utils';
 import { DateInput } from '@/components/DateInput';
@@ -420,14 +421,14 @@ export function AccountingModule() {
     toast.success(`Generated statement for ${party?.name || 'selected party'}`);
   };
 
-  const handlePostExpense = () => {
+  const handlePostExpense = async () => {
     const numAmt = Number(expAmount);
     if (!numAmt || numAmt <= 0) {
       return toast.error('Please enter a valid expense amount');
     }
     const targetAcct = chartOfAccounts.find((c) => c.id === expAccountId) || chartOfAccounts.find((c) => c.account_type === 'Expense') || { id: '5000', name: 'Cost of Goods Sold' };
     const vendorObj = allAccounts.find((v) => v.id === expVendorId);
-    const num = `EX-${String((expenseRecords?.length || 0) + 1).padStart(5, '0')}`;
+    const num = await allocateNextDocumentNumber('EX');
 
     addExpenseRecord({
       number: num,
@@ -452,14 +453,14 @@ export function AccountingModule() {
     setExpReference('');
   };
 
-  const handlePostIncome = () => {
+  const handlePostIncome = async () => {
     const numAmt = Number(incAmount);
     if (!numAmt || numAmt <= 0) {
       return toast.error('Please enter a valid income amount');
     }
     const targetAcct = chartOfAccounts.find((c) => c.id === incAccountId) || chartOfAccounts.find((c) => c.account_type === 'Revenue' || c.account_type === 'Income') || { id: '4000', name: 'Other Income' };
     const customerObj = allAccounts.find((c) => c.id === incCustomerId);
-    const num = `MI-${String((incomeRecords?.length || 0) + 1).padStart(5, '0')}`;
+    const num = await allocateNextDocumentNumber('MI');
 
     addIncomeRecord({
       number: num,
@@ -503,9 +504,9 @@ export function AccountingModule() {
   const totalCredit = lines.reduce((acc, l) => acc + (Number(l.credit) || 0), 0);
   const isBalanced = totalDebit > 0 && Math.abs(totalDebit - totalCredit) < 0.01;
 
-  const handleSaveJV = () => {
+  const handleSaveJV = async () => {
     if (!isBalanced) return toast.error('Journal entry must be balanced (Total Debit == Total Credit > 0)');
-    const entryNo = `JV-${String(journalEntries.length + 1).padStart(5, '0')}`;
+    const entryNo = await allocateNextDocumentNumber('JV');
     addJournalEntry({
       entry_no: entryNo,
       entry_date: entryDate,

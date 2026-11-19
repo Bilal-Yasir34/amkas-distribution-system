@@ -6,9 +6,9 @@ import {
   useProductArticles,
   useUniversalArticles,
 } from '@/lib/queries';
-import { useProductMutations } from '@/lib/services';
+import { useProductMutations, previewNextDocumentNumber, allocateNextDocumentNumber } from '@/lib/services';
 import { useToast } from '@/lib/toast';
-import { downloadCSV, nextDocNumber } from '@/lib/utils';
+import { downloadCSV } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
 import type { Product } from '@/lib/types';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
@@ -92,9 +92,12 @@ export function Products() {
   const openCreate = () => {
     setEditingArticleName(null);
     setArticleName('');
-    const autoCode = nextDocNumber('ART', products.map((p) => p.code), 4);
-    setSku(autoCode);
-    setBarcode(autoCode);
+    setSku('...');
+    setBarcode('...');
+    void previewNextDocumentNumber('ART').then((autoCode) => {
+      setSku(autoCode);
+      setBarcode(autoCode);
+    });
     setCategory('Uncategorized');
     setUnit('pcs');
     setDescription('');
@@ -136,9 +139,12 @@ export function Products() {
       setTrackSerials(firstP.track_serials);
       setIsActive(firstP.is_active);
     } else {
-      const autoCode = nextDocNumber('ART', products.map((p) => p.code), 4);
-      setSku(autoCode);
-      setBarcode(autoCode);
+      setSku('...');
+      setBarcode('...');
+      void previewNextDocumentNumber('ART').then((autoCode) => {
+        setSku(autoCode);
+        setBarcode(autoCode);
+      });
       setCategory('Uncategorized');
       setUnit('pcs');
       setDescription('');
@@ -270,38 +276,44 @@ export function Products() {
 
       toast.success(`Article "${trimmedArt}" updated successfully!`);
     } else {
-      // Add new products under the Article
-      productsToPersist.forEach((pItem, idx) => {
-        const newId = crypto.randomUUID();
-        const prodCode = productsToPersist.length === 1 ? sku : `${sku}-${idx + 1}`;
+      // Allocate the definitive code from the database sequence when creating new article
+      void (async () => {
+        const baseSku = !sku || sku === '...' || products.some((p) => p.code === sku)
+          ? await allocateNextDocumentNumber('ART')
+          : sku;
 
-        addProduct({
-          id: newId,
-          code: prodCode,
-          name: pItem.name.trim(),
-          article_name: trimmedArt,
-          category,
-          unit,
-          length: 0,
-          width: 0,
-          purchase_price: Number(purchasePrice) || 0,
-          opening_average_cost: Number(openingCost) || 0,
-          sale_price: Number(salePrice) || 0,
-          tax_pct: Number(taxRate) || 0,
-          reorder_level: Number(reorderLevel) || 0,
-          stock_quantity: Number(stockQuantity) || 0,
-          opening_balance: Number(stockQuantity) || 0,
-          track_batches: trackBatches,
-          track_serials: trackSerials,
-          barcode_value: barcode || prodCode,
-          description,
-          is_active: isActive,
+        productsToPersist.forEach((pItem, idx) => {
+          const newId = crypto.randomUUID();
+          const prodCode = productsToPersist.length === 1 ? baseSku : `${baseSku}-${idx + 1}`;
+
+          addProduct({
+            id: newId,
+            code: prodCode,
+            name: pItem.name.trim(),
+            article_name: trimmedArt,
+            category,
+            unit,
+            length: 0,
+            width: 0,
+            purchase_price: Number(purchasePrice) || 0,
+            opening_average_cost: Number(openingCost) || 0,
+            sale_price: Number(salePrice) || 0,
+            tax_pct: Number(taxRate) || 0,
+            reorder_level: Number(reorderLevel) || 0,
+            stock_quantity: Number(stockQuantity) || 0,
+            opening_balance: Number(stockQuantity) || 0,
+            track_batches: trackBatches,
+            track_serials: trackSerials,
+            barcode_value: (barcode && barcode !== '...') ? barcode : prodCode,
+            description,
+            is_active: isActive,
+          });
+
+          addProductArticle({ product_id: newId, name: trimmedArt, colours: [] });
         });
 
-        addProductArticle({ product_id: newId, name: trimmedArt, colours: [] });
-      });
-
-      toast.success(`Article "${trimmedArt}" created with ${productsToPersist.length} product(s)!`);
+        toast.success(`Article "${trimmedArt}" created with ${productsToPersist.length} product(s)!`);
+      })();
     }
 
     setModalOpen(false);
