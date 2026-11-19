@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/lib/toast';
 import { useErpData } from '@/lib/queries';
+import { useDataIntegrity } from '@/lib/services';
 import { useQueryClient } from '@tanstack/react-query';
 
 const REALTIME_MIGRATION_SQL_NOTE = `-- NICE Enterprises ERP — Row-Level Realtime Migration
@@ -37,6 +38,13 @@ export function Maintenance() {
   const queryClient = useQueryClient();
   const erpData = useErpData();
   const { resetBusinessData, isMaintenanceMode, enableMaintenanceMode, disableMaintenanceMode } = erpData;
+  const {
+    report: integrityReport,
+    isLoading: integrityLoading,
+    refetchIntegrity,
+    runRepair,
+    isRepairing,
+  } = useDataIntegrity(true);
   const [resetInput, setResetInput] = useState('');
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
@@ -291,6 +299,161 @@ CREATE TABLE sales_invoices (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invo
           </div>
           <p className="mt-2 text-2xl font-extrabold text-rose-500 dark:text-rose-400 font-heading">FULL SYSTEM</p>
           <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">Complete Clean Slate</p>
+        </div>
+      </div>
+
+      {/* DATA INTEGRITY CHECK & AUTO-REPAIR SECTION */}
+      <div
+        className={`card p-6 border-2 space-y-4 ${
+          integrityReport && !integrityReport.healthy
+            ? 'border-rose-500/40 bg-rose-50/20 dark:bg-rose-950/15'
+            : 'border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/10'
+        }`}
+      >
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div
+              className={`p-3.5 rounded-2xl shadow-lg ${
+                integrityReport && !integrityReport.healthy
+                  ? 'bg-rose-600 text-white shadow-rose-500/20'
+                  : 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
+              }`}
+            >
+              {integrityReport && !integrityReport.healthy ? (
+                <ShieldAlert className="h-7 w-7" />
+              ) : (
+                <ShieldCheck className="h-7 w-7" />
+              )}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-500">
+                  STRUCTURAL INTEGRITY MONITOR
+                </span>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${
+                    integrityReport && !integrityReport.healthy
+                      ? 'bg-rose-500/20 text-rose-500 border-rose-500/30'
+                      : 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
+                  }`}
+                >
+                  {integrityLoading
+                    ? 'Checking...'
+                    : integrityReport?.healthy
+                    ? 'All Checks Passed (0 Issues)'
+                    : 'Integrity Issues Detected'}
+                </span>
+              </div>
+              <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 font-heading mt-1">
+                Data Integrity Check (Approval Queue & Document Sequences)
+              </h2>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                Verifies that every approved queue row has a matching <code className="font-mono">POSTED</code> document,
+                every <code className="font-mono">PENDING_APPROVAL</code> document is in the queue, no orphan queue rows
+                or duplicate document numbers exist, and all <code className="font-mono">document_sequences</code> are
+                strictly ahead of the highest issued serial number.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <button
+              onClick={async () => {
+                const res = await refetchIntegrity();
+                if (res.data?.healthy) {
+                  toast.success('Integrity check passed: 0 issues found across all tables and sequences.');
+                } else {
+                  toast.error('Integrity issues found — click Auto-Repair All Issues to resolve.');
+                }
+              }}
+              disabled={integrityLoading}
+              className="btn border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 px-4 py-2.5 text-xs font-bold flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${integrityLoading ? 'animate-spin' : ''}`} />
+              Run Integrity Check
+            </button>
+
+            <button
+              onClick={async () => {
+                try {
+                  await runRepair();
+                  await refetchIntegrity();
+                  toast.success('Database integrity repair completed and verified!');
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Auto-repair failed');
+                }
+              }}
+              disabled={isRepairing}
+              className="btn-primary px-4 py-2.5 text-xs font-bold flex items-center gap-2 shadow-lg"
+            >
+              <Wrench className="h-4 w-4" />
+              {isRepairing ? 'Repairing...' : 'Auto-Repair All Issues'}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6 pt-2">
+          <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 p-3">
+            <p className="text-[10px] font-bold uppercase text-slate-400">Approved Not Posted</p>
+            <p
+              className={`mt-1 text-lg font-extrabold font-mono ${
+                (integrityReport?.approved_not_posted.length || 0) > 0 ? 'text-rose-500' : 'text-emerald-500'
+              }`}
+            >
+              {integrityReport?.approved_not_posted.length ?? 0}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 p-3">
+            <p className="text-[10px] font-bold uppercase text-slate-400">Pending Without Queue</p>
+            <p
+              className={`mt-1 text-lg font-extrabold font-mono ${
+                (integrityReport?.pending_without_queue.length || 0) > 0 ? 'text-rose-500' : 'text-emerald-500'
+              }`}
+            >
+              {integrityReport?.pending_without_queue.length ?? 0}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 p-3">
+            <p className="text-[10px] font-bold uppercase text-slate-400">Orphan Queue Rows</p>
+            <p
+              className={`mt-1 text-lg font-extrabold font-mono ${
+                (integrityReport?.orphan_queue_rows.length || 0) > 0 ? 'text-rose-500' : 'text-emerald-500'
+              }`}
+            >
+              {integrityReport?.orphan_queue_rows.length ?? 0}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 p-3">
+            <p className="text-[10px] font-bold uppercase text-slate-400">Duplicate Numbers</p>
+            <p
+              className={`mt-1 text-lg font-extrabold font-mono ${
+                (integrityReport?.duplicate_numbers.length || 0) > 0 ? 'text-rose-500' : 'text-emerald-500'
+              }`}
+            >
+              {integrityReport?.duplicate_numbers.length ?? 0}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 p-3">
+            <p className="text-[10px] font-bold uppercase text-slate-400">Sequence Drift</p>
+            <p
+              className={`mt-1 text-lg font-extrabold font-mono ${
+                (integrityReport?.sequence_drift.length || 0) > 0 ? 'text-rose-500' : 'text-emerald-500'
+              }`}
+            >
+              {integrityReport?.sequence_drift.length ?? 0}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 p-3">
+            <p className="text-[10px] font-bold uppercase text-slate-400">Number Gaps (Info)</p>
+            <p className="mt-1 text-lg font-extrabold font-mono text-amber-500">
+              {integrityReport?.number_gaps.length ?? 0}
+            </p>
+          </div>
         </div>
       </div>
 

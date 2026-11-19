@@ -29,9 +29,12 @@ import {
   Menu,
   X,
   RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useErpData } from '@/lib/queries';
+import { useDataIntegrity } from '@/lib/services';
+import { useToast } from '@/lib/toast';
 import { useTheme } from '@/lib/useTheme';
 import { useAuth } from '@/lib/auth';
 import { useRealtimeStatus } from '@/lib/realtime';
@@ -80,13 +83,16 @@ interface NavGroup {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, isAdmin } = useAuth();
+  const toast = useToast();
   const { activeModule, setActiveModule, selectedOrg, setSelectedOrg, selectedBranch, setSelectedBranch } = useAppStore();
   const [userMenu, setUserMenu] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const role = profile?.role ?? 'super_admin';
+  const isAdminRole = Boolean(isAdmin || role === 'super_admin');
+  const { report: integrityReport, runRepair, isRepairing } = useDataIntegrity(isAdminRole);
   const { rolePermissions, organizations, orgSettings, companyLogo, branches, isMaintenanceMode } = useErpData();
   const allowed = Array.from(new Set([...(ROLE_MODULES[role] || ROLE_MODULES.super_admin), ...(rolePermissions[role] || [])]));
   const currentLabel = MODULE_LABELS[activeModule as ModuleKey] ?? 'Dashboard';
@@ -472,6 +478,45 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </header>
+
+        {isAdminRole && integrityReport && !integrityReport.healthy && (
+          <div className="no-print bg-rose-600 text-white px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-extrabold shadow-lg z-20 border-b border-rose-700">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 animate-pulse" />
+              <span>
+                DATA INTEGRITY ALERT — Found{' '}
+                {integrityReport.approved_not_posted.length +
+                  integrityReport.pending_without_queue.length +
+                  integrityReport.orphan_queue_rows.length +
+                  integrityReport.duplicate_numbers.length +
+                  integrityReport.sequence_drift.length}{' '}
+                consistency issue(s) across Approval Queue / Document Sequences.
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={isRepairing}
+                onClick={async () => {
+                  try {
+                    await runRepair();
+                    toast.success('Database integrity repair completed!');
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : 'Auto-repair failed');
+                  }
+                }}
+                className="px-3 py-1 bg-white text-rose-700 rounded-lg hover:bg-rose-50 text-[11px] font-extrabold transition shadow-sm"
+              >
+                {isRepairing ? 'Repairing...' : 'Auto-Repair Now'}
+              </button>
+              <button
+                onClick={() => handleNavModuleClick('maintenance')}
+                className="px-3 py-1 bg-rose-900/50 text-white hover:bg-rose-900/80 rounded-lg text-[11px] font-extrabold transition"
+              >
+                Inspect in Maintenance
+              </button>
+            </div>
+          </div>
+        )}
 
         {isMaintenanceMode && (
           <div className="no-print bg-amber-500 text-slate-950 px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-extrabold shadow-lg z-20 border-b border-amber-600">

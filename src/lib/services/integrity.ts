@@ -66,24 +66,24 @@ export async function runDatabaseIntegrityCheck(): Promise<IntegrityCheckReport>
     { data: dsRows },
   ] = await Promise.all([
     supabase.from(TABLES.approvalQueue).select('*'),
-    supabase.from(TABLES.salesInvoices).select('id,invoice_no,status,deleted_at'),
-    supabase.from(TABLES.purchaseInvoices).select('id,invoice_no,grn_no,status,deleted_at'),
-    supabase.from(TABLES.vendorBills).select('id,bill_no,status,deleted_at'),
-    supabase.from(TABLES.salesReturns).select('id,return_no,status,deleted_at'),
-    supabase.from(TABLES.purchaseReturns).select('id,return_no,status,deleted_at'),
-    supabase.from(TABLES.customerReceipts).select('id,receipt_no,status,deleted_at'),
-    supabase.from(TABLES.vendorPayments).select('id,payment_no,status,deleted_at'),
+    supabase.from(TABLES.salesInvoices).select('id,invoice_no,status'),
+    supabase.from(TABLES.purchaseInvoices).select('id,invoice_no,grn_no,status'),
+    supabase.from(TABLES.vendorBills).select('id,bill_no,status'),
+    supabase.from(TABLES.salesReturns).select('id,return_no,status'),
+    supabase.from(TABLES.purchaseReturns).select('id,return_no,status'),
+    supabase.from(TABLES.customerReceipts).select('id,receipt_no,status'),
+    supabase.from(TABLES.vendorPayments).select('id,payment_no,status'),
     supabase.from(TABLES.documentSequences).select('*'),
   ]);
 
   const aq = (aqRows || []) as Array<Record<string, any>>;
-  const si = ((siRows || []) as Array<Record<string, any>>).filter((r) => !r.deleted_at);
-  const pi = ((piRows || []) as Array<Record<string, any>>).filter((r) => !r.deleted_at);
-  const vb = ((vbRows || []) as Array<Record<string, any>>).filter((r) => !r.deleted_at);
-  const sr = ((srRows || []) as Array<Record<string, any>>).filter((r) => !r.deleted_at);
-  const pr = ((prRows || []) as Array<Record<string, any>>).filter((r) => !r.deleted_at);
-  const cr = ((crRows || []) as Array<Record<string, any>>).filter((r) => !r.deleted_at);
-  const vp = ((vpRows || []) as Array<Record<string, any>>).filter((r) => !r.deleted_at);
+  const si = (siRows || []) as Array<Record<string, any>>;
+  const pi = (piRows || []) as Array<Record<string, any>>;
+  const vb = (vbRows || []) as Array<Record<string, any>>;
+  const sr = (srRows || []) as Array<Record<string, any>>;
+  const pr = (prRows || []) as Array<Record<string, any>>;
+  const cr = (crRows || []) as Array<Record<string, any>>;
+  const vp = (vpRows || []) as Array<Record<string, any>>;
   const ds = (dsRows || []) as Array<Record<string, any>>;
 
   const approvedNotPosted: IntegrityIssueItem[] = [];
