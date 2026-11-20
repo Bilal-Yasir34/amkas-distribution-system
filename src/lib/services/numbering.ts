@@ -56,19 +56,34 @@ function formatSeqNumber(prefix: string, num: number, padding: number): string {
  * Computes the current maximum suffix directly from the database table
  * (never from a client array) so numbering never restarts at 1 even if
  * local state or cache is empty.
+ *
+ * For SL (Sales Invoices) and PI (Purchase Invoices), numbers continue
+ * strictly from the highest active non-deleted, non-rejected invoice
+ * (`MAX(approved or pending suffix) + 1`). If the latest tail invoice
+ * (e.g. SL-02 when SL-01..SL-02 exist) is deleted or rejected, the next
+ * invoice reuses SL-02; if an interior invoice (e.g. SL-02 when SL-01..SL-05
+ * exist) is deleted, MAX is 5 so the next invoice is SL-06.
  */
 async function getDatabaseMaxSuffix(cfg: DocumentSequenceConfig): Promise<number> {
-  const selectCols = cfg.altColumn ? `${cfg.column},${cfg.altColumn}` : cfg.column;
-  const { data: activeData, error: activeErr } = await supabase
-    .from(cfg.table)
-    .select(selectCols)
-    .is('deleted_at', null);
+  const selectCols = cfg.altColumn
+    ? `${cfg.column},${cfg.altColumn},status`
+    : `${cfg.column},status`;
+
+  const isApprovalGatedDoc = cfg.documentType === 'SL' || cfg.documentType === 'PI';
+
+  let query = supabase.from(cfg.table).select(selectCols).is('deleted_at', null);
+  if (isApprovalGatedDoc) {
+    query = query.neq('status', 'REJECTED');
+  }
+
+  const { data: activeData, error: activeErr } = await query;
 
   let rows: Record<string, unknown>[] = [];
   if (!activeErr && Array.isArray(activeData)) {
     rows = activeData as unknown as Record<string, unknown>[];
   } else {
-    const { data, error } = await supabase.from(cfg.table).select(selectCols);
+    const fallbackCols = cfg.altColumn ? `${cfg.column},${cfg.altColumn}` : cfg.column;
+    const { data, error } = await supabase.from(cfg.table).select(fallbackCols);
     if (!error && Array.isArray(data)) {
       rows = data as unknown as Record<string, unknown>[];
     }
@@ -76,6 +91,9 @@ async function getDatabaseMaxSuffix(cfg: DocumentSequenceConfig): Promise<number
 
   let max = 0;
   for (const row of rows) {
+    if (isApprovalGatedDoc && String(row.status || '').toUpperCase() === 'REJECTED') {
+      continue;
+    }
     const v1 = extractSuffixFromDocNo(row[cfg.column] as string | undefined, cfg.prefix);
     if (v1 > max) max = v1;
     if (cfg.altColumn) {
@@ -100,7 +118,27 @@ export async function previewNextDocumentNumber(docType: string): Promise<string
     column: 'invoice_no',
   };
 
-  // 1. Try server RPC first
+  const isDynamicMaxDoc = key === 'SL' || key === 'PI';
+
+  // For SL and PI, always compute dynamically from MAX(active non-deleted, non-rejected) + 1
+  // so deleting or rejecting the tail invoice rolls the next number back to MAX + 1.
+  if (isDynamicMaxDoc) {
+    const dbMax = await getDatabaseMaxSuffix(cfg);
+    const nextNum = Math.max(dbMax + 1, 1);
+    await supabase.from(TABLES.documentSequences).upsert(
+      {
+        document_type: key,
+        prefix: cfg.prefix,
+        next_number: nextNum,
+        padding: cfg.padding,
+        description: cfg.documentType,
+      },
+      { onConflict: 'document_type' }
+    );
+    return formatSeqNumber(cfg.prefix, nextNum, cfg.padding);
+  }
+
+  // 1. Try server RPC first for other document types
   const { data: rpcPreview, error: rpcErr } = await supabase.rpc(
     'preview_next_document_number',
     { p_type: key }
@@ -140,6 +178,80 @@ export async function allocateNextDocumentNumber(docType: string): Promise<strin
     table: TABLES.salesInvoices,
     column: 'invoice_no',
   };
+
+  const isDynamicMaxDoc = key === 'SL' || key === 'PI';
+
+  // For SL and PI, compute directly from MAX(active non-deleted, non-rejected) + 1
+  // and purge any soft-deleted/rejected row holding the same candidate number so there is no UNIQUE collision.
+  if (isDynamicMaxDoc) {
+    const dbMax = await getDatabaseMaxSuffix(cfg);
+    let candidateNum = Math.max(dbMax + 1, 1);
+
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const candidateStr = formatSeqNumber(cfg.prefix, candidateNum, cfg.padding);
+
+      // Remove any soft-deleted or REJECTED row occupying candidateStr so the number can be reused cleanly
+      if (key === 'SL') {
+        const { data: colliding } = await supabase
+          .from(TABLES.salesInvoices)
+          .select('id,status,deleted_at')
+          .eq('invoice_no', candidateStr);
+        let activeCollision = false;
+        for (const r of colliding || []) {
+          if (r.deleted_at || String(r.status || '').toUpperCase() === 'REJECTED') {
+            await supabase.from(TABLES.salesInvoiceItems).delete().eq('sales_invoice_id', r.id);
+            await supabase.from(TABLES.salesInvoices).delete().eq('id', r.id);
+          } else {
+            activeCollision = true;
+          }
+        }
+        if (!activeCollision) {
+          await supabase.from(TABLES.documentSequences).upsert(
+            {
+              document_type: key,
+              prefix: cfg.prefix,
+              next_number: candidateNum + 1,
+              padding: cfg.padding,
+              description: cfg.documentType,
+            },
+            { onConflict: 'document_type' }
+          );
+          return candidateStr;
+        }
+      } else if (key === 'PI') {
+        const { data: colliding } = await supabase
+          .from(TABLES.purchaseInvoices)
+          .select('id,status,deleted_at')
+          .or(`invoice_no.eq.${candidateStr},grn_no.eq.${candidateStr}`);
+        let activeCollision = false;
+        for (const r of colliding || []) {
+          if (r.deleted_at || String(r.status || '').toUpperCase() === 'REJECTED') {
+            await supabase.from(TABLES.purchaseInvoiceItems).delete().eq('purchase_invoice_id', r.id);
+            await supabase.from(TABLES.purchaseInvoices).delete().eq('id', r.id);
+          } else {
+            activeCollision = true;
+          }
+        }
+        if (!activeCollision) {
+          await supabase.from(TABLES.documentSequences).upsert(
+            {
+              document_type: key,
+              prefix: cfg.prefix,
+              next_number: candidateNum + 1,
+              padding: cfg.padding,
+              description: cfg.documentType,
+            },
+            { onConflict: 'document_type' }
+          );
+          return candidateStr;
+        }
+      }
+
+      candidateNum += 1;
+    }
+
+    return formatSeqNumber(cfg.prefix, candidateNum, cfg.padding);
+  }
 
   // 1. Try atomic Postgres RPC first
   const { data: rpcAllocated, error: rpcErr } = await supabase.rpc('next_document_number', {

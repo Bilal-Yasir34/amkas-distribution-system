@@ -50,10 +50,11 @@ function formatSeq(prefix, num, padding = 2) {
 }
 
 async function getDbMaxSuffix(table, col, prefix, altCol = null) {
-  const cols = altCol ? `${col},${altCol}` : col;
+  const cols = altCol ? `${col},${altCol},status,deleted_at` : `${col},status,deleted_at`;
   const { data } = await supabase.from(table).select(cols);
   let max = 0;
   for (const r of data || []) {
+    if (r.deleted_at || String(r.status || '').toUpperCase() === 'REJECTED') continue;
     const v1 = parseSuffix(r[col], prefix);
     if (v1 > max) max = v1;
     if (altCol) {
@@ -67,13 +68,6 @@ async function getDbMaxSuffix(table, col, prefix, altCol = null) {
 let seqLock = Promise.resolve();
 
 async function allocateNumber(docType, table, col, prefix, padding = 2, altCol = null) {
-  const { data: rpcNo, error: rpcErr } = await supabase.rpc('next_document_number', {
-    p_doc_type: docType,
-  });
-  if (!rpcErr && typeof rpcNo === 'string' && rpcNo.trim()) {
-    return rpcNo.trim();
-  }
-
   let release;
   const nextLock = new Promise((r) => {
     release = r;
@@ -83,44 +77,45 @@ async function allocateNumber(docType, table, col, prefix, padding = 2, altCol =
   await prev;
 
   try {
-    const [{ data: seqRow }, dbMax] = await Promise.all([
-      supabase.from('document_sequences').select('*').eq('document_type', docType).maybeSingle(),
-      getDbMaxSuffix(table, col, prefix, altCol),
-    ]);
-    const currentSeq = Number(seqRow?.next_number || 1);
-    const allocatedInt = Math.max(currentSeq, dbMax + 1, 1);
-    const nextInt = allocatedInt + 1;
+    const dbMax = await getDbMaxSuffix(table, col, prefix, altCol);
+    const allocatedInt = Math.max(dbMax + 1, 1);
+    const candidateStr = formatSeq(prefix, allocatedInt, padding);
+
+    // Purge any soft-deleted or REJECTED row holding candidateStr
+    const { data: colliding } = await supabase
+      .from(table)
+      .select('id,status,deleted_at')
+      .eq(col, candidateStr);
+    for (const r of colliding || []) {
+      if (r.deleted_at || String(r.status || '').toUpperCase() === 'REJECTED') {
+        if (table === 'sales_invoices') {
+          await supabase.from('sales_invoice_items').delete().eq('sales_invoice_id', r.id);
+        } else if (table === 'purchase_invoices') {
+          await supabase.from('purchase_invoice_items').delete().eq('purchase_invoice_id', r.id);
+        }
+        await supabase.from(table).delete().eq('id', r.id);
+      }
+    }
 
     await supabase.from('document_sequences').upsert(
       {
         document_type: docType,
         prefix,
-        next_number: nextInt,
+        next_number: allocatedInt + 1,
         padding,
       },
       { onConflict: 'document_type' }
     );
 
-    return formatSeq(prefix, allocatedInt, padding);
+    return candidateStr;
   } finally {
     release();
   }
 }
 
 async function previewNumber(docType, table, col, prefix, padding = 2, altCol = null) {
-  const { data: rpcNo, error: rpcErr } = await supabase.rpc('preview_next_document_number', {
-    p_doc_type: docType,
-  });
-  if (!rpcErr && typeof rpcNo === 'string' && rpcNo.trim()) {
-    return rpcNo.trim();
-  }
-
-  const [{ data: seqRow }, dbMax] = await Promise.all([
-    supabase.from('document_sequences').select('*').eq('document_type', docType).maybeSingle(),
-    getDbMaxSuffix(table, col, prefix, altCol),
-  ]);
-  const currentSeq = Number(seqRow?.next_number || 1);
-  const candidate = Math.max(currentSeq, dbMax + 1, 1);
+  const dbMax = await getDbMaxSuffix(table, col, prefix, altCol);
+  const candidate = Math.max(dbMax + 1, 1);
   return formatSeq(prefix, candidate, padding);
 }
 
@@ -478,28 +473,40 @@ async function runTests() {
     console.log(`[PASS] Test 3: Rejecting ${conc1.invoice.invoice_no} set both queue and invoice to REJECTED`);
 
     // ------------------------------------------------------------------------
-    // TEST 6: Numbering continues monotonically after deleting/rejecting
+    // TEST 6: Dynamic numbering from MAX(active non-deleted, non-rejected) + 1:
+    //  (a) If interior invoice is deleted/rejected while a higher approved/pending
+    //      invoice exists, next number is MAX + 1.
+    //  (b) If the tail invoice is deleted/rejected, next number rolls back to MAX + 1.
     // ------------------------------------------------------------------------
-    const maxIssuedSoFar = Math.max(
-      parseSuffix(created1.invoice.invoice_no, 'SL-'),
-      parseSuffix(conc1.invoice.invoice_no, 'SL-'),
-      parseSuffix(conc2.invoice.invoice_no, 'SL-')
+    const higherInv =
+      parseSuffix(conc1.invoice.invoice_no, 'SL-') > parseSuffix(conc2.invoice.invoice_no, 'SL-')
+        ? conc1
+        : conc2;
+    const lowerInv = higherInv === conc1 ? conc2 : conc1;
+    const higherSuffix = parseSuffix(higherInv.invoice.invoice_no, 'SL-');
+    const created1Suffix = parseSuffix(created1.invoice.invoice_no, 'SL-');
+
+    // Case (a): lowerInv (conc1) was REJECTED, higherInv is still active -> next number is higherSuffix + 1
+    const previewWhenInteriorRemoved = await previewNumber('SL', 'sales_invoices', 'invoice_no', 'SL-', 2);
+    assert.equal(
+      parseSuffix(previewWhenInteriorRemoved, 'SL-'),
+      higherSuffix + 1,
+      `When interior invoice is removed and ${higherInv.invoice.invoice_no} exists, next must be SL-${String(higherSuffix + 1).padStart(2, '0')}`
     );
 
-    // Delete conc2 (the highest numbered test invoice) and verify the next number still advances!
-    await supabase.from('approval_queue').delete().eq('id', conc2.queueRow.id);
-    await supabase.from('sales_invoice_items').delete().eq('sales_invoice_id', conc2.invoice.id);
-    await supabase.from('sales_invoices').delete().eq('id', conc2.invoice.id);
+    // Case (b): now delete higherInv (the tail invoice) -> highest remaining active is created1 (SL-02), so next is created1Suffix + 1 (SL-03)
+    await supabase.from('approval_queue').delete().eq('id', higherInv.queueRow.id);
+    await supabase.from('sales_invoice_items').delete().eq('sales_invoice_id', higherInv.invoice.id);
+    await supabase.from('sales_invoices').delete().eq('id', higherInv.invoice.id);
 
-    const nextAfterDeleteAndReject = await allocateNumber('SL', 'sales_invoices', 'invoice_no', 'SL-', 2);
-    const nextSuffix = parseSuffix(nextAfterDeleteAndReject, 'SL-');
+    const previewWhenTailDeleted = await previewNumber('SL', 'sales_invoices', 'invoice_no', 'SL-', 2);
     assert.equal(
-      nextSuffix,
-      maxIssuedSoFar + 1,
-      `Expected number after delete/reject (${nextAfterDeleteAndReject}) to equal ${maxIssuedSoFar + 1}`
+      parseSuffix(previewWhenTailDeleted, 'SL-'),
+      created1Suffix + 1,
+      `When tail invoice is deleted leaving ${created1.invoice.invoice_no} as max, next must roll back to SL-${String(created1Suffix + 1).padStart(2, '0')}`
     );
     console.log(
-      `[PASS] Test 6: Numbering continued monotonically to ${nextAfterDeleteAndReject} after rejecting ${conc1.invoice.invoice_no} and deleting ${conc2.invoice.invoice_no}`
+      `[PASS] Test 6: Interior delete/reject advances to ${previewWhenInteriorRemoved}, and tail delete rolls back to ${previewWhenTailDeleted}`
     );
   } finally {
     // Cleanup all test artifacts and restore product stock & SL sequence
@@ -551,8 +558,18 @@ async function runTests() {
     if (q.status === 'APPROVED' && doc && doc.status !== 'POSTED') approvedNotPosted++;
   }
 
-  const maxSl = Math.max(0, ...si.map((r) => parseSuffix(r.invoice_no, 'SL-')));
-  const maxPi = Math.max(0, ...pi.map((r) => Math.max(parseSuffix(r.invoice_no, 'PI-'), parseSuffix(r.grn_no, 'PI-'))));
+  const maxSl = Math.max(
+    0,
+    ...si
+      .filter((r) => String(r.status || '').toUpperCase() !== 'REJECTED')
+      .map((r) => parseSuffix(r.invoice_no, 'SL-'))
+  );
+  const maxPi = Math.max(
+    0,
+    ...pi
+      .filter((r) => String(r.status || '').toUpperCase() !== 'REJECTED')
+      .map((r) => Math.max(parseSuffix(r.invoice_no, 'PI-'), parseSuffix(r.grn_no, 'PI-')))
+  );
   const slSeq = (dsRows || []).find((d) => d.document_type === 'SL');
   const piSeq = (dsRows || []).find((d) => d.document_type === 'PI');
 

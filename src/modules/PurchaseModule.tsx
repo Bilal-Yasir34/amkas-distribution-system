@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Plus, ShoppingCart, DollarSign, FileText, CheckCircle, Clock, X, Trash2, Edit, Printer, Send } from 'lucide-react';
-import { useErpData, usePurchaseInvoices, usePurchaseInvoiceStatusCounts } from '@/lib/queries';
+import { useErpData, usePurchaseInvoices } from '@/lib/queries';
 import { previewNextDocumentNumber, allocateNextDocumentNumber } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
@@ -71,9 +71,8 @@ export function PurchaseModule() {
   }, [customers]);
 
   const [activeSubTab, setActiveSubTab] = useState<'Purchases' | 'Requests' | 'Purchase Orders' | 'Purchase Invoices' | 'Debit Notes' | 'Payments'>('Purchases');
-  const [purchaseStatusFilter, setPurchaseStatusFilter] = useState<'ALL' | 'POSTED' | 'PENDING_APPROVAL' | 'REJECTED'>('ALL');
-  const { data: filteredPurchaseInvoices = [] } = usePurchaseInvoices(purchaseStatusFilter);
-  const purchaseCounts = usePurchaseInvoiceStatusCounts();
+  // Only approved/posted purchase invoices appear in the Purchase section; pending & rejected stay in the Approval Center
+  const { data: postedPurchaseInvoices = [] } = usePurchaseInvoices('POSTED');
 
   const [newBillOpen, setNewBillOpen] = useState(false);
   const [genericModalOpen, setGenericModalOpen] = useState(false);
@@ -840,7 +839,6 @@ export function PurchaseModule() {
       setEditingPIId(null);
       setPiReferenceNo('');
       setPiVendorInvoiceNo('');
-      setPurchaseStatusFilter('ALL');
       setPiViewMode('list');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save purchase invoice');
@@ -1700,43 +1698,9 @@ export function PurchaseModule() {
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="inline-flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800 text-xs">
-                  <button
-                    onClick={() => setPurchaseStatusFilter('ALL')}
-                    className={`px-3 py-1 rounded-md font-semibold transition ${purchaseStatusFilter === 'ALL' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
-                  >
-                    All ({purchaseCounts.ALL || (purchaseInvoices || []).length})
-                  </button>
-                  <button
-                    onClick={() => setPurchaseStatusFilter('POSTED')}
-                    className={`px-3 py-1 rounded-md font-semibold transition ${purchaseStatusFilter === 'POSTED' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
-                  >
-                    Accepted / Posted ({purchaseCounts.POSTED ?? (purchaseInvoices || []).filter(p => p.status === 'POSTED' || p.status === 'APPROVED' || p.status === 'Accepted').length})
-                  </button>
-                  <button
-                    onClick={() => setPurchaseStatusFilter('PENDING_APPROVAL')}
-                    className={`px-3 py-1 rounded-md font-semibold transition ${purchaseStatusFilter === 'PENDING_APPROVAL' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
-                  >
-                    Pending Approval ({purchaseCounts.PENDING_APPROVAL ?? (purchaseInvoices || []).filter(p => p.status === 'PENDING_APPROVAL' || p.status === 'PENDING').length})
-                  </button>
-                  <button
-                    onClick={() => setPurchaseStatusFilter('REJECTED')}
-                    className={`px-3 py-1 rounded-md font-semibold transition flex items-center gap-1.5 ${
-                      purchaseStatusFilter === 'REJECTED'
-                        ? 'bg-rose-600 text-white shadow-sm'
-                        : 'text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300'
-                    }`}
-                  >
-                    <span>Rejected</span>
-                    <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                        purchaseStatusFilter === 'REJECTED'
-                          ? 'bg-white/20 text-white'
-                          : 'bg-rose-500/15 text-rose-500 border border-rose-500/20'
-                      }`}
-                    >
-                      {purchaseCounts.REJECTED ?? (purchaseInvoices || []).filter((p) => p.status === 'REJECTED').length}
-                    </span>
-                  </button>
+                  <span className="px-3 py-1 rounded-md font-semibold bg-emerald-600 text-white shadow-sm">
+                    Approved / Posted ({postedPurchaseInvoices.length})
+                  </span>
                 </div>
                 <button
                   onClick={openCreatePIForm}
@@ -1762,12 +1726,14 @@ export function PurchaseModule() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {(() => {
-                    const filteredPIs = filteredPurchaseInvoices;
+                    const filteredPIs = postedPurchaseInvoices.filter(
+                      (pi) => pi.status === 'POSTED' || pi.status === 'APPROVED' || pi.status === 'Accepted'
+                    );
                     if (filteredPIs.length === 0) {
                       return (
                         <tr>
                           <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                            No purchases recorded for this filter. Click New Purchase to create one.
+                            No approved purchases yet. Click New Purchase to create one and approve it in the Approval Center.
                           </td>
                         </tr>
                       );

@@ -18,7 +18,7 @@ import {
   Layers,
   Send,
 } from 'lucide-react';
-import { useErpData, useSalesInvoices, useSalesInvoiceStatusCounts } from '@/lib/queries';
+import { useErpData, useSalesInvoices } from '@/lib/queries';
 import { previewNextDocumentNumber, allocateNextDocumentNumber } from '@/lib/services';
 import { useToast } from '@/lib/toast';
 import { useAuth } from '@/lib/auth';
@@ -114,9 +114,8 @@ export function SalesModule() {
   const [invPartyType, setInvPartyType] = useState<string>('ALL');
   const [invCustomerId, setInvCustomerId] = useState('');
 
-  const [salesStatusFilter, setSalesStatusFilter] = useState<'ALL' | 'POSTED' | 'PENDING_APPROVAL' | 'REJECTED'>('ALL');
-  const { data: filteredSalesInvoices = [] } = useSalesInvoices(salesStatusFilter);
-  const salesCounts = useSalesInvoiceStatusCounts();
+  // Only approved/posted invoices appear in the Sales section; pending & rejected stay in the Approval Center
+  const { data: postedSalesInvoices = [] } = useSalesInvoices('POSTED');
 
   const availableParties = useMemo<any[]>(() => {
     const taggedCustomers = customers.map(c => ({ ...c, _origin: 'customer' }));
@@ -518,7 +517,6 @@ export function SalesModule() {
 
       setEditingInvoiceId(null);
       setInvReferenceNo('');
-      setSalesStatusFilter('ALL');
       setInvoiceViewMode('list');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save sales invoice');
@@ -1324,7 +1322,7 @@ export function SalesModule() {
     setGenericModalOpen(false);
   };
 
-  const totalInvoicedSum = invoices.reduce((acc, i) => acc + (i.total_amount || 0), 0);
+  const totalInvoicedSum = postedSalesInvoices.reduce((acc, i) => acc + (i.total_amount || 0), 0);
 
   return (
     <div className="space-y-5">
@@ -1361,30 +1359,9 @@ export function SalesModule() {
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="inline-flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800 text-xs">
-                  <button
-                    onClick={() => setSalesStatusFilter('ALL')}
-                    className={`px-3 py-1 rounded-md font-semibold transition ${salesStatusFilter === 'ALL' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
-                  >
-                    All ({salesCounts.ALL || invoices.length})
-                  </button>
-                  <button
-                    onClick={() => setSalesStatusFilter('POSTED')}
-                    className={`px-3 py-1 rounded-md font-semibold transition ${salesStatusFilter === 'POSTED' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
-                  >
-                    Accepted / Posted ({salesCounts.POSTED ?? invoices.filter(i => i.status === 'POSTED').length})
-                  </button>
-                  <button
-                    onClick={() => setSalesStatusFilter('PENDING_APPROVAL')}
-                    className={`px-3 py-1 rounded-md font-semibold transition ${salesStatusFilter === 'PENDING_APPROVAL' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
-                  >
-                    Pending Approval ({salesCounts.PENDING_APPROVAL ?? invoices.filter(i => i.status === 'PENDING_APPROVAL').length})
-                  </button>
-                  <button
-                    onClick={() => setSalesStatusFilter('REJECTED')}
-                    className={`px-3 py-1 rounded-md font-semibold transition ${salesStatusFilter === 'REJECTED' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'}`}
-                  >
-                    Rejected ({salesCounts.REJECTED ?? invoices.filter(i => i.status === 'REJECTED').length})
-                  </button>
+                  <span className="px-3 py-1 rounded-md font-semibold bg-emerald-600 text-white shadow-sm">
+                    Approved / Posted ({postedSalesInvoices.length})
+                  </span>
                 </div>
                 <button
                   onClick={openCreateInvoiceForm}
@@ -1409,12 +1386,12 @@ export function SalesModule() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {(() => {
-                    const filteredInvoices = filteredSalesInvoices;
+                    const filteredInvoices = postedSalesInvoices.filter((inv) => inv.status === 'POSTED');
                     if (filteredInvoices.length === 0) {
                       return (
                         <tr>
                           <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                            No sales records found for this filter. Click New Sales to create one.
+                            No approved sales invoices yet. Click New Sales to create one and approve it in the Approval Center.
                           </td>
                         </tr>
                       );
@@ -3021,15 +2998,15 @@ export function SalesModule() {
               <div className="flex justify-between items-center border-b border-slate-100 pb-2 dark:border-slate-800">
                 <span className="text-xs font-bold uppercase tracking-wider text-purple-500">3. INVOICES</span>
                 <span className="rounded-full bg-purple-500/10 px-2 py-0.5 text-[10px] font-bold text-purple-500">
-                  {invoices.length}
+                  {postedSalesInvoices.length}
                 </span>
               </div>
               <p className="text-xs text-slate-400">Billed to customer</p>
               <div className="space-y-2 pt-2 max-h-96 overflow-y-auto">
-                {invoices.length === 0 ? (
+                {postedSalesInvoices.length === 0 ? (
                   <p className="text-[11px] text-slate-400 italic">No invoices</p>
                 ) : (
-                  invoices.map((inv) => (
+                  postedSalesInvoices.map((inv) => (
                     <div key={inv.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/40">
                       <p className="text-xs font-bold text-purple-500">{inv.invoice_no}</p>
                       <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{inv.salesperson || 'Salesperson'}</p>

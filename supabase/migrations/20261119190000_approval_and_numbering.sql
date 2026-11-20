@@ -415,13 +415,13 @@ BEGIN
   INSERT INTO public.document_sequences (document_type, prefix, next_number, padding, description)
   VALUES (
     'SL', 'SL-',
-    GREATEST(1, COALESCE((SELECT MAX(public.extract_doc_number_suffix(invoice_no, 'SL-')) FROM public.sales_invoices WHERE invoice_no ~* '^SL-[0-9]+$' AND deleted_at IS NULL), 0) + 1),
+    GREATEST(1, COALESCE((SELECT MAX(public.extract_doc_number_suffix(invoice_no, 'SL-')) FROM public.sales_invoices WHERE invoice_no ~* '^SL-[0-9]+$' AND deleted_at IS NULL AND status <> 'REJECTED'), 0) + 1),
     2, 'Sales Invoice'
   )
   ON CONFLICT (document_type) DO UPDATE SET
     next_number = GREATEST(
-      public.document_sequences.next_number,
-      COALESCE((SELECT MAX(public.extract_doc_number_suffix(invoice_no, 'SL-')) FROM public.sales_invoices WHERE invoice_no ~* '^SL-[0-9]+$' AND deleted_at IS NULL), 0) + 1
+      1,
+      COALESCE((SELECT MAX(public.extract_doc_number_suffix(invoice_no, 'SL-')) FROM public.sales_invoices WHERE invoice_no ~* '^SL-[0-9]+$' AND deleted_at IS NULL AND status <> 'REJECTED'), 0) + 1
     ),
     updated_at = now();
 
@@ -429,13 +429,13 @@ BEGIN
   INSERT INTO public.document_sequences (document_type, prefix, next_number, padding, description)
   VALUES (
     'PI', 'PI-',
-    GREATEST(1, COALESCE((SELECT MAX(GREATEST(public.extract_doc_number_suffix(invoice_no, 'PI-'), public.extract_doc_number_suffix(grn_no, 'PI-'))) FROM public.purchase_invoices WHERE (invoice_no ~* '^PI-[0-9]+$' OR grn_no ~* '^PI-[0-9]+$') AND deleted_at IS NULL), 0) + 1),
+    GREATEST(1, COALESCE((SELECT MAX(GREATEST(public.extract_doc_number_suffix(invoice_no, 'PI-'), public.extract_doc_number_suffix(grn_no, 'PI-'))) FROM public.purchase_invoices WHERE (invoice_no ~* '^PI-[0-9]+$' OR grn_no ~* '^PI-[0-9]+$') AND deleted_at IS NULL AND status <> 'REJECTED'), 0) + 1),
     2, 'Purchase Invoice / GRN'
   )
   ON CONFLICT (document_type) DO UPDATE SET
     next_number = GREATEST(
-      public.document_sequences.next_number,
-      COALESCE((SELECT MAX(GREATEST(public.extract_doc_number_suffix(invoice_no, 'PI-'), public.extract_doc_number_suffix(grn_no, 'PI-'))) FROM public.purchase_invoices WHERE (invoice_no ~* '^PI-[0-9]+$' OR grn_no ~* '^PI-[0-9]+$') AND deleted_at IS NULL), 0) + 1
+      1,
+      COALESCE((SELECT MAX(GREATEST(public.extract_doc_number_suffix(invoice_no, 'PI-'), public.extract_doc_number_suffix(grn_no, 'PI-'))) FROM public.purchase_invoices WHERE (invoice_no ~* '^PI-[0-9]+$' OR grn_no ~* '^PI-[0-9]+$') AND deleted_at IS NULL AND status <> 'REJECTED'), 0) + 1
     ),
     updated_at = now();
 
@@ -1611,8 +1611,8 @@ BEGIN
   FROM (
     SELECT ds.document_type, ds.next_number,
            CASE
-             WHEN ds.document_type = 'SL' THEN COALESCE((SELECT MAX(public.extract_doc_number_suffix(invoice_no, 'SL-')) FROM public.sales_invoices WHERE invoice_no ~* '^SL-[0-9]+$'), 0)
-             WHEN ds.document_type = 'PI' THEN COALESCE((SELECT MAX(GREATEST(public.extract_doc_number_suffix(invoice_no, 'PI-'), public.extract_doc_number_suffix(grn_no, 'PI-'))) FROM public.purchase_invoices WHERE invoice_no ~* '^PI-[0-9]+$' OR grn_no ~* '^PI-[0-9]+$'), 0)
+             WHEN ds.document_type = 'SL' THEN COALESCE((SELECT MAX(public.extract_doc_number_suffix(invoice_no, 'SL-')) FROM public.sales_invoices WHERE invoice_no ~* '^SL-[0-9]+$' AND deleted_at IS NULL AND status <> 'REJECTED'), 0)
+             WHEN ds.document_type = 'PI' THEN COALESCE((SELECT MAX(GREATEST(public.extract_doc_number_suffix(invoice_no, 'PI-'), public.extract_doc_number_suffix(grn_no, 'PI-'))) FROM public.purchase_invoices WHERE (invoice_no ~* '^PI-[0-9]+$' OR grn_no ~* '^PI-[0-9]+$') AND deleted_at IS NULL AND status <> 'REJECTED'), 0)
              ELSE 0
            END AS max_used
     FROM public.document_sequences ds

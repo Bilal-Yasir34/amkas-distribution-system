@@ -20,7 +20,7 @@ import {
   softOrHardDeleteRow,
   updateRowById,
 } from './dbHelpers';
-import { allocateNextDocumentNumber } from './numbering';
+import { allocateNextDocumentNumber, previewNextDocumentNumber } from './numbering';
 
 export interface CreateSalesInvoiceInput extends Omit<SalesInvoice, 'id' | 'invoice_no'> {
   id?: string;
@@ -40,10 +40,35 @@ export function useSalesInvoiceMutations() {
       const customerId = inv.customer_id ? ensureUUID(inv.customer_id) : null;
       const warehouseId = inv.warehouse_id ? ensureUUID(inv.warehouse_id) : null;
 
-      // 1. Try atomic Postgres RPC `create_sales_invoice` first
+      // Allocate next SL number from MAX(active non-deleted, non-rejected) + 1
+      let invoiceNo = (inv.invoice_no || '').trim();
+      if (invoiceNo) {
+        const { data: existingNo } = await supabase
+          .from(TABLES.salesInvoices)
+          .select('id,status,deleted_at')
+          .eq('invoice_no', invoiceNo);
+        let activeCollision = false;
+        for (const r of existingNo || []) {
+          if (r.deleted_at || String(r.status || '').toUpperCase() === 'REJECTED') {
+            await supabase.from(TABLES.salesInvoiceItems).delete().eq('sales_invoice_id', r.id);
+            await supabase.from(TABLES.salesInvoices).delete().eq('id', r.id);
+          } else {
+            activeCollision = true;
+          }
+        }
+        if (activeCollision) {
+          invoiceNo = '';
+        }
+      }
+      if (!invoiceNo) {
+        invoiceNo = await allocateNextDocumentNumber('SL');
+      }
+
+      // 1. Try atomic Postgres RPC `create_sales_invoice` first with our dynamically allocated invoice_no
       const rpcPayload = {
         ...inv,
         id,
+        invoice_no: invoiceNo,
         customer_id: customerId,
         warehouse_id: warehouseId,
         items: (inv.items || []).map((it) => ({
@@ -67,23 +92,6 @@ export function useSalesInvoiceMutations() {
       }
 
       // 2. Database-verified sequenced fallback if `create_sales_invoice` RPC is not yet installed
-      let invoiceNo = (inv.invoice_no || '').trim();
-      if (invoiceNo) {
-        const { data: existingNo } = await supabase
-          .from(TABLES.salesInvoices)
-          .select('id')
-          .eq('invoice_no', invoiceNo)
-          .limit(1);
-        if (existingNo && existingNo.length > 0) {
-          invoiceNo = '';
-        }
-      }
-      if (!invoiceNo) {
-        invoiceNo = await allocateNextDocumentNumber('SL');
-      } else {
-        // Also advance document_sequences so next allocation is above this number
-        await allocateNextDocumentNumber('SL');
-      }
 
       const row: SalesInvoice = {
         ...inv,
@@ -275,20 +283,44 @@ export function useSalesInvoiceMutations() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const invoices = queryClient.getQueryData<SalesInvoice[]>([TABLES.salesInvoices]) || [];
-      const target = invoices.find((i) => i.id === id || i.invoice_no === id);
+      let target = invoices.find((i) => i.id === id || i.invoice_no === id);
+      if (!target) {
+        const { data: dbRow } = await supabase
+          .from(TABLES.salesInvoices)
+          .select('id,invoice_no')
+          .eq('id', ensureUUID(id))
+          .maybeSingle();
+        if (dbRow) target = dbRow as SalesInvoice;
+      }
       const targetId = ensureUUID(target?.id || id);
       const invNo = target?.invoice_no;
 
-      await softOrHardDeleteRow(TABLES.salesInvoices, targetId, 'invoice_no', invNo);
+      // Hard-delete line items and the invoice row so if it was the tail invoice,
+      // the next created invoice can reuse its serial number cleanly.
+      await supabase.from(TABLES.salesInvoiceItems).delete().eq('sales_invoice_id', targetId);
+      await deleteRowById(TABLES.salesInvoices, targetId, 'invoice_no', invNo);
       await supabase.from(TABLES.approvalQueue).delete().eq('entity_id', targetId);
       if (invNo) {
         await supabase.from(TABLES.approvalQueue).delete().eq('voucher_no', invNo);
         await supabase.from(TABLES.salesCommissions).delete().eq('invoice_no', invNo);
         await supabase.from(TABLES.journalEntries).delete().eq('reference_no', invNo);
       }
+
+      // Sync document_sequences.next_number to MAX(remaining non-deleted, non-rejected) + 1
+      await previewNextDocumentNumber('SL');
     },
-    onSuccess: () => invalidateTableAndRelated(queryClient, TABLES.salesInvoices),
-    onSettled: () => invalidateTableAndRelated(queryClient, TABLES.salesInvoices),
+    onSuccess: () =>
+      invalidateTableAndRelated(queryClient, [
+        TABLES.salesInvoices,
+        TABLES.approvalQueue,
+        TABLES.documentSequences,
+      ]),
+    onSettled: () =>
+      invalidateTableAndRelated(queryClient, [
+        TABLES.salesInvoices,
+        TABLES.approvalQueue,
+        TABLES.documentSequences,
+      ]),
   });
 
   const postMutation = useMutation({

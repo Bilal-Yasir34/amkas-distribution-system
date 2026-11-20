@@ -183,12 +183,14 @@ export async function runDatabaseIntegrityCheck(): Promise<IntegrityCheckReport>
     if (cnt > 1) duplicateNumbers.push({ entity_type: 'purchase_invoice', doc_no: docNo, cnt });
   }
 
-  // Sequence drift check
+  // Sequence drift check (active non-deleted, non-rejected documents)
   const sequenceDrift: IntegrityIssueItem[] = [];
-  const maxSl = Math.max(0, ...si.map((x) => parseSuffix(x.invoice_no, 'SL')));
+  const activeSl = si.filter((x) => String(x.status || '').toUpperCase() !== 'REJECTED');
+  const activePi = pi.filter((x) => String(x.status || '').toUpperCase() !== 'REJECTED');
+  const maxSl = Math.max(0, ...activeSl.map((x) => parseSuffix(x.invoice_no, 'SL')));
   const maxPi = Math.max(
     0,
-    ...pi.flatMap((x) => [parseSuffix(x.invoice_no, 'PI'), parseSuffix(x.grn_no, 'PI')])
+    ...activePi.flatMap((x) => [parseSuffix(x.invoice_no, 'PI'), parseSuffix(x.grn_no, 'PI')])
   );
 
   const slSeq = ds.find((d) => d.document_type === 'SL');
